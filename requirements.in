@@ -3,3 +3,5 @@ pytest
 python-dotenv
 PyQt6
 QtAwesome
+qt-material
+faiss-cpu

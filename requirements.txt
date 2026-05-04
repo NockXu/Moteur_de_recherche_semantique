@@ -6,12 +6,21 @@
 #
 colorama==0.4.6
     # via pytest
+faiss-cpu==1.13.2
+    # via -r requirements.in
 iniconfig==2.3.0
     # via pytest
+jinja2==3.1.6
+    # via qt-material
+markupsafe==3.0.3
+    # via jinja2
 numpy==2.4.4
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   faiss-cpu
 packaging==26.2
     # via
+    #   faiss-cpu
     #   pytest
     #   qtpy
 pluggy==1.6.0
@@ -27,6 +36,8 @@ pyqt6-sip==13.11.1
 pytest==9.0.3
     # via -r requirements.in
 python-dotenv==1.2.2
+    # via -r requirements.in
+qt-material==2.17
     # via -r requirements.in
 qtawesome==1.4.2
     # via -r requirements.in
