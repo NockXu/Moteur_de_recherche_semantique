@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000002354.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000002354.jpg",
+  "name": "",
+  "stem": "000000002354",
+  "suffix": ".jpg",
+  "size": 147057,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Devanture d'une boutique avec pancarte sur un vélo, devant une rue animée avec magasins et vélos en stationnement.",
+  "keywords": [
+    "boutique",
+    "vélo",
+    "pancarte",
+    "rue",
+    "magasins"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

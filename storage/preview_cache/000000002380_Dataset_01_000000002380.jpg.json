@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000002380.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000002380.jpg",
+  "name": "",
+  "stem": "000000002380",
+  "suffix": ".jpg",
+  "size": 170539,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un chef en uniforme blanc prépare des plats dans une cuisine professionnelle, entouré de contenants de conservation et de matériel de cuisine.",
+  "keywords": [
+    "chef",
+    "cuisine",
+    "préparation",
+    "contenants",
+    "uniforme"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000002362.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000002362.jpg",
+  "name": "",
+  "stem": "000000002362",
+  "suffix": ".jpg",
+  "size": 149279,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un homme joue au frisbee devant une foule animée, avec des mascottes et des panneaux publicitaires en arrière-plan. Le ciel est clair et le terrain est en herbe.",
+  "keywords": [
+    "frisbee",
+    "homme",
+    "foule",
+    "mascottes",
+    "terrain herbeux"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

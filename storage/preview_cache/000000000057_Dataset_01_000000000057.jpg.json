@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000000057.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000000057.jpg",
+  "name": "",
+  "stem": "000000000057",
+  "suffix": ".jpg",
+  "size": 189943,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un joueur de tennis en action sur un terrain de terre battue, portant un maillot rouge et des shorts à carreaux, frappe une balle en pleine lumière du jour.",
+  "keywords": [
+    "tennis",
+    "joueur",
+    "terre battue",
+    "maillot rouge",
+    "action"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

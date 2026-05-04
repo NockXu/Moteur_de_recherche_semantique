@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000002059.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000002059.jpg",
+  "name": "",
+  "stem": "000000002059",
+  "suffix": ".jpg",
+  "size": 99929,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un ours en peluche beige avec un collier de perles est suspendu dans une vitrine, entouré de boîtes rouges. L'ambiance est lumineuse, probablement à l'intérieur d'un magasin.",
+  "keywords": [
+    "ours",
+    "peluche",
+    "collier",
+    "perles",
+    "vitrine"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

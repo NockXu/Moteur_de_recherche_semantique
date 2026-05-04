@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000000016.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000000016.jpg",
+  "name": "",
+  "stem": "000000000016",
+  "suffix": ".jpg",
+  "size": 230884,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un joueur de baseball en action, frappant une balle dans un champ de baseball. L'arrière-plan montre une clôture en métal et des arbres avec des feuilles d'automne. Le soleil éclaire la scène, créant une ambiance claire et ensoleillée.",
+  "keywords": [
+    "baseball",
+    "joueur",
+    "frappe",
+    "champ",
+    "soleil"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

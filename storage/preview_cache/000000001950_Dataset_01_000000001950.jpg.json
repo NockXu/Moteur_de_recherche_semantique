@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000001950.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000001950.jpg",
+  "name": "",
+  "stem": "000000001950",
+  "suffix": ".jpg",
+  "size": 173422,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un chat gris et un chien marron se trouvent dans un environnement automnal, avec des feuilles mortes et un arbre en arrière-plan. Le chien semble manger quelque chose, tandis que le chat observe attentivement.",
+  "keywords": [
+    "chat",
+    "chien",
+    "automne",
+    "feuilles",
+    "arbre"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

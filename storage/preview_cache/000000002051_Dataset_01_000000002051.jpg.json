@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000002051.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000002051.jpg",
+  "name": "",
+  "stem": "000000002051",
+  "suffix": ".jpg",
+  "size": 217539,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Un troupeau de vaches broutant sur un terrain en pente douce, entouré de verdure et de quelques arbres, sous un ciel partiellement nuageux.",
+  "keywords": [
+    "vaches",
+    "terrain",
+    "pente",
+    "verdure",
+    "ciel"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}

@@ -1,0 +1,23 @@
+{
+  "id": "Dataset_01_000000000019.jpg",
+  "path": "C:\\Users\\jeans\\Desktop\\Stage_3\\Moteur_de_recherche_semantique\\dataset\\Dataset_01\\000000000019.jpg",
+  "name": "",
+  "stem": "000000000019",
+  "suffix": ".jpg",
+  "size": 284532,
+  "score": 0.0,
+  "status": "not_started",
+  "description": "Deux vaches brunes et blanches reposent paisiblement dans un champ verdoyant sous un ciel nuageux.",
+  "keywords": [
+    "vaches",
+    "champ",
+    "vert",
+    "nuages",
+    "repos"
+  ],
+  "embedding": [],
+  "error_message": "",
+  "processing_start_time": null,
+  "processing_end_time": null,
+  "processing_duration": null
+}
