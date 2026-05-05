@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 # Ajouter le chemin racine du projet au sys.path
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from common import ImageInfo
+from common.Image_Classes import Image, ImageRepository
 
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
@@ -22,9 +22,9 @@ from qt_material import apply_stylesheet
 
 # Import des widgets (chemins relatifs à ui/)
 from ui.SearchBar.SearchBarController import SearchBarController
-from ui.ImportTool.ImportToolController import create_import_tool
+from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
-from ui.ImagePreview import create_image_preview
+from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.ImageSearchedContainer.AutoResearch import AutoResearch
 from ui.MenuBar import create_menu_bar
 
@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
         self.menu_controller.file_import_requested.connect(self._on_menu_import)
         self.menu_controller.file_export_requested.connect(self._on_menu_export)
     
-    def _on_image_clicked(self, img: ImageInfo):
+    def _on_image_clicked(self, img: Image):
         """Gère le clic sur une image"""
         print(f"DEBUG: MainWindow reçu clic sur {os.path.basename(img.path)}")
         

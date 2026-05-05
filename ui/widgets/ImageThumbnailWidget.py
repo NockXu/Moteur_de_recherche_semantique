@@ -11,7 +11,7 @@ from PyQt6.QtCore import (
 )
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont, QPen, QBrush, QPainterPath, QMouseEvent
 from pathlib import Path
-from common.ImageInfo import ProcessingStatus
+from common.Image_Classes.Image import Image, ProcessingStatus
 
 
 # ─────────────────────────────────────────────────────────────────────────────

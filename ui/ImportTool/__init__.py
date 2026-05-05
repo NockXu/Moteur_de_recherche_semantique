@@ -16,12 +16,11 @@ Classes principales:
 - ProcessingWorker: Worker thread pour le traitement
 """
 
-from .ImportToolController import ImportToolController, create_import_tool
+from .ImportToolController import ImportToolController
 from .ImportToolView import ImportToolView
 from .ImportToolModel import ImportToolModel
 from .ImageWidget import ImageWidget, ProcessingStatus
 from .ProcessingWorker import ProcessingWorker, BatchProcessingManager
-from common.ImageInfo import ImageInfo
 
 __all__ = [
     "ImportToolController",
@@ -30,7 +29,5 @@ __all__ = [
     "ImageWidget",
     "ProcessingWorker",
     "BatchProcessingManager",
-    "ImageInfo",
-    "ProcessingStatus",
-    "create_import_tool"
+    "ProcessingStatus"
 ]

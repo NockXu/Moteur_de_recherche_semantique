@@ -11,8 +11,8 @@ from PyQt6.QtCore import Qt, QThread, pyqtSignal
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from database.DatabaseManager import DatabaseManager
-from common.ImageInfo import ImageInfo, ProcessingStatus
+from database.DbService import DbService
+from common.Image_Classes.Image import Image, ProcessingStatus
 
 class ImportWorkerThread(QThread):
     """Thread pour l'importation en arrière-plan"""
@@ -117,107 +117,100 @@ class ImportWorkerThread(QThread):
         except Exception as e:
             self.error_occurred.emit(f"Erreur générale: {e}")
     
-    def _determine_dataset_and_path(self, filename: str, image_data: dict) -> Tuple[Optional[str], Optional[Path]]:
+    def _determine_dataset_and_path(
+        self,
+        filename: str,
+        image_data: dict
+    ) -> Tuple[Optional[str], Optional[Path]]:
         """Détermine le dataset et le chemin final selon le mode d'import"""
-        print(f"DEBUG: _determine_dataset_and_path appelé avec:")
-        print(f"  - filename: {filename}")
-        print(f"  - import_mode: {self.import_mode}")
-        print(f"  - datasets_config: {self.datasets_config}")
-        print(f"  - datasets_config type: {type(self.datasets_config)}")
-        print(f"  - datasets_config keys: {list(self.datasets_config.keys()) if self.datasets_config else 'None'}")
-        
-        if self.import_mode == "with_dataset":
-            # Mode avec dataset: utiliser les datasets configurés
-            if "dataset" in image_data:
-                dataset_name = image_data["dataset"]
-                if dataset_name in self.datasets_config:
-                    dataset_path = Path(self.datasets_config[dataset_name])
-                    final_path = dataset_path / filename
-                    return dataset_name, final_path
-            return None, None
-            
-        elif self.import_mode == "without_dataset_merge":
-            # Mode sans dataset fusionné: utiliser le dossier unique
-            print(f"DEBUG: merged_folder config = {self.datasets_config.get('merged_folder')}")
-            if "merged_folder" not in self.datasets_config:
-                print("DEBUG: 'merged_folder' pas trouvé dans datasets_config!")
-                return None, None
-                
-            dataset_path = Path(self.datasets_config["merged_folder"])
-            final_path = dataset_path / filename
-            
-            print(f"DEBUG: dataset_path = {dataset_path}")
-            print(f"DEBUG: filename = {filename}")
-            print(f"DEBUG: final_path = {final_path}")
-            
-            # Vérifier si un dataset existe déjà pour ce dossier
+
+        def _validate_path(path_str: Optional[str], context: str) -> Optional[Path]:
+            """Valide et retourne un Path propre"""
+            if not path_str:
+                print(f"DEBUG: chemin invalide ({context})")
+                return None
+
+            path = Path(path_str)
+
+            if not path.exists():
+                print(f"DEBUG: chemin inexistant ({context}): {path}")
+                return None
+
+            return path
+
+        def _build_result(dataset_path: Path, filename: str) -> Tuple[str, Path]:
+            """Construit le résultat final"""
             dataset_name = dataset_path.name
+            final_path = dataset_path / filename
+
             print(f"DEBUG: dataset_name = {dataset_name}")
-            
-            if self.db.dataset_exists(dataset_name):
-                # Fusionner avec le dataset existant
-                print(f"DEBUG: Fusion avec dataset existant: {dataset_name}")
-                return dataset_name, final_path
-            else:
-                # Créer un nouveau dataset
-                print(f"DEBUG: Création nouveau dataset: {dataset_name}")
-                return dataset_name, final_path
-            
+            print(f"DEBUG: final_path = {final_path}")
+
+            return dataset_name, final_path
+
+        # =========================
+        # MODE 1 : WITH DATASET
+        # =========================
+        if self.import_mode == "with_dataset":
+            dataset_name = image_data.get("dataset")
+
+            if not isinstance(dataset_name, str) or not dataset_name:
+                print("DEBUG: dataset invalide dans image_data")
+                return None, None
+
+            dataset_path = _validate_path(
+                self.datasets_config.get(dataset_name),
+                f"dataset '{dataset_name}'"
+            )
+
+            if not dataset_path:
+                return None, None
+
+            return _build_result(dataset_path, filename)
+
+        # =========================
+        # MODE 2 : MERGED
+        # =========================
+        elif self.import_mode == "without_dataset_merge":
+            merged_folder = self.datasets_config.get("merged_folder")
+
+            dataset_path = _validate_path(merged_folder, "merged_folder")
+            if not dataset_path:
+                return None, None
+
+            print("DEBUG: mode merge actif")
+
+            return _build_result(dataset_path, filename)
+
+        # =========================
+        # MODE 3 : SEPARATE
+        # =========================
         elif self.import_mode == "without_dataset_separate":
-            # Mode sans dataset séparé: utiliser le dataset correspondant au dossier
-            print(f"DEBUG: Mode without_dataset_separate - clés image_data: {list(image_data.keys())}")
-            
-            # Le dataset est déterminé par le dossier d'origine dans les métadonnées
-            if "original_folder" in image_data:
-                folder_name = image_data["original_folder"]
-                print(f"DEBUG: original_folder trouvé: {folder_name}")
-                dataset_path = Path(self.datasets_config.get(folder_name, ""))
-                print(f"DEBUG: dataset_path depuis config: {dataset_path}")
-                
-                if dataset_path.exists():
-                    final_path = dataset_path / filename
-                    
-                    # Vérifier si un dataset existe déjà pour ce dossier
-                    dataset_name = dataset_path.name
-                    if self.db.dataset_exists(dataset_name):
-                        # Fusionner avec le dataset existant
-                        print(f"DEBUG: Fusion avec dataset existant: {dataset_name}")
-                        return dataset_name, final_path
-                    else:
-                        # Créer un nouveau dataset avec le nom du dossier
-                        print(f"DEBUG: Création nouveau dataset: {dataset_name}")
-                        return dataset_name, final_path
-                else:
-                    print(f"DEBUG: dataset_path n'existe pas: {dataset_path}")
+            print(f"DEBUG: image_data keys = {list(image_data.keys())}")
+
+            # --- CAS 1 : original_folder ---
+            folder_name = image_data.get("original_folder")
+
+            if isinstance(folder_name, str) and folder_name:
+                print(f"DEBUG: original_folder = {folder_name}")
+
+                dataset_path = _validate_path(
+                    self.datasets_config.get(folder_name),
+                    f"original_folder '{folder_name}'"
+                )
+
+                if dataset_path:
+                    return _build_result(dataset_path, filename)
+
             else:
-                print(f"DEBUG: 'original_folder' pas trouvé dans image_data")
-                # Fallback: utiliser le vrai chemin de l'image si disponible
-                if "path" in image_data:
-                    original_path = Path(image_data["path"])
-                    if original_path.exists():
-                        # Utiliser le vrai chemin de l'image
-                        final_path = original_path
-                        # Extraire le nom du dataset depuis le chemin parent
-                        dataset_name = original_path.parent.name
-                        print(f"DEBUG: Fallback - utilisation du vrai chemin: {final_path}")
-                        print(f"DEBUG: Dataset extrait du chemin: {dataset_name}")
-                        return dataset_name, final_path
-                    else:
-                        print(f"DEBUG: Le chemin original n'existe pas: {original_path}")
-                
-                # Dernier fallback: utiliser le premier dossier disponible
-                if self.datasets_config:
-                    first_key = list(self.datasets_config.keys())[0]
-                    dataset_path = Path(self.datasets_config[first_key])
-                    final_path = dataset_path / filename
-                    dataset_name = dataset_path.name
-                    
-                    print(f"DEBUG: Dernier fallback - utilisation de {dataset_name}")
-                    return dataset_name, final_path
-            
+                print("DEBUG: original_folder absent ou invalide")
+
+        # =========================
+        # MODE INVALIDE
+        # =========================
+        else:
+            print(f"DEBUG: import_mode invalide: {self.import_mode}")
             return None, None
-        
-        return None, None
 
 class AdvancedImportDialog(QDialog):
     """Boîte de dialogue pour l'importation avancée"""

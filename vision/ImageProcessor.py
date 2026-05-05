@@ -5,7 +5,8 @@ import os
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from vision.ollama_wrapper import OllamaWrapper
-from common.ImageInfo import ImageInfo
+from common.Image_Classes.Image import Image
+from common.Dataset_Classes.Dataset import Dataset
 
 
 class ImageProcessor:
@@ -13,7 +14,7 @@ class ImageProcessor:
         self.wrapper = wrapper
         self.model = model
 
-    def ImageToData(self, image: ImageInfo) -> None:
+    def ImageToData(self, image: Image) -> None:
         """
         Génère description + keywords en un seul appel (plus stable et rapide)
         """
@@ -101,7 +102,7 @@ mot1, mot2, mot3, mot4"""
         except Exception as e:
             raise RuntimeError(f"Erreur lors du traitement de l'image {image.path}: {str(e)}")
 
-    def TextToEmbedding(self, image: ImageInfo) -> None:
+    def TextToEmbedding(self, image: Image) -> None:
         """
         Génère un embedding à partir de la description
         """
@@ -128,13 +129,15 @@ if __name__ == "__main__":
     print("Processing images...")
 
     PROJECT_ROOT = Path(__file__).parent.parent
-    DATASET_DIR = PROJECT_ROOT / "dataset" / "test"
+    DATASET_DIR = PROJECT_ROOT / "dataset" / "Dataset_test"
+
+    dataset_test = Dataset(0, "Dataset_test")
 
     images = [
-        ImageInfo(path=str(DATASET_DIR / "weezer.png")),
-        ImageInfo(path=str(DATASET_DIR / "weezer.jpg")),
-        ImageInfo(path=str(DATASET_DIR / "weezer.jpeg")),
-        ImageInfo(path=str(DATASET_DIR / "weezer.webp"))
+        Image(path=str(DATASET_DIR / "weezer.png"), dataset=dataset_test),
+        Image(path=str(DATASET_DIR / "weezer.jpg"), dataset=dataset_test),
+        Image(path=str(DATASET_DIR / "weezer.jpeg"), dataset=dataset_test),
+        Image(path=str(DATASET_DIR / "weezer.webp"), dataset=dataset_test)
     ]
 
     for image in images:

@@ -1,74 +1,93 @@
-import sys
 import os
+import sys
 import json
-from datetime import datetime
 from pathlib import Path
-from typing import List
+from typing import List, Dict, Any, Optional
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+# Ajouter la racine du projet au sys.path
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
-from database.DatabaseManager import DatabaseManager
-from common.ImageInfo import ImageInfo, ProcessingStatus
+from common.Image_Classes.Image import Image, ProcessingStatus
+
 
 class Export:
-    def __init__(self):
-        self.db = DatabaseManager()
-        # DatabaseManager se connecte automatiquement dans __init__
-    
-    def images_to_json(self, images: List[ImageInfo], output_file: str = None) -> str:
-        """
-        Transforme une liste d'ImageInfo en JSON
-        
-        Args:
-            images: Liste des ImageInfo à exporter
-            output_file: Fichier de sortie (optionnel)
-            
-        Returns:
-            str: JSON string des images
-        """
-        export_data = {}
-        
-        for image in images:
-            # Utiliser le nom du fichier comme clé
-            filename = image.name
-            export_data[filename] = {
-                "id": image.id,
-                "path": str(image.path),
-                "name": image.name,
-                "status": image.status.value if image.status else ProcessingStatus.NOT_STARTED.value,
-                "description": image.description or "",
-                "keywords": image.keywords or [],
-                "embedding": image.embedding or [],
-                "indexed_at": image.indexed_at or "",
-                "error_message": image.error_message or ""
-            }
-        
-        # Convertir en JSON
-        json_str = json.dumps(export_data, indent=2, ensure_ascii=False)
-        
-        # Sauvegarder dans un fichier si spécifié
-        if output_file:
+    """
+    Service d'export des images (clean version)
+    - pas de DB coupling direct
+    - pas de print
+    - output structuré
+    """
+
+    # ─────────────────────────────
+    # CORE SERIALIZATION
+    # ─────────────────────────────
+
+    def image_to_dict(self, image: Image) -> Dict[str, Any]:
+        return {
+            "id": getattr(image, "id", None),
+            "path": str(image.path),
+            "name": image.name,
+            "status": image.status.value if image.status else ProcessingStatus.NOT_STARTED.value,
+            "description": image.description or "",
+            "keywords": image.keywords or [],
+            "embedding": image.embedding or [],
+            "indexed_at": getattr(image, "indexed_at", ""),
+            "error_message": getattr(image, "error_message", "")
+        }
+
+    def images_to_dict(self, images: List[Image]) -> Dict[str, Any]:
+        return {
+            img.name: self.image_to_dict(img)
+            for img in images
+        }
+
+    # ─────────────────────────────
+    # EXPORT JSON STRING
+    # ─────────────────────────────
+
+    def to_json(self, images: List[Image], indent: int = 2) -> str:
+        data = self.images_to_dict(images)
+        return json.dumps(data, indent=indent, ensure_ascii=False)
+
+    # ─────────────────────────────
+    # EXPORT FILE
+    # ─────────────────────────────
+
+    def export_to_file(
+        self,
+        images: List[Image],
+        output_file: str
+    ) -> Dict[str, Any]:
+
+        try:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, 'w', encoding='utf-8') as f:
-                f.write(json_str)
-            print(f"✅ Exporté {len(images)} images vers {output_file}")
-        
-        return json_str
-    
-    def export_all_images(self, output_file: str = None) -> str:
-        """
-        Exporte toutes les images de la base de données
-        
-        Args:
-            output_file: Fichier de sortie (optionnel)
-            
-        Returns:
-            str: JSON string de toutes les images
-        """
-        try:
-            images = self.db.get_all_images()
-            return self.images_to_json(images, output_file)
+
+            json_data = self.to_json(images)
+
+            output_path.write_text(json_data, encoding="utf-8")
+
+            return {
+                "success": True,
+                "count": len(images),
+                "path": str(output_path)
+            }
+
         except Exception as e:
-            print(f"❌ Erreur lors de l'export: {e}")
-            return "{}"
+            return {
+                "success": False,
+                "error": str(e)
+            }
+
+    # ─────────────────────────────
+    # HELPERS (OPTIONAL)
+    # ─────────────────────────────
+
+    def export_single(self, image: Image) -> str:
+        return json.dumps(
+            self.image_to_dict(image),
+            indent=2,
+            ensure_ascii=False
+        )

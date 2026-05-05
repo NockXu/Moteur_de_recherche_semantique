@@ -17,7 +17,7 @@ Utilisation:
     layout.addWidget(controller.get_view())
 """
 
-from .ImagePreviewController import ImagePreviewController, create_image_preview
+from .ImagePreviewController import ImagePreviewController
 from .ImagePreviewView import ImagePreviewView
 from .ImagePreviewModel import ImagePreviewModel
 
@@ -27,6 +27,5 @@ __author__ = "Semantic Search Engine Team"
 __all__ = [
     "ImagePreviewController",
     "ImagePreviewView", 
-    "ImagePreviewModel",
-    "create_image_preview"
+    "ImagePreviewModel"
 ]
