@@ -32,6 +32,7 @@ class Image:
         self,
         path: Union[str, Path],
         dataset: Dataset,
+        name: str = None,
         score: float = 0.0,
         status: ProcessingStatus = ProcessingStatus.NOT_STARTED,
         description: str = "",
@@ -64,7 +65,10 @@ class Image:
         else:
             self.id = "img_" + hashlib.md5(str(self.path).encode()).hexdigest()[:16]
 
-        self.name = self.path.name
+        if name:
+            self.name = name
+        else:
+            self.name = self.path.name
         self.stem = self.path.stem
         self.suffix = self.path.suffix.lower()
 

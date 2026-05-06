@@ -23,8 +23,7 @@ class ImageScanService:
     """
 
     SUPPORTED_EXTENSIONS = {
-        ".jpg", ".jpeg", ".png", ".gif",
-        ".bmp", ".tiff", ".webp"
+        ".jpg", ".jpeg", ".png", ".webp"
     }
 
     def __init__(self):

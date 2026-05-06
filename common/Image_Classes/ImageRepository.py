@@ -15,6 +15,8 @@ import json
 from datetime import datetime
 from typing import List, TypedDict, Optional
 
+import numpy as np
+
 class SearchResults(TypedDict):
     """Résultats de recherche avec pagination"""
     images: List[Image]
@@ -58,15 +60,13 @@ class ImageRepository:
     
     def save_image(self, image: Image) -> bool:
         # 1. FAISS
-        faiss_index = None
-        if image.embedding:
-            indexes = self.faiss.add([image.embedding])
-            faiss_index = indexes[0] if indexes else None
+        if image.embedding is not None:
+            blob = np.array(image.embedding, dtype=np.float32).tobytes()
 
         # 2. SQLite
         self.db.execute("""
             INSERT OR REPLACE INTO images
-            (id, path, name, description, keywords, indexed_at, faiss_index, dataset_id)
+            (id, path, name, description, keywords, indexed_at, dataset_id, embedding)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             image.id,
@@ -75,88 +75,136 @@ class ImageRepository:
             image.description,
             json.dumps(image.keywords),
             datetime.now().isoformat(),
-            faiss_index,
-            image.dataset_id
+            image.dataset_id,
+            blob
         ))
 
         return True
+
+    def train_index(self, batch_size: int = 1000):
+        all_vectors = []
+
+        page = 0
+
+        # -------------------------
+        # LOAD ALL EMBEDDINGS
+        # -------------------------
+        cursor = self.db.execute("SELECT embedding FROM images")
+        rows = cursor.fetchall()
+
+        all_vectors = []
+
+        for (embedding_blob,) in rows:
+            vec = np.frombuffer(embedding_blob, dtype=np.float32)
+            all_vectors.append(vec)
+
+        vectors = np.vstack(all_vectors).astype(np.float32)
+
+        # -------------------------
+        # AUTO CLUSTERS
+        # -------------------------
+        nb_vectors = len(vectors)
+        n_clusters = max(1, int(nb_vectors ** 0.5))
+
+        print(f"📊 {nb_vectors} vecteurs → {n_clusters} clusters")
+
+        # sécurité FAISS
+        if nb_vectors < n_clusters:
+            print("❌ Pas assez de données pour train")
+            return
+
+        # -------------------------
+        # RECREATE INDEX
+        # -------------------------
+        self.faiss = self._create_index(nb_vectors)
+
+        # IMPORTANT: update clusters dynamiques dans index
+        self.faiss = self._create_index(nb_vectors)
+        self.faiss.index.nprobe = NPROBE
+
+        # -------------------------
+        # TRAIN + ADD
+        # -------------------------
+        print(f"🔧 Train FAISS sur {nb_vectors} vecteurs")
+
+        self.faiss.train(vectors)
+        self.faiss.add(vectors)
+
+        self.faiss.save()
+
+        print("✅ Index prêt")
     
     def search(
         self,
         query: List[float],
         threshold: float = 0.5,
-        limit: int = 20,
-        cursor_score: float | None = None  # Score du dernier résultat affiché
+        limit: int = 20
     ) -> SearchResults:
-        """
-        Args:
-            cursor_score: Score du dernier item affiché (None = première page)
-            limit:        Nombre de résultats à retourner
 
-        Returns:
-            SearchResults: Résultats de recherche avec pagination
-        """
-        # Récupération des datasets
-        dataset_repo = DatasetRepository(self.db)
-        datasets = dataset_repo.get_all()
+        # -------------------------
+        # FAISS SEARCH (POOL)
+        # -------------------------
+        raw_results = self.faiss.search(query, k=200)  # pool fixe pour load-more
 
-        raw_results = self.faiss.search(
-            query=query,
-            threshold=threshold,
-        )
-        # raw_results est déjà trié par score décroissant
+        if not raw_results:
+            return SearchResults(images=[], next_cursor=None, has_more=False)
 
-        # Reprise depuis le curseur
-        if cursor_score is not None:
-            raw_results = [(idx, s) for idx, s in raw_results if s < cursor_score]
+        # filtre threshold côté app
+        raw_results = [(idx, score) for idx, score in raw_results if score >= threshold]
 
-        # Slice de la page courante + 1 pour détecter has_more
-        page_results = raw_results[:limit + 1]
-        has_more     = len(page_results) > limit
-        page_results = page_results[:limit]
+        if not raw_results:
+            return SearchResults(images=[], next_cursor=None, has_more=False)
+
+        # on garde un buffer + limit initial
+        page_results = raw_results[:limit]
+        has_more = len(raw_results) > limit
+
+        ids = [idx for idx, _ in page_results]
+
+        # -------------------------
+        # BATCH SQL (optimisé)
+        # -------------------------
+        placeholders = ",".join(["?"] * len(ids))
+
+        rows = self.db.execute(
+            f"SELECT id, path, name, description, keywords, dataset_id FROM images WHERE id IN ({placeholders})",
+            ids
+        ).fetchall()
+
+        row_map = {row[0]: row for row in rows}
 
         images = []
+
         for idx, score in page_results:
-            row = self.db.fetch_one(
-                "SELECT * FROM images WHERE faiss_index = ?", (idx,)
-            )
-            if row:
-                # Désérialiser les keywords depuis JSON
-                keywords = []
-                if row[4]:
-                    try:
-                        keywords = json.loads(row[4])
-                    except:
-                        keywords = []
-                
-                # Récupérer le dataset par ID
-                dataset = self._get_dataset_by_id(row[7])
-                
-                if not dataset:
-                    print(f"⚠️ Dataset {row[7]} non trouvé pour l'image {row[0]}")
-                    continue
-                
-                # Création de l'image avec le vrai objet Dataset
-                new_image = Image(
-                    path=row[1],
-                    dataset=dataset,  # Vrai objet Dataset
-                    description=row[3] or "",
-                    keywords=keywords,
-                    image_id=row[0],
-                    score=score
-                )
+            row = row_map.get(idx)
+            if not row:
+                continue
 
-                # Ajout de l'image à la liste
-                images.append(new_image)
+            keywords = json.loads(row[4]) if row[4] else []
+            dataset = self._get_dataset_by_id(row[5])
 
-        # Détermination du prochain curseur
-        next_cursor = page_results[-1][1] if has_more and page_results else None
+            if not dataset:
+                continue
 
-        # Retour des résultats sous forme de SearchResults
+            images.append(Image(
+                image_id=row[0],
+                path=row[1],
+                name=row[2],
+                description=row[3] or "",
+                keywords=keywords,
+                dataset=dataset,
+                score=score
+            ))
+
+        # -------------------------
+        # CURSOR (load more)
+        # -------------------------
+        next_cursor = page_results[-1][1] if has_more else None
+
         return SearchResults(
             images=images,
             next_cursor=next_cursor,
-            has_more=has_more,
+            has_more=has_more
         )
 
     def get_all(self) -> List[Image]:

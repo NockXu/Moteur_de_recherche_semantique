@@ -35,8 +35,8 @@ CREATE TABLE IF NOT EXISTS images (
     description TEXT,
     keywords TEXT,
     indexed_at TEXT,
-    faiss_index INTEGER,
     dataset_id INTEGER,
+    embedding BLOB,
     FOREIGN KEY (dataset_id) REFERENCES datasets(id)
 );
 """

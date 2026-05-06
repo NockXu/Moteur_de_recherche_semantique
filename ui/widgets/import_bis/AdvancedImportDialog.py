@@ -10,25 +10,29 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from ui.widgets.import_bis.import_service import ImportService
+from ui.widgets.import_bis.import_runner import ImportRunner
+from ui.widgets.import_bis.WithDataset.WithDatasetController import WithDatasetController
+from ui.widgets.import_bis.WithoutDataset.WithoutDatasetController import WithoutDatasetController
 
-from ui.widget.import_bis.import_service import ImportService
-from ui.widget.import_bis.import_runner import ImportRunner
-from ui.widget.import_bis.strategies.merge_strategy import MergeStrategy
-from ui.widget.import_bis.strategies.separate_strategy import SeparateStrategy
-from ui.widget.import_bis.strategies.with_dataset_strategy import WithDatasetStrategy
+from common.Image_Classes.ImageRepository import ImageRepository
+from database.DbService import DbService
 
 
 class AdvancedImportDialog(QDialog):
     """Boîte de dialogue d'import propre (UI + orchestration uniquement)"""
 
-    def __init__(self, image_repository, parent=None):
+    def __init__(self, parent=None):
         super().__init__(parent)
 
-        self.image_repository = image_repository
+        self.image_repository = ImageRepository(DbService().sqlite, DbService().faiss)
         self.file_path = None
         self.current_config_widget = None
         self.runner = None
+        self.detected_datasets = set()
+
+        self.with_dataset_controller : WithDatasetController = None
+        self.without_dataset_controller : WithoutDatasetController = None
 
         self.setWindowTitle("Importation Avancée")
         self.setModal(True)
@@ -130,15 +134,17 @@ class AdvancedImportDialog(QDialog):
             with open(self.file_path, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
-            has_dataset = any(
-                "dataset" in img
-                for k, img in data.items()
-                if k not in ["metadata", "export_info"]
-            )
+            # Extraire les noms de datasets uniques
+            self.detected_datasets = set()
+            for k, img in data.items():
+                if k not in ["metadata", "export_info"] and "dataset" in img:
+                    self.detected_datasets.add(img["dataset"])
+
+            has_dataset = bool(self.detected_datasets)
 
             if has_dataset:
                 self.with_dataset_radio.setChecked(True)
-                self.log("Dataset détecté")
+                self.log(f"Datasets détectés: {', '.join(self.detected_datasets)}")
             else:
                 self.without_dataset_radio.setChecked(True)
                 self.log("Sans dataset détecté")
@@ -159,22 +165,32 @@ class AdvancedImportDialog(QDialog):
         self.replace_config_widget()
 
     def replace_config_widget(self):
+        # cleanup ancien widget
         if self.current_config_widget:
             self.config_layout.removeWidget(self.current_config_widget)
             self.current_config_widget.deleteLater()
             self.current_config_widget = None
+            self.with_dataset_controller = None
+            self.without_dataset_controller = None
 
+        # créer nouveau widget selon mode
         if self.with_dataset_radio.isChecked():
-            from .WithDatasetWidget import WithDatasetWidget
-            self.current_config_widget = WithDatasetWidget(self.file_path)
+            self.with_dataset_controller = WithDatasetController()
+            # Ajouter les champs pour chaque dataset détecté
+            for dataset_name in self.detected_datasets:
+                self.with_dataset_controller.view.add_dataset_field(dataset_name)
+            self.current_config_widget = self.with_dataset_controller.view
+            self.current_controller = self.with_dataset_controller
 
         elif self.without_dataset_radio.isChecked():
-            from .WithoutDatasetWidget import WithoutDatasetWidget
-            self.current_config_widget = WithoutDatasetWidget()
+            self.without_dataset_controller = WithoutDatasetController()
+            self.current_config_widget = self.without_dataset_controller.view
+            self.current_controller = self.without_dataset_controller
 
         else:
             return
 
+        # AJOUT correct
         self.config_layout.addWidget(self.current_config_widget)
 
     # -------------------------
@@ -184,15 +200,18 @@ class AdvancedImportDialog(QDialog):
         if not self.validate():
             return
 
-        mode = self.current_config_widget.get_import_mode()
-        config = self.current_config_widget.get_config()
+        if not self.current_config_widget:
+            return
+            
+        valid = self.current_controller.is_valid()
+        config = self.current_controller.get_all()
+        mode = self.current_controller.get_mode()
 
-        strategy = self.build_strategy(mode, config)
-        if not strategy:
-            self.log("❌ Stratégie invalide")
+        if not valid:
+            self.log("❌ Configuration invalide")
             return
 
-        service = ImportService(self.image_repository, strategy)
+        service = ImportService(config, mode)
         self.runner = ImportRunner(service)
 
         self.log_text.clear()
@@ -205,26 +224,14 @@ class AdvancedImportDialog(QDialog):
             on_error=self.log
         )
 
-    def build_strategy(self, mode, config):
-        if mode == "with_dataset":
-            return WithDatasetStrategy(config)
-
-        if mode == "without_dataset_merge":
-            return MergeStrategy(config.get("merged_folder"))
-
-        if mode == "without_dataset_separate":
-            return SeparateStrategy(config)
-
-        return None
-
     # -------------------------
     # VALIDATION
     # -------------------------
     def validate(self):
         return (
             self.file_path is not None
-            and self.current_config_widget is not None
-            and self.current_config_widget.is_valid()
+            and self.current_controller is not None
+            and self.current_controller.is_valid()
         )
 
     # -------------------------
@@ -241,3 +248,12 @@ class AdvancedImportDialog(QDialog):
         if self.runner:
             self.runner.cancel()
             self.log("⛔ annulé")
+
+if __name__ == "__main__":
+    from PyQt6.QtWidgets import QApplication
+    import sys
+    
+    app = QApplication(sys.argv)
+    dialog = AdvancedImportDialog()
+    dialog.show()
+    sys.exit(app.exec())

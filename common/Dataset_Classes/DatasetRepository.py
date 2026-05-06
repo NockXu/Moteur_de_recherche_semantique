@@ -35,9 +35,12 @@ class DatasetRepository:
         return Dataset(*row) if row else None
 
     def create(self, name: str) -> Dataset:
-        self.db.execute(
-            "INSERT INTO datasets (name) VALUES (?)",
-            (name,)
-        )
-        dataset_id = self.db.lastrowid
+        try:
+            self.db.execute(
+                "INSERT INTO datasets (name) VALUES (?)",
+                (name,)
+            )
+            dataset_id = self.db.lastrowid
+        except Exception:
+            return None
         return Dataset(id=dataset_id, name=name)
