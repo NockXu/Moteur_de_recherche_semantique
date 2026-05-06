@@ -1,7 +1,7 @@
 import threading
 from typing import Callable, Optional
 
-from ui.widgets.import_bis.import_service import ImportService
+from ui.widgets.Import.import_service import ImportService
 from common.Image_Classes.Image import Image
 
 

@@ -45,7 +45,10 @@ class ImportToolController(QObject):
         super().__init__()
 
         self.view = ImportToolView(ollama_base_url=getattr(ollama_wrapper, "base_url", None))
-        self.model: ImportToolModel = self.view.get_model()
+        
+        # Créer et injecter le modèle correctement
+        self.model = ImportToolModel()
+        self.view.set_model(self.model)
 
         db_service = DbService()
         self.image_repository = db_service
@@ -57,6 +60,7 @@ class ImportToolController(QObject):
 
         # pagination state UI
         self._has_more = True
+        self._loading_page = False  # Optimisation anti-double chargement
 
         self._connect_signals()
         self._load_default_dataset_folder()
@@ -69,9 +73,7 @@ class ImportToolController(QObject):
         self.view.start_processing_requested.connect(self._start_processing)
         self.view.stop_processing_requested.connect(self._stop_processing)
         self.view.image_clicked.connect(self._handle_image_clicked)
-
-        # IMPORTANT: pagination UI
-        self.view.load_more_requested.connect(self._load_next_page)
+        self.view.load_more_requested.connect(self._load_next_page_throttled)
 
     # ─────────────────────────────────────────────
     # FOLDER LOAD
@@ -109,6 +111,28 @@ class ImportToolController(QObject):
             return
 
         self.view.append_images(images)
+
+    def _load_next_page_throttled(self):
+        """Version optimisée avec throttling pour éviter les appels multiples"""
+        if not self._has_more:
+            return
+        
+        # Éviter les chargements multiples rapides (optimisation performance)
+        if hasattr(self, '_loading_page') and self._loading_page:
+            return
+        
+        self._loading_page = True
+        
+        try:
+            images = self.model.load_next_page()
+            
+            if not images:
+                self._has_more = False
+                return
+            
+            self.view.append_images(images)
+        finally:
+            self._loading_page = False
 
     # ─────────────────────────────────────────────
     # DB LOADER
@@ -232,3 +256,12 @@ class ImportToolController(QObject):
             self.processing_manager.stop_current_processing()
 
         self.view.cleanup()
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    
+    app = QApplication(sys.argv)
+    controller = ImportToolController()
+    controller.get_view().show()
+    sys.exit(app.exec())

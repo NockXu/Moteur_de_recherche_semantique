@@ -1,8 +1,9 @@
 from typing import List
 
 from .WithDatasetModel import WithDatasetModel
-from .DatasetType import DatasetConfig, DatasetsData
+from .DatasetType import DatasetConfig
 from .WithDatasetView import WithDatasetView
+from ui.widgets.Import.DatasetConfigDataType import DatasetConfigData
 
 class WithDatasetController:
     def __init__(self):
@@ -14,6 +15,11 @@ class WithDatasetController:
     def on_dataset_path_changed(self, config: DatasetConfig, name: str):
         """Gère le changement de chemin d'un dataset"""
         
+        if config["line_edit"].text() == "":
+            config["status_label"].setText("")
+            config["status_label"].hide()
+            return
+
         data = self.model.update(name)
         if data:
             self.view.exist(name, data["status"])
@@ -21,7 +27,7 @@ class WithDatasetController:
         if __name__ == "__main__":
             print(self.get_all())
 
-    def get_all(self) -> List[DatasetsData]:
+    def get_all(self) -> List[DatasetConfigData]:
         datasets_data = []
 
         for name, config in self.view.datasets_config.items():
@@ -32,9 +38,18 @@ class WithDatasetController:
 
             path = config["line_edit"].text()
             if path:
-                datasets_data.append(DatasetsData(path=path, name=name, status=status))
+                datasets_data.append(DatasetConfigData(path=path, name=name, status=status))
 
         return datasets_data
+
+    def is_valid(self) -> bool:
+        for name, config in self.view.datasets_config.items():
+            if config["line_edit"].text() == "":
+                return False
+        return True
+
+    def get_mode(self) -> str:
+        return "with_dataset"
 
 
 if __name__ == "__main__":

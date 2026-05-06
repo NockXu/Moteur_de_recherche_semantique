@@ -87,9 +87,11 @@ class WithDatasetView(QWidget):
         if exists:
             label.setText("✔ Dataset trouvé (fusion automatique)")
             label.setStyleSheet("color: #2e7d32; font-size: 11px;")  # vert propre
+            label.show()
         else:
             label.setText("✖ Dataset inexistant (création automatique)")
             label.setStyleSheet("color: #ed6c02; font-size: 11px;")  # orange lisible
+            label.show()
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication

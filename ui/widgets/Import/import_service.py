@@ -4,8 +4,8 @@ from typing import List, Dict, Optional
 
 from database.DbService import DbService
 
-from ui.widgets.import_bis.import_result import ImportResult
-from ui.widgets.import_bis.DatasetConfigDataType import DatasetConfigData
+from ui.widgets.Import.import_result import ImportResult
+from ui.widgets.Import.DatasetConfigDataType import DatasetConfigData
 
 from common.Image_Classes.Image import Image
 from common.Image_Classes.ImageRepository import ImageRepository

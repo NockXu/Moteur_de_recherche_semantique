@@ -229,7 +229,7 @@ class ImageRepository:
             dataset = self._get_dataset_by_id(row[7])
             
             if not dataset:
-                print(f"⚠️ Dataset {row[7]} non trouvé pour l'image {row[0]}")
+                print(f"⚠️ Dataset {row[6]} non trouvé pour l'image {row[0]}")
                 continue
             
             # Création de l'image avec le vrai objet Dataset

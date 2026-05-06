@@ -9,9 +9,7 @@ from PyQt6.QtGui import QIcon, QFont, QAction
 from pathlib import Path
 
 from ui.widgets.Export import Export
-from ui.widgets.Import import Import
-from ui.widgets.Import.ImportProgressDialog import ImportProgressDialog
-from ui.widgets.Import.ImportManager import get_import_manager
+from ui.widgets.Import.AdvancedImportDialog import AdvancedImportDialog
 
 
 class MenuBarController(QObject):
@@ -30,14 +28,10 @@ class MenuBarController(QObject):
     def __init__(self, parent=None):
         super().__init__()
         self.parent = parent
-        self.import_tool = Import()
         self.export_tool = Export()
-        self.import_manager = get_import_manager(parent)
+        self.import_dialog = None
         self.menu_bar = QMenuBar()
         self.menu_bar.setFont(QFont("Segoe UI", 10))
-        
-        # Connecter le signal d'importation
-        self.import_manager.import_completed.connect(self.on_import_completed)
         
         # Créer le menu
         self._setup_menu_bar()
@@ -89,40 +83,17 @@ class MenuBarController(QObject):
     
     def handle_import(self):
         """Gère l'import depuis un fichier JSON."""
-        # Utiliser l'importation avancée
-        result = self.import_manager.show_import_dialog()
+        # Utiliser le nouveau dialogue d'importation avancée
+        self.import_dialog = AdvancedImportDialog(self.parent)
+        result = self.import_dialog.exec()
         
         if result == 1:  # QDialog.Accepted
-            # L'importation a été effectuée, le signal est déjà émis par ImportManager
-            pass
-    
-    def on_import_completed(self, success_count, total_count):
-        """Gère la fin de l'importation"""
-        if success_count > 0:
-            QMessageBox.information(
-                self.parent,
-                "Importation terminée",
-                f"{success_count}/{total_count} images importées avec succès."
-            )
-            # Rafraîchir l'interface
+            # L'importation a été effectuée, rafraîchir l'interface
             self.file_import_requested.emit()
-        else:
-            QMessageBox.warning(
-                self.parent,
-                "Importation échouée",
-                "Aucune image n'a pu être importée."
-            )
     
     def handle_simple_import(self):
-        """Gère l'import simple (ancienne méthode)."""
-        count = self.import_manager.quick_import()
-        if count > 0:
-            QMessageBox.information(
-                self.parent,
-                "Importation terminée",
-                f"{count} images importées avec succès."
-            )
-            self.file_import_requested.emit()
+        """Gère l'import simple (redirection vers l'import avancé)."""
+        self.handle_import()
     
     def handle_export(self):
         """Gère l'export vers un fichier JSON."""
@@ -158,12 +129,9 @@ class MenuBarController(QObject):
     
     def cleanup(self):
         """Nettoie les ressources."""
-        try:
-            # DatabaseManager n'a pas de close_connection explicite
-            # Les connexions sont fermées automatiquement à la destruction
-            pass
-        except:
-            pass
+        if self.import_dialog:
+            self.import_dialog.close()
+            self.import_dialog = None
 
 
 def create_menu_bar(parent=None) -> MenuBarController:

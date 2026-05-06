@@ -4,7 +4,8 @@ from typing import List
 
 from .WithoutDatasetModel import WithoutDatasetModel
 from .WithoutDatasetView import WithoutDatasetView
-from .WithoutDatasetType import WithoutDatasetData, WithoutDatasetStatus, WithoutDatasetDatas
+from .WithoutDatasetType import WithoutDatasetData, WithoutDatasetStatus
+from ui.widgets.Import.DatasetConfigDataType import DatasetConfigData
 
 
 class WithoutDatasetController:
@@ -21,9 +22,9 @@ class WithoutDatasetController:
         # init
         self.on_mode_changed(self.view.get_mode())
 
-    def get_all(self) -> List[WithoutDatasetDatas]:
+    def get_all(self) -> List[DatasetConfigData]:
         """Retourne toutes les données des dossiers"""
-        datas : List[WithoutDatasetDatas] = []
+        datas : List[DatasetConfigData] = []
         for config in self.view.config:
             if config["name"].text() == "" or config["path"].text() == "":
                 continue
@@ -36,7 +37,7 @@ class WithoutDatasetController:
             else:
                 status = False
 
-            datas.append(WithoutDatasetDatas(
+            datas.append(DatasetConfigData(
                 name=config["name"].text(),
                 path=config["path"].text(),
                 status=status

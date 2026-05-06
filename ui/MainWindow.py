@@ -2,11 +2,6 @@ import sys
 import os
 from dotenv import load_dotenv
 
-# Ajouter le chemin racine du projet au sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from common.Image_Classes import Image, ImageRepository
-
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
@@ -28,12 +23,13 @@ from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.ImageSearchedContainer.AutoResearch import AutoResearch
 from ui.MenuBar import create_menu_bar
 
+from common.Image_Classes.Image import Image
+from common.Image_Classes.ImageRepository import ImageRepository
+
 # Wrapper pour les controllers
 from vision.ollama_wrapper import OllamaWrapper
 # Base de données
-from database.DatabaseManager import DatabaseManager
-# Fonctions de recherche sémantique
-from database.VectResearch import VectResearch
+from database.DbService import DbService
 
 os.environ['QT_LOGGING_RULES'] = 'qt.gui.icc=false'
 
@@ -98,9 +94,6 @@ class MainWindow(QMainWindow):
         """Initialise les composants lourds"""
         # Initialise le wrapper avec la configuration
         self.wrapper = OllamaWrapper(base_url=self.OLLAMA_BASE_URL, timeout_s=500)
-
-        # Initialise la base de données
-        self.db = DatabaseManager()
         
         # Créer les contrôleurs
         self._setup_controllers()
@@ -182,13 +175,13 @@ class MainWindow(QMainWindow):
         self.search_controller = SearchBarController(self.wrapper)
         
         # Import Tool (dans un dock) avec wrapper et modèle
-        self.import_tool_controller = create_import_tool(self.wrapper, self.VISION_MODEL)
+        self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL)
         
         # Conteneur d'images recherchées
         self.image_container_controller = ImageSearchedContainerController()
         
         # Preview d'image (dans un dock)
-        self.image_preview_controller = create_image_preview()
+        self.image_preview_controller = ImagePreviewController()
     
     def _setup_ui(self):
         """Configure l'interface utilisateur"""
@@ -230,29 +223,25 @@ class MainWindow(QMainWindow):
         """Configure les docks latéraux"""
         
         # Dock gauche : Import Tool
-        import_dock = QDockWidget("Import d'images")
-        import_dock.setWidget(self.import_tool_controller.get_view())
-        import_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.import_dock = QDockWidget("Import d'images")
+        self.import_dock.setWidget(self.import_tool_controller.get_view())
+        self.import_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         
         # Définir une taille fixe pour le dock Import Tool
-        import_dock.setFixedWidth(280)  # Largeur fixe de 280px
-        import_dock.setMinimumWidth(250)  # Largeur minimale
-        import_dock.setMaximumWidth(320)  # Largeur maximale
+        self.import_dock.setFixedWidth(280)  # Largeur fixe de 280px
+        self.import_dock.setMinimumWidth(250)  # Largeur minimale
+        self.import_dock.setMaximumWidth(320)  # Largeur maximale
         
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, import_dock)
         
         # Dock droit : Preview d'image
-        preview_dock = QDockWidget("Aperçu")
-        preview_dock.setWidget(self.image_preview_controller.view)
-        preview_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
+        self.preview_dock = QDockWidget("Aperçu")
+        self.preview_dock.setWidget(self.image_preview_controller.view)
+        self.preview_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
         
         # Masquer le dock de preview par défaut (s'ouvrira au clic sur une image)
-        preview_dock.hide()
-        
-        # Stocker les références
-        self.import_dock = import_dock
-        self.preview_dock = preview_dock
+        self.preview_dock.hide()
     
     def _connect_signals(self):
         """Connecte les signaux entre les widgets"""

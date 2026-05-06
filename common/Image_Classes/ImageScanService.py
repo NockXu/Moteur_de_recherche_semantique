@@ -78,7 +78,7 @@ class ImageScanService:
 
             yield Image(
                 path=file_path,
-                dataset=dataset,   # peut être None → OK
+                dataset=dataset,
                 description="",
                 keywords=[],
                 embedding=[],

@@ -10,10 +10,10 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
-from ui.widgets.import_bis.import_service import ImportService
-from ui.widgets.import_bis.import_runner import ImportRunner
-from ui.widgets.import_bis.WithDataset.WithDatasetController import WithDatasetController
-from ui.widgets.import_bis.WithoutDataset.WithoutDatasetController import WithoutDatasetController
+from ui.widgets.Import.import_service import ImportService
+from ui.widgets.Import.import_runner import ImportRunner
+from ui.widgets.Import.WithDataset.WithDatasetController import WithDatasetController
+from ui.widgets.Import.WithoutDataset.WithoutDatasetController import WithoutDatasetController
 
 from common.Image_Classes.ImageRepository import ImageRepository
 from database.DbService import DbService

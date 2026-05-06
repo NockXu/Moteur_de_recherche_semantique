@@ -123,17 +123,21 @@ class WithoutDatasetView(QWidget):
 
         btn.clicked.connect(lambda: self._browse_pair(merged_input, line_edit))
 
+        status = QLabel("")
+        status.hide()
+
         row.addWidget(label)
         row.addWidget(line_edit)
         row.addWidget(merged_input)
         row.addWidget(btn)
 
         self.header_layout.addWidget(container)
+        self.header_layout.addWidget(status)
 
         config = WithoutDatasetConfig(
             name=line_edit,
             path=merged_input,
-            status=QLabel("")
+            status=status
         )
         self.config = [config]
 

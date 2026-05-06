@@ -1,9 +1,8 @@
 import os
 import sys
 from pathlib import Path
-from typing import List, Dict, Optional, Set, Iterator
+from typing import List, Dict, Optional, Set
 
-# Ajouter la racine du projet au sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -12,6 +11,7 @@ from common.Image_Classes.Image import Image, ProcessingStatus
 from common.Image_Classes.ImageRepository import ImageRepository
 from common.Image_Classes.ImageScanService import ImageScanService
 from database.DbService import DbService
+
 
 class ImportToolModel:
 
@@ -30,12 +30,12 @@ class ImportToolModel:
         )
 
         self._db_paths: Set[str] = set()
-
         self.selected_folder: Optional[Path] = None
 
     # ─────────────────────────────────────────────
     # INIT SCAN
     # ─────────────────────────────────────────────
+
     def set_folder(self, folder_path: str) -> bool:
         try:
             folder = Path(folder_path)
@@ -43,8 +43,6 @@ class ImportToolModel:
                 return False
 
             self.selected_folder = folder
-
-            # reset
             self._cache.clear()
             self._generator = self.scan_service.scan_lazy(folder)
 
@@ -56,8 +54,9 @@ class ImportToolModel:
             return False
 
     # ─────────────────────────────────────────────
-    # LOAD PAGE (clé du système)
+    # LOAD PAGE
     # ─────────────────────────────────────────────
+
     def load_next_page(self) -> List[Image]:
         if not self._generator:
             return []
@@ -68,7 +67,6 @@ class ImportToolModel:
             try:
                 image = next(self._generator)
 
-                # skip si déjà en BDD
                 if str(image.path.resolve()) in self._db_paths:
                     continue
 
@@ -86,15 +84,14 @@ class ImportToolModel:
     # ─────────────────────────────────────────────
     # BDD STATUS
     # ─────────────────────────────────────────────
+
     def load_db_status(self):
         try:
             existing = self._image_repository.get_all()
-
             self._db_paths = {
                 str(img.path.resolve())
                 for img in existing
             }
-
             print(f"🗄️ {len(self._db_paths)} images en BDD")
 
         except Exception as e:
@@ -104,15 +101,25 @@ class ImportToolModel:
     # ─────────────────────────────────────────────
     # GETTERS
     # ─────────────────────────────────────────────
+
     def get_loaded_images(self) -> List[Image]:
         return self._cache
 
     def get_images_count(self) -> int:
         return len(self._cache)
 
+    def get_image_info(self, path: str) -> Optional[Image]:
+        """FIX: méthode manquante — retourne l'Image correspondant au chemin donné."""
+        key = str(Path(path).resolve())
+        for img in self._cache:
+            if str(img.path.resolve()) == key:
+                return img
+        return None
+
     # ─────────────────────────────────────────────
     # STATUS
     # ─────────────────────────────────────────────
+
     def update_image_status(
         self,
         image_path: str,
@@ -124,24 +131,30 @@ class ImportToolModel:
     ):
         for image in self._cache:
             if str(image.path.resolve()) == str(Path(image_path).resolve()):
-                image.update_status(
-                    status=status,
-                    description=description or None,
-                    keywords=keywords,
-                    embedding=embedding,
-                    error_message=error_message or None,
-                )
+                image.status = status
+                if description:
+                    image.description = description
+                if keywords:
+                    image.keywords = keywords
+                if embedding:
+                    image.embedding = embedding
+                if error_message:
+                    image.error_message = error_message
                 return
+
+    def reset_all_status(self):
+        """FIX: méthode manquante — remet toutes les images en statut PENDING avant traitement."""
+        for image in self._cache:
+            image.status = ProcessingStatus.PENDING
 
     # ─────────────────────────────────────────────
     # STATS
     # ─────────────────────────────────────────────
+
     def get_images_by_status(self) -> Dict[ProcessingStatus, int]:
         counts = {s: 0 for s in ProcessingStatus}
-
         for img in self._cache:
             counts[img.status] += 1
-
         return counts
 
     def get_processing_progress(self) -> float:
@@ -152,5 +165,4 @@ class ImportToolModel:
             1 for i in self._cache
             if i.status in (ProcessingStatus.COMPLETED, ProcessingStatus.ERROR)
         )
-
         return done / len(self._cache)

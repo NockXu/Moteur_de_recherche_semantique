@@ -49,12 +49,20 @@ class ConnectionVerificatorView(QWidget):
         self.status_indicator.setFixedSize(16, 16)
         self.status_indicator.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        # Icône par défaut (gris)
-        default_icon = self.recolor_svg(self.icon_paths['disconnected'], '#666666')
+        # Icône par défaut (même style que les labels)
+        default_icon = self.recolor_svg(self.icon_paths['disconnected'], '#6c757d')
         self.status_indicator.setPixmap(default_icon.pixmap(16, 16))
 
         # Label de statut
         self.status_label = QLabel("Non connecté")
+        self.status_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 11px;
+                font-weight: 500;
+                background: transparent;
+            }
+        """)
         self.status_label.setFont(QFont("Segoe UI", 10))
         self.status_label.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -63,8 +71,15 @@ class ConnectionVerificatorView(QWidget):
 
         # Label de version (masqué par défaut)
         self.version_label = QLabel("")
+        self.version_label.setStyleSheet("""
+            QLabel {
+                color: #6c757d;
+                font-size: 11px;
+                font-weight: 500;
+                background: transparent;
+            }
+        """)
         self.version_label.setFont(QFont("Segoe UI", 8))
-        # Style minimal pour le label de version - laissé au thème Fusion
 
         # Ajouter les widgets au layout
         layout.addWidget(self.status_indicator)

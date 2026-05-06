@@ -14,8 +14,3 @@ class DatasetConfig(TypedDict):
     line_edit: QLineEdit
     status_label: QLabel
     
-class DatasetsData(TypedDict):
-    path: str
-    name: str
-    status: bool
-    

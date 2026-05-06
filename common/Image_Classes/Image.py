@@ -18,6 +18,7 @@ from common.Dataset_Classes import Dataset
 
 class ProcessingStatus(Enum):
     NOT_STARTED = "not_started"
+    PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     ERROR = "error"
@@ -46,8 +47,8 @@ class Image:
         self.path = Path(path)
 
         # dataset = data simple, PAS objet DB
-        self.dataset_id = dataset.id
-        self.dataset_name = dataset.name
+        self.dataset_id = dataset.id if dataset else None
+        self.dataset_name = dataset.name if dataset else None
 
         self.score = float(score)
         self.status = status
