@@ -1,13 +1,13 @@
+from pickletools import optimize
 import sys
 import os
-
-# Ajouter le chemin racine du projet au sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from typing import Any
+from PIL import Image as PILImage
+from pathlib import Path
 
 from vision.ollama_wrapper import OllamaWrapper
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
-
 
 class ImageProcessor:
     def __init__(self, wrapper: OllamaWrapper, model: str):
@@ -68,16 +68,20 @@ DESCRIPTION:
 KEYWORDS:
 mot1, mot2, mot3, mot4"""
 
+            reduced_img = self.reduce_img(image)
+
             result = self.wrapper.generate_with_image(
                 model=self.model,
                 prompt=prompt,
-                image=image.path,
+                image=reduced_img,
                 options={"keep_alive": "10m"}
             )
 
+            self.clean_reduce_img()
+
             response = result.response.strip()
 
-            # 🔥 Parsing robuste
+            # Parsing
             if "KEYWORDS:" in response:
                 desc_part, keywords_part = response.split("KEYWORDS:", 1)
 
@@ -120,6 +124,55 @@ mot1, mot2, mot3, mot4"""
         except Exception as e:
             raise RuntimeError(f"Erreur embedding pour {image.path}: {str(e)}")
 
+    def reduce_img(self, image : Image) -> str:
+        max_width = 1024
+        max_height = 1024
+
+        extension = [".jpg", ".jpeg", ".png", ".webp"]
+
+        base_dir = Path(__file__).resolve().parent
+
+        storage_dir = base_dir.parent / "storage"
+        output_dir = storage_dir / "images_reduced"
+
+        Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+        img_extension = Path(image.path).suffix.lower()
+
+        if img_extension not in extension:
+            raise ValueError(f"Extension non supportée : {img_extension}")
+
+        with PILImage.open(image.path) as img:
+            # Conserve les proportions
+            img.thumbnail((max_width, max_height))
+
+            # Sauvegarde dans le dossier
+            img_path = os.path.join(output_dir, image.name)
+            img.save(
+                img_path,
+                optimize=True,
+                quality=85
+            )
+
+            return img_path
+
+    def clean_reduce_img(self) -> None:
+        base_dir = Path(__file__).resolve().parent
+
+        storage_dir = base_dir.parent / "storage"
+        output_dir = storage_dir / "images_reduced"
+
+        # Vérifie que le dossier existe
+        if not os.path.exists(output_dir):
+            return
+
+        # Supprime tous les fichiers
+        for file in os.listdir(output_dir):
+            file_path = os.path.join(output_dir, file)
+
+            if os.path.isfile(file_path):
+                os.remove(file_path)
+            
 
 if __name__ == "__main__":
     from pathlib import Path
@@ -140,6 +193,8 @@ if __name__ == "__main__":
         Image(path=str(DATASET_DIR / "weezer.webp"), dataset=dataset_test)
     ]
 
+    processor.reduce_img(Image(path=str(DATASET_DIR / "grande.jpg"), dataset=dataset_test))
+
     for image in images:
         try:
             print(f"\nProcessing {image.name}...")
@@ -158,6 +213,7 @@ if __name__ == "__main__":
             print(f"✓ {image.name} processed")
 
         except Exception as e:
+            processor.clean_reduce_img()
             print(f"✗ Error processing {image.name}: {str(e)}")
 
     for image in images:

@@ -2,11 +2,6 @@ import os
 import sys
 from typing import List, Dict, Optional
 
-# Ajouter la racine du projet au sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from common.Image_Classes.Image import Image
 
 

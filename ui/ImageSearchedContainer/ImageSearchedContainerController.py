@@ -1,127 +1,167 @@
 import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from typing import List, Dict, Optional, Callable
+from typing import List, Optional, Callable
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ui.ImageSearchedContainer.ImageSearchedContainerView import ImageSearchedContainerView
 from ui.ImageSearchedContainer.ImageSearchedContainerModel import ImageSearchedContainerModel
+from ui.ImageSearchedContainer.Research import Research
 from common.Image_Classes.Image import Image
+from common.Image_Classes.ImageRepository import ImageRepository
+from database.DbService import DbService
+
+from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
 
 
+# =========================
+# STATE
+# =========================
+class SearchState:
+    def __init__(self):
+        self.query: Optional[str] = None
+        self.cursor: Optional[tuple[float, int]] = None
+        self.has_more: bool = False
+
+
+# =========================
+# CONTROLLER
+# =========================
 class ImageSearchedContainerController(QObject):
-    """
-    Contrôleur refactorisé version ImportTool style :
-    - plus de pagination "page-based"
-    - remplacement par LOAD MORE (infinite scroll)
-    - source = BDD ou dataset déjà injecté
-    """
 
     images_loaded = pyqtSignal(int)
 
-    def __init__(self, max_images_per_page: int = 12, thumbnail_size: int = 150):
+    def __init__(self, thumbnail_size: int = 150):
         super().__init__()
 
         self.view = ImageSearchedContainerView()
-        self.model = ImageSearchedContainerModel(max_images_per_page)
+        self.model = ImageSearchedContainerModel()
+
+        db = DbService()
+        self.repo = ImageRepository(db.sqlite, db.faiss)
+        self.research = Research(self.repo)
+
+        # async engine
+        self.embedding_manager = AsyncEmbeddingManager()
+
+        # state
+        self.state = SearchState()
 
         self.thumbnail_size = thumbnail_size
+        self._loading = False
 
-        # état load more
-        self._loaded_count = 0
-        self._all_images: List[Image] = []
-
-        # callbacks optionnels
         self.image_click_callback: Optional[Callable[[Image], None]] = None
 
         self._connect_signals()
 
-    # ─────────────────────────────────────────────
+    # ─────────────────────────────
     # SIGNALS
-    # ─────────────────────────────────────────────
-
+    # ─────────────────────────────
     def _connect_signals(self):
         self.view.image_clicked.connect(self._on_image_clicked)
         self.view.load_more_requested.connect(self.load_more_images)
         self.view.reload_requested.connect(self.reload_images)
 
-    # ─────────────────────────────────────────────
-    # DATA ENTRY POINT (BDD / SEARCH RESULT)
-    # ─────────────────────────────────────────────
-
-    def set_images(self, images: List[Image]):
-        """
-        Remplace totalement la liste (résultat recherche / BDD).
-        """
-        self._all_images = images or []
-        self._loaded_count = 0
-
-        self.model.clear()
-        self.load_more_images(reset=True)
-
-    def add_images(self, images: List[Image]):
-        """
-        Ajoute à la liste existante (append BDD / streaming)
-        """
-        self._all_images.extend(images)
-        self.load_more_images(reset=False)
-
-    # ─────────────────────────────────────────────
-    # LOAD MORE (équivalent ImportTool)
-    # ─────────────────────────────────────────────
-
-    def load_more_images(self, reset: bool = False):
-        """
-        Charge progressivement les images (lazy loading)
-        """
-        if reset:
-            self._loaded_count = 0
-            self.model.clear()
-
-        if self._loaded_count >= len(self._all_images):
-            return
-
-        next_batch = self._all_images[
-            self._loaded_count : self._loaded_count + self.model.max_images_per_page
-        ]
-
-        self.model.add_images(next_batch)
-        self._loaded_count += len(next_batch)
-
-        self._update_view()
-
-        self.images_loaded.emit(self._loaded_count)
-
-    # ─────────────────────────────────────────────
-    # VIEW UPDATE
-    # ─────────────────────────────────────────────
-
-    def _update_view(self):
-        """
-        Sync model → view (ImportTool style)
-        """
-        self.view.display_images(
-            image_data=self.model.get_all_loaded_images(),
-            total_count=len(self._all_images),
-            loaded_count=self._loaded_count
+        # 🔥 SEARCH BAR (IMPORTANT)
+        self.view.search_controller.search_requested.connect(
+            self._on_search_triggered
         )
 
-    # ─────────────────────────────────────────────
-    # EVENTS
-    # ─────────────────────────────────────────────
+    # ─────────────────────────────
+    # SEARCH ENTRY POINT
+    # ─────────────────────────────
+    def _on_search_triggered(self, search_text: str, embedding: list):
 
+        self.state.query = search_text
+        self.state.cursor = None
+        self.state.has_more = False
+
+        self.model.clear()
+        self._update_view()
+
+        self._loading = True
+
+        self.embedding_manager.start_search(
+            query=search_text,
+            threshold=0.0,
+            cursor=None,
+            auto_research=self.research,
+            on_finished=self._on_search_finished,
+            on_error=self._on_search_error
+        )
+
+    # ─────────────────────────────
+    # SEARCH CALLBACK
+    # ─────────────────────────────
+    def _on_search_finished(self, result):
+
+        self._loading = False
+
+        self.model.clear()
+        self.model.add_images(result.images)
+        self._update_view()
+
+        self.state.cursor = result.next_cursor
+        self.state.has_more = result.has_more
+
+    def _on_search_error(self, error: str):
+        self._loading = False
+        print(f"[Search ERROR] {error}")
+
+    # ─────────────────────────────
+    # LOAD MORE (INFINITE SCROLL)
+    # ─────────────────────────────
+    def load_more_images(self, reset: bool = False):
+
+        if not self.state.query:
+            return
+
+        if self._loading:
+            return
+
+        if not self.state.has_more:
+            return
+
+        self._loading = True
+
+        try:
+            result = self.research.find(
+                query=self.state.query,
+                threshold=0.0,
+                cursor=self.state.cursor
+            )
+
+            self.model.add_images(result.images)
+            self._update_view()
+
+            self.state.cursor = result.next_cursor
+            self.state.has_more = result.has_more
+
+        except Exception as e:
+            print(f"Load more error: {e}")
+
+        finally:
+            self._loading = False
+
+    # ─────────────────────────────
+    # VIEW UPDATE
+    # ─────────────────────────────
+    def _update_view(self):
+        self.view.display_images(
+            image_data=self.model.get_all_loaded_images(),
+            total_count=self.model.count(),
+        )
+
+    # ─────────────────────────────
+    # CLICK
+    # ─────────────────────────────
     def _on_image_clicked(self, image_path: str):
         image_info = self.model.get_image_by_path(image_path)
 
         if self.image_click_callback and image_info:
             self.image_click_callback(image_info)
 
-    # ─────────────────────────────────────────────
+    # ─────────────────────────────
     # PUBLIC API
-    # ─────────────────────────────────────────────
-
+    # ─────────────────────────────
     def get_view(self):
         return self.view
 
@@ -129,34 +169,41 @@ class ImageSearchedContainerController(QObject):
         self.image_click_callback = callback
 
     def clear_images(self):
-        self._all_images.clear()
-        self._loaded_count = 0
         self.model.clear()
+        self.state = SearchState()
         self._update_view()
 
     def reload_images(self):
-        """
-        Reload BDD (version simplifiée safe)
-        """
         try:
-            from database.ImageRepository import get_all_images  # adapte si besoin
+            images = self.repo.get_all()
 
-            images = get_all_images()
+            print(f"[Controller] Reload {len(images)} images")
 
-            print(f"[Controller] Reload {len(images)} images from BDD")
-
-            self.set_images(images)
+            self.model.clear()
+            self.model.add_images(images)
+            self._update_view()
 
         except Exception as e:
-            print(f"[Controller] reload error: {e}")
+            print(f"Reload error: {e}")
 
-    # ─────────────────────────────────────────────
+    # ─────────────────────────────
     # CONFIG
-    # ─────────────────────────────────────────────
-
+    # ─────────────────────────────
     def set_thumbnail_size(self, size: int):
         self.thumbnail_size = size
         self._update_view()
 
     def set_max_per_load(self, value: int):
         self.model.set_max_images_per_page(value)
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    
+    app = QApplication(sys.argv)
+
+    controller = ImageSearchedContainerController()
+
+    controller.view.show()
+
+    sys.exit(app.exec())

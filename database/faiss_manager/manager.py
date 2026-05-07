@@ -11,7 +11,7 @@ except ImportError:
 
 DIMENSION = 768
 N_CLUSTERS = 256
-NPROBE = 16
+NPROBE = 65
 
 
 class FaissManager:
@@ -32,31 +32,29 @@ class FaissManager:
             self.index = faiss.read_index(str(self.index_path))
             self.index.nprobe = NPROBE
         else:
-            self.index = self._create_index(0)
+            self.index = self._create_index(0, N_CLUSTERS)
 
-    def _create_index(self, nb_embeddings: int):
+    def _create_index(self, nb_embeddings: int, n_clusters):
         """
         Crée un index FAISS avec un nombre de clusters adapté au volume.
         """
-
-        # règle simple et stable
-        n_clusters = max(1, int(nb_embeddings ** 0.5))
-
         # sécurité (évite clusters absurdes)
         n_clusters = min(n_clusters, nb_embeddings) if nb_embeddings > 0 else 1
 
-        print(f"🆕 Création FAISS: {nb_embeddings} vecteurs → {n_clusters} clusters")
+        print(f"Création FAISS: {nb_embeddings} vecteurs → {n_clusters} clusters")
 
         quantizer = faiss.IndexFlatIP(self.dimension)
-        index = faiss.IndexIVFFlat(
+        base_index = faiss.IndexIVFFlat(
             quantizer,
             self.dimension,
             n_clusters,
             faiss.METRIC_INNER_PRODUCT
         )
 
+        index = faiss.IndexIDMap(base_index)
+
         index.nprobe = NPROBE
-        return index
+        self.index = index
 
     # =========================
     # TRAIN
@@ -69,30 +67,26 @@ class FaissManager:
         faiss.normalize_L2(arr)
 
         if len(arr) < N_CLUSTERS:
-            print(f"❌ Pas assez de vecteurs ({len(arr)} < {N_CLUSTERS})")
+            print(f"Pas assez de vecteurs ({len(arr)} < {N_CLUSTERS})")
             return False
 
         if not self.index.is_trained:
-            print(f"🔧 Training FAISS sur {len(arr)} vecteurs...")
+            print(f"Training FAISS sur {len(arr)} vecteurs...")
             self.index.train(arr)
-            print("✅ Training terminé")
+            print("Training terminé")
 
         return True
 
     # =========================
     # ADD
     # =========================
-    def add(self, embeddings: List[List[float]]) -> None:
-        if not FAISS_AVAILABLE or not self.index:
-            return
-
-        if not self.index.is_trained:
-            raise RuntimeError("Index FAISS non entraîné. Appelle train() avant add().")
-
+    def add(self, embeddings, ids):
         arr = np.array(embeddings, dtype=np.float32)
         faiss.normalize_L2(arr)
 
-        self.index.add(arr)
+        ids_np = np.array(ids, dtype=np.int64)
+
+        self.index.add_with_ids(arr, ids_np)
         self.save()
 
     # =========================
@@ -101,13 +95,8 @@ class FaissManager:
     def search(
         self,
         query: List[float],
-        threshold: float = 0.5,
         k: int = 200
     ) -> List[Tuple[int, float]]:
-        """
-        Retourne un pool de résultats pour système 'load more'.
-        FAISS n'est appelé qu'une seule fois.
-        """
 
         if not FAISS_AVAILABLE or not self.index or self.index.ntotal == 0:
             return []
@@ -115,31 +104,20 @@ class FaissManager:
         q = np.array([query], dtype=np.float32)
         faiss.normalize_L2(q)
 
-        # =========================
-        # IVF SEARCH (index entraîné)
-        # =========================
-        if self.index.is_trained:
-            scores, idxs = self.index.search(q, k)
+        scores, idxs = self.index.search(q, k)
 
-            scores = scores[0]
-            idxs = idxs[0]
+        scores = scores[0]
+        idxs = idxs[0]
 
-            mask = (idxs != -1) & (scores >= threshold)
+        results = [
+            (int(i), float(s))
+            for i, s in zip(idxs, scores)
+            if i != -1
+        ]
 
-            results = [
-                (int(i), float(s))
-                for i, s in zip(idxs[mask], scores[mask])
-            ]
+        results.sort(key=lambda x: x[1], reverse=True)
 
-            # sécurité tri décroissant
-            results.sort(key=lambda x: x[1], reverse=True)
-
-            return results
-
-        # =========================
-        # FALLBACK (non entraîné)
-        # =========================
-        return self._search_flat_batch(q, threshold)
+        return results
 
     def _search_flat_batch(
         self,
@@ -199,7 +177,7 @@ class FaissManager:
         faiss.write_index(self.index, str(self.index_path))
 
     def reset(self):
-        self.index = self._create_index()
+        self._create_index(0, N_CLUSTERS)
         self.save()
 
     # =========================

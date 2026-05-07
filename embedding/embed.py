@@ -23,7 +23,7 @@ def TextToEmbedding(wrapper: OllamaWrapper, image: Image) -> None:
     except Exception as e:
         return None
 
-def inputToEmbedding(wrapper: OllamaWrapper, input: str) -> list:
+def inputToEmbedding(wrapper: OllamaWrapper, input: str) -> List[float]:
     try:
         result = wrapper.embed(
             model="nomic-embed-text:v1.5",

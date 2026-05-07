@@ -2,15 +2,11 @@
 import sys
 import os
 
-# Ajouter le chemin racine du projet au sys.path pour les imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from PyQt6.QtCore import pyqtSignal, QObject
-from ui.SearchBar.SearchBarView import SearchBarView
-from ui.SearchBar.SearchBarModel import SearchBarModel
-from ui.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
+from ui.ImageSearchedContainer.widget.SearchBar.SearchBarView import SearchBarView
+from ui.ImageSearchedContainer.widget.SearchBar.SearchBarModel import SearchBarModel
+from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
 from vision.ollama_wrapper import OllamaWrapper
-
 
 class SearchBarController(QObject):
     # Signal émis quand la recherche est terminée avec l'embedding
@@ -45,19 +41,19 @@ class SearchBarController(QObject):
         # Lancer la recherche sémantique asynchrone
         self.embedding_manager.start_search(
             query=self.model.text,
-            on_finished=self._on_search_finished,
+            on_finished=self.on_search_finished,
             on_error=self._on_embedding_error
         )
     
-    def _on_search_finished(self, search_results):
-        """Appelé quand la recherche sémantique est terminée"""
-        # Réactiver la barre de recherche
-        self.view.set_enabled(True)
-        
-        # Émettre le signal avec les résultats de recherche
-        self.search_completed.emit(self.model.text, search_results)
-        
-        print(f"Recherche terminée: {len(search_results)} résultats trouvés")
+    def on_search_finished(self, result):
+
+        self.model.clear()
+
+        self.model.add_images(result.images)
+        self._update_view()
+
+        self.state.cursor = result.next_cursor
+        self.state.has_more = result.has_more
     
     def _on_embedding_error(self, error_msg):
         """Appelé en cas d'erreur pendant l'embedding"""

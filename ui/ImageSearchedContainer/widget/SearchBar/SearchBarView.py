@@ -30,7 +30,7 @@ class SearchBarView(QWidget):
         )
 
         # Bouton loupe avec icône SVG
-        icon_path = Path(__file__).parent.parent / "Icon" / "search_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"
+        icon_path = Path(__file__).parent.parent.parent.parent / "Icon" / "search_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"
         self.search_button = QPushButton()
         self.search_button.setIcon(QIcon(str(icon_path)))
         self.search_button.setIconSize(QSize(52//2, 48//2))

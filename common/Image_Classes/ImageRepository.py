@@ -1,19 +1,13 @@
-import sys
-import os
-
-# Ajouter la racine du projet au sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.DatasetRepository import DatasetRepository
+from common.LRUCache import LRUCache
 from database.faiss_manager.manager import FaissManager
 from database.sqlite.manager import SqliteManager
-from database import DbService
+from database.DbService import DbService
 import json
+import hashlib
 from datetime import datetime
-from typing import List, TypedDict, Optional
+from typing import List, TypedDict, Optional, Tuple
 
 import numpy as np
 
@@ -64,12 +58,37 @@ class ImageRepository:
             blob = np.array(image.embedding, dtype=np.float32).tobytes()
 
         # 2. SQLite
+        # 2.1 Insertion du dataset si besoin
+        if not image.dataset_id:
+            if image.dataset_name:
+                dataset = self._dataset_repo.get_by_name(image.dataset_name)
+                if dataset:
+                    image.dataset_id = dataset.id
+                else:
+                    dataset = self._dataset_repo.create(image.dataset_name)
+                    if dataset:  # Vérifier que create() a réussi
+                        image.dataset_id = dataset.id
+                    else:
+                        # Si create() a échoué (dataset existe déjà), récupérer à nouveau
+                        dataset = self._dataset_repo.get_by_name(image.dataset_name)
+                        if dataset:
+                            image.dataset_id = dataset.id
+
+        # 2.2 Insertion de l'image
         self.db.execute("""
-            INSERT OR REPLACE INTO images
-            (id, path, name, description, keywords, indexed_at, dataset_id, embedding)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO images (
+                path, name, description, keywords,
+                indexed_at, dataset_id, embedding
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(path) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                keywords = excluded.keywords,
+                indexed_at = excluded.indexed_at,
+                dataset_id = excluded.dataset_id,
+                embedding = excluded.embedding
         """, (
-            image.id,
             str(image.path),
             image.name,
             image.description,
@@ -81,22 +100,20 @@ class ImageRepository:
 
         return True
 
-    def train_index(self, batch_size: int = 1000):
-        all_vectors = []
-
-        page = 0
-
+    def train_index(self):
         # -------------------------
         # LOAD ALL EMBEDDINGS
         # -------------------------
-        cursor = self.db.execute("SELECT embedding FROM images")
-        rows = cursor.fetchall()
+        rows = self.db.fetch_all("SELECT id, embedding FROM images")
 
         all_vectors = []
+        all_ids = []
 
-        for (embedding_blob,) in rows:
+        for image_id, embedding_blob in rows:
             vec = np.frombuffer(embedding_blob, dtype=np.float32)
+
             all_vectors.append(vec)
+            all_ids.append(image_id)
 
         vectors = np.vstack(all_vectors).astype(np.float32)
 
@@ -106,101 +123,200 @@ class ImageRepository:
         nb_vectors = len(vectors)
         n_clusters = max(1, int(nb_vectors ** 0.5))
 
-        print(f"📊 {nb_vectors} vecteurs → {n_clusters} clusters")
-
         # sécurité FAISS
         if nb_vectors < n_clusters:
-            print("❌ Pas assez de données pour train")
+            print("Erreur: Pas assez de données pour train")
             return
 
         # -------------------------
         # RECREATE INDEX
         # -------------------------
-        self.faiss = self._create_index(nb_vectors)
 
         # IMPORTANT: update clusters dynamiques dans index
-        self.faiss = self._create_index(nb_vectors)
-        self.faiss.index.nprobe = NPROBE
+        self.faiss._create_index(nb_vectors, n_clusters)
 
         # -------------------------
         # TRAIN + ADD
         # -------------------------
-        print(f"🔧 Train FAISS sur {nb_vectors} vecteurs")
 
         self.faiss.train(vectors)
-        self.faiss.add(vectors)
+        self.faiss.add(vectors, all_ids)
 
         self.faiss.save()
 
-        print("✅ Index prêt")
+        print(self.faiss.stats())
+
+    def _make_cache_key(query: List[float]) -> str:
+        return hashlib.md5(np.array(query, dtype=np.float32).tobytes()).hexdigest()
     
+    # =========================
+    # SEARCH ENGINE
+    # =========================
     def search(
         self,
         query: List[float],
         threshold: float = 0.5,
-        limit: int = 20
+        limit: int = 20,
+        k: int = 200,
+        cursor: Optional[Tuple[float, int]] = None
     ) -> SearchResults:
 
-        # -------------------------
-        # FAISS SEARCH (POOL)
-        # -------------------------
-        raw_results = self.faiss.search(query, k=200)  # pool fixe pour load-more
+        # =========================
+        # INIT CACHE
+        # =========================
+        if not hasattr(self, "_cache"):
+            self._cache = LRUCache(max_size=512)
 
-        if not raw_results:
-            return SearchResults(images=[], next_cursor=None, has_more=False)
+        cache_key = hashlib.md5(
+            np.array(query, dtype=np.float32).tobytes()
+        ).hexdigest()
 
-        # filtre threshold côté app
-        raw_results = [(idx, score) for idx, score in raw_results if score >= threshold]
+        # =========================
+        # FAISS RETRIEVAL (WITH CACHE)
+        # =========================
+        cached = self._cache.get(cache_key)
 
-        if not raw_results:
-            return SearchResults(images=[], next_cursor=None, has_more=False)
+        if cached is None:
+            raw_results = self.faiss.search(query, k)
 
-        # on garde un buffer + limit initial
-        page_results = raw_results[:limit]
+            if not raw_results:
+                return SearchResults([], None, False)
+
+            raw_results = [
+                (idx, score)
+                for idx, score in raw_results
+                if idx != -1 and score >= threshold
+            ]
+
+            # stable sort (important for cursor)
+            raw_results.sort(key=lambda x: (-x[1], x[0]))
+
+            self._cache.set(cache_key, raw_results)
+
+        else:
+            raw_results = cached
+
+        # =========================
+        # CURSOR PAGINATION
+        # =========================
+        if cursor:
+            last_score, last_id = cursor
+
+            raw_results = [
+                (idx, score)
+                for idx, score in raw_results
+                if (score < last_score) or (score == last_score and idx < last_id)
+            ]
+
+        # =========================
+        # PAGE SELECTION
+        # =========================
+        page = raw_results[:limit]
         has_more = len(raw_results) > limit
 
-        ids = [idx for idx, _ in page_results]
+        if not page:
+            return SearchResults([], None, False)
 
-        # -------------------------
-        # BATCH SQL (optimisé)
-        # -------------------------
+        # =========================
+        # SQL FETCH (EMBEDDINGS + METADATA)
+        # =========================
+        ids = [idx for idx, _ in page]
+
         placeholders = ",".join(["?"] * len(ids))
 
-        rows = self.db.execute(
-            f"SELECT id, path, name, description, keywords, dataset_id FROM images WHERE id IN ({placeholders})",
-            ids
-        ).fetchall()
+        rows = self.db.fetch_all(
+            f"""
+            SELECT
+                id,
+                embedding,
+                path,
+                name,
+                description,
+                keywords,
+                dataset_id
+            FROM images
+            WHERE id IN ({placeholders})
+            """,
+            tuple(ids)
+        )
 
-        row_map = {row[0]: row for row in rows}
+        row_map = {r[0]: r for r in rows}
 
-        images = []
+        query_vec = np.array(query, dtype=np.float32)
 
-        for idx, score in page_results:
+        # =========================
+        # RERANK (COSINE EXACT)
+        # =========================
+        reranked = []
+
+        for idx, _ in page:
             row = row_map.get(idx)
             if not row:
                 continue
 
-            keywords = json.loads(row[4]) if row[4] else []
-            dataset = self._get_dataset_by_id(row[5])
+            emb = np.frombuffer(row[1], dtype=np.float32)
 
-            if not dataset:
+            score = float(np.dot(query_vec, emb))
+
+            reranked.append((idx, score))
+
+        # =========================
+        # DEDUP
+        # =========================
+        seen = set()
+        deduped = []
+
+        for idx, score in reranked:
+            if idx in seen:
+                continue
+            seen.add(idx)
+            deduped.append((idx, score))
+
+        # =========================
+        # FINAL SORT
+        # =========================
+        deduped.sort(key=lambda x: (-x[1], x[0]))
+
+        # =========================
+        # FINAL PAGE
+        # =========================
+        final_page = deduped[:limit]
+        has_more = len(deduped) > limit
+
+        # =========================
+        # BUILD RESULTS
+        # =========================
+        images = []
+
+        for idx, score in final_page:
+            row = row_map.get(idx)
+            if not row:
                 continue
 
-            images.append(Image(
-                image_id=row[0],
-                path=row[1],
-                name=row[2],
-                description=row[3] or "",
-                keywords=keywords,
-                dataset=dataset,
-                score=score
-            ))
+            images.append(
+                Image(
+                    image_id=row[0],
+                    path=row[2],
+                    name=row[3],
+                    description=row[4] or "",
+                    keywords=json.loads(row[5]) if row[5] else [],
+                    dataset=self._get_dataset_by_id(row[6]),
+                    score=float(score)
+                )
+            )
 
-        # -------------------------
-        # CURSOR (load more)
-        # -------------------------
-        next_cursor = page_results[-1][1] if has_more else None
+        # =========================
+        # CURSOR OUTPUT
+        # =========================
+        if has_more:
+            last = final_page[-1]
+            next_cursor = (last[1], last[0])  # (score, id)
+        else:
+            next_cursor = None
 
+        # =========================
+        # RETURN
+        # =========================
         return SearchResults(
             images=images,
             next_cursor=next_cursor,
@@ -226,11 +342,11 @@ class ImageRepository:
                     keywords = []
             
             # Récupérer le dataset par ID
-            dataset = self._get_dataset_by_id(row[7])
+            dataset = self._get_dataset_by_id(row[6])
             
             if not dataset:
                 print(f"⚠️ Dataset {row[6]} non trouvé pour l'image {row[0]}")
-                continue
+                dataset = None
             
             # Création de l'image avec le vrai objet Dataset
             new_image = Image(
@@ -240,9 +356,8 @@ class ImageRepository:
                 keywords=keywords,
                 image_id=row[0]
             )
-            
+
             images.append(new_image)
-        
         return images
 
     def exist(self, path : str) -> bool:
@@ -257,7 +372,30 @@ class ImageRepository:
         """
         return self.db.fetch_one("SELECT 1 FROM images WHERE path = ?", (path,)) is not None
 
+    def image_exists(self, path: str) -> bool:
+        """
+        Vérifie si une image existe dans la base de données
+        
+        Args:
+            path (str): Chemin de l'image
+            
+        Returns:
+            bool: True si l'image existe, False sinon
+        """
+        return self.db.fetch_one("SELECT 1 FROM images WHERE path = ?", (path,)) is not None
+
+    def get_all_image_paths(self) -> set[str]:
+        """
+        Récupère tous les chemins d'images de la base de données en un seul appel
+        
+        Returns:
+            set[str]: Ensemble des chemins d'images existants
+        """
+        rows = self.db.fetch_all("SELECT path FROM images")
+        return {row[0] for row in rows}
+
 if __name__ == "__main__":
     dbm = DbService()
     repo = ImageRepository(dbm.sqlite, dbm.faiss)
+    repo.train_index()
     print(repo.exist("test"))

@@ -64,7 +64,7 @@ class ImportToolView(QWidget):
     load_more_requested = pyqtSignal()
 
     _CARD_W = ImageWidget.CARD_WIDTH
-    _GRID_GAP = 12
+    _GRID_GAP = 6
     _SCROLL_THRESHOLD = 0.80
 
     def __init__(self, parent=None, ollama_base_url: str = None):
@@ -119,6 +119,7 @@ class ImportToolView(QWidget):
         self.container = QWidget()
         self.grid = QGridLayout(self.container)
         self.grid.setSpacing(self._GRID_GAP)
+        self.grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
 
         self.scroll.setWidget(self.container)
         parent.addWidget(self.scroll, 1)
@@ -241,8 +242,47 @@ class ImportToolView(QWidget):
     def _compute_cols(self) -> int:
         """Calcule le nombre de colonnes selon la largeur disponible."""
         available = self.scroll.viewport().width()
-        cols = max(1, available // (self._CARD_W + self._GRID_GAP))
+        # Prend en compte l'espacement entre les colonnes
+        effective_card_width = self._CARD_W + self._GRID_GAP
+        cols = max(1, available // effective_card_width)
         return cols
+
+    def _update_grid_layout(self):
+        """Met à jour la grille quand le nombre de colonnes change."""
+        new_cols = self._compute_cols()
+        if new_cols != self._current_cols:
+            self._current_cols = new_cols
+            self._reorganize_grid()
+
+    def _reorganize_grid(self):
+        """Réorganise les widgets dans la nouvelle grille."""
+        widgets = []
+        # Récupérer tous les widgets dans l'ordre
+        for i in range(self.grid.count()):
+            item = self.grid.itemAt(i)
+            if item and item.widget():
+                widgets.append(item.widget())
+        
+        # Vider la grille
+        for i in reversed(range(self.grid.count())):
+            item = self.grid.itemAt(i)
+            if item and item.widget():
+                self.grid.removeWidget(item.widget())
+        
+        # Replacer les widgets avec le nouveau nombre de colonnes
+        for i, widget in enumerate(widgets):
+            self.grid.addWidget(widget, i // self._current_cols, i % self._current_cols)
+
+    def resizeEvent(self, event: QResizeEvent):
+        """Gère le redimensionnement pour ajuster les colonnes."""
+        super().resizeEvent(event)
+        # Utiliser un QTimer pour éviter les appels trop fréquents
+        if not hasattr(self, '_resize_timer'):
+            self._resize_timer = QTimer()
+            self._resize_timer.setSingleShot(True)
+            self._resize_timer.timeout.connect(self._update_grid_layout)
+        
+        self._resize_timer.start(100)  # Attendre 100ms avant de recalculer
 
     # ─────────────────────────────────────────────
     # Scroll → pagination
@@ -281,6 +321,9 @@ class ImportToolView(QWidget):
         key = str(Path(path).resolve())
         if key in self.image_widgets:
             self.image_widgets[key].set_status(status)
+        
+        # Mettre à jour la barre de progression globale
+        self._update_progress_display()
 
     def _refresh_image_display(self):
         """FIX: méthode manquante — rafraîchit les badges de statut après chargement BDD."""

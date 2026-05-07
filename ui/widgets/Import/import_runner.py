@@ -80,7 +80,7 @@ class ImportRunner:
                         # Mettre à jour le chemin de l'image
                         image.path = final_path
 
-                        # Mettre à joue le Dataset
+                        # Mettre à jour le Dataset
                         dataset = self.service.dataset_repo.get_by_name(image.dataset_name)
                         image.dataset_id = dataset.id
 

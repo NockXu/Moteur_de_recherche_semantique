@@ -1,7 +1,7 @@
 import sys
 import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -10,10 +10,10 @@ from PyQt6.QtCore import QObject, pyqtSignal, QThread, pyqtSlot
 from ui.ImportTool.ImportToolView import ImportToolView
 from ui.ImportTool.ImportToolModel import ImportToolModel
 from ui.ImportTool.ProcessingWorker import BatchProcessingManager
-from common.Image_Classes.Image import ProcessingStatus
+from common.Image_Classes.Image import ProcessingStatus, Image
+from common.Image_Classes.ImageRepository import ImageRepository
 from database.DbService import DbService
 from vision.ollama_wrapper import OllamaWrapper
-
 
 # ─────────────────────────────────────────────
 # Thread BDD (non bloquant)
@@ -51,7 +51,7 @@ class ImportToolController(QObject):
         self.view.set_model(self.model)
 
         db_service = DbService()
-        self.image_repository = db_service
+        self.image_repository = ImageRepository(db_service.sqlite, db_service.faiss)
 
         self.processing_manager = BatchProcessingManager(ollama_wrapper)
 
@@ -61,6 +61,9 @@ class ImportToolController(QObject):
         # pagination state UI
         self._has_more = True
         self._loading_page = False  # Optimisation anti-double chargement
+        
+        # Filtrage des images existantes
+        self._existing_paths: Optional[set[str]] = None
 
         self._connect_signals()
         self._load_default_dataset_folder()
@@ -88,14 +91,35 @@ class ImportToolController(QObject):
         # reset pagination state
         self._has_more = True
 
-        # first page
+        # Récupérer tous les chemins d'images existants en BDD (un seul appel)
+        self._existing_paths = self.image_repository.get_all_image_paths()
+        
+        # first page SANS filtrage (on veut tout afficher)
         images = self.model.load_next_page()
+        
+        # Marquer les statuts des images existantes
+        self._update_images_status_from_db(images)
+        
         self.view.load_images(images)
 
-        self.folder_loaded.emit(self.model.get_images_count())
+        self.folder_loaded.emit(len(images))
 
         # load DB status async
         self._start_db_loader()
+
+    # ─────────────────────────────────────────────
+    # FILTRAGE IMAGES
+    # ─────────────────────────────────────────────
+    def _update_images_status_from_db(self, images: List[Image]):
+        """Met à jour le statut des images selon leur présence en BDD"""
+        if not self._existing_paths:
+            return
+        
+        for img in images:
+            if str(img.path) in self._existing_paths:
+                img.status = ProcessingStatus.COMPLETED
+            else:
+                img.status = ProcessingStatus.PENDING
 
     # ─────────────────────────────────────────────
     # PAGINATION
@@ -110,6 +134,8 @@ class ImportToolController(QObject):
             self._has_more = False
             return
 
+        # Mettre à jour les statuts avant d'ajouter
+        self._update_images_status_from_db(images)
         self.view.append_images(images)
 
     def _load_next_page_throttled(self):
@@ -130,6 +156,8 @@ class ImportToolController(QObject):
                 self._has_more = False
                 return
             
+            # Mettre à jour les statuts avant d'ajouter
+            self._update_images_status_from_db(images)
             self.view.append_images(images)
         finally:
             self._loading_page = False

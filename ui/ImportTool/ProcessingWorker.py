@@ -24,10 +24,10 @@ class ProcessingWorker(QThread):
     processing_complete = pyqtSignal()
     processing_stopped = pyqtSignal()
 
-    def __init__(self, images: List[Image], ollama_wrapper: OllamaWrapper = None, model: str = "qwen2.5vl:7b"):
+    def __init__(self, images: List[Image], model: str = "qwen2.5vl:7b"):
         super().__init__()
         self.images = images
-        self.ollama_wrapper = ollama_wrapper
+        self.ollama_wrapper = OllamaWrapper()
         self.model = model
 
         db_service = DbService()
@@ -53,6 +53,7 @@ class ProcessingWorker(QThread):
         stopped_manually = False
 
         try:
+            total_images = len(self.images)
             for i, image in enumerate(self.images):
 
                 if not self._is_running:
@@ -60,11 +61,18 @@ class ProcessingWorker(QThread):
                     break
 
                 self._current_index = i
+                
+                # Progression globale : "3/10 - weezer.png"
+                progress_text = f"{i+1}/{total_images} - {image.path.name}"
+                self.progress_updated.emit(progress_text, ProcessingStatus.IN_PROGRESS)
 
                 try:
                     self._process_single_image(image)
                 except Exception as e:
                     print(f"❌ Erreur image {image.path.name}: {e}")
+                    # Mettre à jour l'état de l'image en cas d'erreur
+                    image.status = ProcessingStatus.ERROR
+                    self.progress_updated.emit(str(image.path), ProcessingStatus.ERROR)
 
         finally:
             self._is_running = False
@@ -96,6 +104,7 @@ class ProcessingWorker(QThread):
             raise RuntimeError("ImageProcessor non initialisé")
 
         # ───── STEP 1 : description
+        self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
         self.image_processor.ImageToData(image)
         if not self._is_running:
             return
@@ -104,6 +113,7 @@ class ProcessingWorker(QThread):
             raise RuntimeError("Description vide")
 
         # ───── STEP 2 : embedding
+        self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
         self.image_processor.TextToEmbedding(image)
         if not self._is_running:
             return
@@ -111,8 +121,12 @@ class ProcessingWorker(QThread):
         if not image.embedding:
             raise RuntimeError("Embedding vide")
 
-        # ───── STEP 3 : DB
+        # ───── STEP 3 : dataset
+        image.dataset_name = os.path.basename(os.path.dirname(image.path))
+
+        # ───── STEP 4 : DB
         try:
+            self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
             self._image_repository.save_image(image)
         except Exception as e:
             print(f"❌ DB error: {e}")
@@ -174,7 +188,7 @@ class BatchProcessingManager:
         if self.current_worker and self.current_worker.isRunning():
             raise RuntimeError("Traitement déjà en cours")
 
-        self.current_worker = ProcessingWorker(images, self.ollama_wrapper, model)
+        self.current_worker = ProcessingWorker(images, model)
 
         # signaux
         if on_progress:

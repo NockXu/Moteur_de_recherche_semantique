@@ -112,7 +112,7 @@ class ImportService:
                 base_path = Path(config["path"])
                 
                 if base_path.exists() and base_path.is_dir():
-                    result = str(base_path / image.path)
+                    result = str(base_path / image.name)
                     return result
 
         # Sinon on essaye pour chaque config
@@ -120,7 +120,7 @@ class ImportService:
             base_path = Path(config["path"])
             
             if base_path.exists() and base_path.is_dir():
-                result = str(base_path / image.path)
+                result = str(base_path / image.name)
                 image.dataset_name = config["name"]
                 return result
 

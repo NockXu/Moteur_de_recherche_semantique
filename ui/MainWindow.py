@@ -16,7 +16,6 @@ from PyQt6.QtGui import QFont
 from qt_material import apply_stylesheet
 
 # Import des widgets (chemins relatifs à ui/)
-from ui.SearchBar.SearchBarController import SearchBarController
 from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
@@ -116,25 +115,6 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
         
-        # Section supérieure : Barre de recherche
-        search_layout = QHBoxLayout()
-        search_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Titre de l'application
-        title_label = QLabel(" Moteur de Recherche Sémantique")
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
-        search_layout.addWidget(title_label)
-        search_layout.addStretch()
-        
-        # Ajouter la barre de recherche
-        search_layout.addWidget(self.search_controller.view)
-        
-        # Ajouter la section de recherche au layout principal
-        search_widget = QWidget()
-        search_widget.setLayout(search_layout)
-        main_layout.addWidget(search_widget)
-        
         # Zone centrale : Conteneur d'images
         main_layout.addWidget(self.image_container_controller.view, 1)  # Stretch factor 1
         
@@ -171,9 +151,6 @@ class MainWindow(QMainWindow):
     
     def _setup_controllers(self):
         """Initialise tous les contrôleurs"""
-        # Barre de recherche avec wrapper
-        self.search_controller = SearchBarController(self.wrapper)
-        
         # Import Tool (dans un dock) avec wrapper et modèle
         self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL)
         
@@ -193,25 +170,6 @@ class MainWindow(QMainWindow):
         main_layout = QVBoxLayout(central)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
-        
-        # Section supérieure : Barre de recherche
-        search_layout = QHBoxLayout()
-        search_layout.setContentsMargins(0, 0, 0, 0)
-        
-        # Titre de l'application
-        title_label = QLabel(" Moteur de Recherche Sémantique")
-        title_label.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        title_label.setStyleSheet("color: #2c3e50; margin-bottom: 10px;")
-        search_layout.addWidget(title_label)
-        search_layout.addStretch()
-        
-        # Ajouter la barre de recherche
-        search_layout.addWidget(self.search_controller.view)
-        
-        # Ajouter la section de recherche au layout principal
-        search_widget = QWidget()
-        search_widget.setLayout(search_layout)
-        main_layout.addWidget(search_widget)
         
         # Zone centrale : Conteneur d'images
         main_layout.addWidget(self.image_container_controller.view, 1)  # Stretch factor 1
@@ -249,11 +207,8 @@ class MainWindow(QMainWindow):
         self.image_container_controller.view.image_clicked.connect(self._on_image_clicked)
         self.import_tool_controller.view.image_clicked.connect(self._on_image_clicked)
         
-        # Quand une recherche est effectuée
-        self.search_controller.search_completed.connect(self._on_search_triggered)
-        
         # Connexion du widget de connexion Ollama
-        connection_widget = self.import_tool_controller.get_connection_verificator()
+        connection_widget = self.import_tool_controller.view.connection_verificator
         connection_widget.connection_status_changed.connect(self._on_connection_status_changed)
         
         # Connexion des signaux du menu
@@ -273,24 +228,6 @@ class MainWindow(QMainWindow):
             self.preview_dock.show()
         
         print(f"Image sélectionnée: {os.path.basename(img.path)}")
-    
-    def _on_search_triggered(self, search_text: str, embedding: list):
-        """Gère le déclenchement d'une recherche"""
-        print(f"Recherche: '{search_text}'")
-        print(f"Embedding dimension: {len(embedding) if embedding else 0}")
-        
-        if embedding:
-            # Effectuer la recherche sémantique avec AutoResearch
-            try:   
-                auto_research = AutoResearch()
-                similar_images = auto_research.find(query=search_text)
-                print(f"Trouvé {len(similar_images)} résultats similaires")
-                
-                # Mettre à jour le conteneur d'images avec les résultats
-                self.image_container_controller.set_images(similar_images)
-                
-            except Exception as e:
-                print(f"Erreur lors de la recherche sémantique: {e}")
     
     def _on_connection_status_changed(self, state, version: str, error_message: str):
         """Gère les changements de statut de connexion Ollama"""

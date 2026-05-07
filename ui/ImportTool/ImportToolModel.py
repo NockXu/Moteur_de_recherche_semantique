@@ -67,9 +67,7 @@ class ImportToolModel:
             try:
                 image = next(self._generator)
 
-                if str(image.path.resolve()) in self._db_paths:
-                    continue
-
+                # Ajouter TOUTES les images (plus de filtrage)
                 self._cache.append(image)
                 new_images.append(image)
 
@@ -87,11 +85,8 @@ class ImportToolModel:
 
     def load_db_status(self):
         try:
-            existing = self._image_repository.get_all()
-            self._db_paths = {
-                str(img.path.resolve())
-                for img in existing
-            }
+            # Utiliser la méthode optimisée qui retourne directement les chemins
+            self._db_paths = self._image_repository.get_all_image_paths()
             print(f"🗄️ {len(self._db_paths)} images en BDD")
 
         except Exception as e:

@@ -36,11 +36,23 @@ class DatasetRepository:
 
     def create(self, name: str) -> Dataset:
         try:
-            self.db.execute(
-                "INSERT INTO datasets (name) VALUES (?)",
+            self.db.execute("""
+                INSERT INTO datasets (name)
+                VALUES (?)
+                ON CONFLICT(name) DO NOTHING
+            """, (name,))
+
+            # récupérer l'id réel (existant ou nouvellement créé)
+            row = self.db.fetch_one(
+                "SELECT id, name FROM datasets WHERE name = ?",
                 (name,)
             )
-            dataset_id = self.db.lastrowid
+
+            if not row:
+                return None
+
+            dataset_id = row[0]
+            return Dataset(id=dataset_id, name=row[1])
+
         except Exception:
             return None
-        return Dataset(id=dataset_id, name=name)

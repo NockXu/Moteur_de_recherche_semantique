@@ -1,15 +1,16 @@
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
+from matplotlib import image
 
 from common.Image_Classes.Image import Image
 from ui.ImageSearchedContainer.widget.ImageThumbnailWidget import ImageThumbnailWidget
+from ui.ImageSearchedContainer.widget.SearchBar.SearchBarController import SearchBarController
 from ui.ImageSearchedContainer.widget.MasonryWidget import MasonryLayout
+from ui.ImportTool import ImportToolView
 
 
 class ImageSearchedContainerView(QWidget):
@@ -23,12 +24,16 @@ class ImageSearchedContainerView(QWidget):
     image_clicked = pyqtSignal(Image)
     load_more_requested = pyqtSignal()
     reload_requested = pyqtSignal()
+    search_requested = pyqtSignal(str, list)  # search_text, results
 
     def __init__(self, parent=None):
         super().__init__(parent)
 
         self._cards = []
         self._loading = False
+
+        # Créer la SearchBar
+        self.search_controller = SearchBarController()
 
         self._setup_ui()
         self._apply_styles()
@@ -47,12 +52,13 @@ class ImageSearchedContainerView(QWidget):
         self.header_label = QLabel("0 image")
         self.header_label.setFont(QFont("Segoe UI", 10))
 
-        self.reload_button = QPushButton("🔄 Recharger")
+        self.reload_button = QPushButton("Recharger")
         self.reload_button.clicked.connect(self.reload_requested.emit)
 
         header.addWidget(self.header_label)
         header.addWidget(self.reload_button)
         header.addStretch()
+        header.addWidget(self.search_controller.view)
 
         layout.addLayout(header)
 
@@ -144,3 +150,23 @@ class ImageSearchedContainerView(QWidget):
         self.masonry.clear()
         self.header_label.setText("0 image")
         self._loading = False
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    from database.DbService import DbService
+    from common.Image_Classes.ImageRepository import ImageRepository
+
+    db = DbService()
+
+    repo = ImageRepository(db.sqlite, db.faiss)
+    
+    app = QApplication(sys.argv)
+
+    view = ImageSearchedContainerView()
+    view.show()
+
+    images = repo.get_all()
+
+    view.display_images(images, len(images))
+    sys.exit(app.exec())

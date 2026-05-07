@@ -1,13 +1,9 @@
-import os
-import sys
 from typing import TypeVar
-
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
 
 from database.sqlite.manager import SqliteManager
 from database.faiss_manager.manager import FaissManager
+
+from storage.config import FAISS_INDEX_FILE, DATABASE_FILE
 
 # TypeVars pour un typage plus précis
 TSqlite = TypeVar('TSqlite', bound=SqliteManager)
@@ -24,11 +20,8 @@ class DbService:
         if cls._instance is None:
             cls._instance = super().__new__(cls)
 
-            db_path = os.path.join(os.path.dirname(__file__), '..', 'storage', 'database', 'embeddings.db')
-            faiss_index_path = os.path.join(os.path.dirname(__file__), '..', 'storage', 'indexes', 'images.index')
-
-            cls._instance.sqlite = SqliteManager(db_path)
-            cls._instance.faiss = FaissManager(faiss_index_path)
+            cls._instance.sqlite = SqliteManager(DATABASE_FILE)
+            cls._instance.faiss = FaissManager(FAISS_INDEX_FILE)
 
         return cls._instance
 
