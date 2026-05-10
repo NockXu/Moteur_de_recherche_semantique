@@ -2,7 +2,15 @@ __pycache__
 dataset
 test_env
 dataset.zip
-embeddings.db
-images.index
-storage/database/embeddings.db
-storage/database/images.index
+
+# Base de données SQLite
+*.db
+storage/database/
+
+# Index FAISS
+*.index
+storage/indexes/
+
+# Cache et fichiers temporaires
+storage/preview_cache/
+__pycache__/
