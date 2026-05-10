@@ -19,7 +19,6 @@ from qt_material import apply_stylesheet
 from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
-from ui.ImageSearchedContainer.AutoResearch import AutoResearch
 from ui.MenuBar import create_menu_bar
 
 from common.Image_Classes.Image import Image
@@ -83,11 +82,6 @@ class MainWindow(QMainWindow):
         """)
         
         main_layout.addWidget(loading_label)
-    
-    def _setup_basic_docks(self):
-        """Configure les docks de base rapidement"""
-        # Pas de docks pendant le chargement
-        pass
     
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
@@ -160,47 +154,6 @@ class MainWindow(QMainWindow):
         # Preview d'image (dans un dock)
         self.image_preview_controller = ImagePreviewController()
     
-    def _setup_ui(self):
-        """Configure l'interface utilisateur"""
-        # Widget central obligatoire avec QMainWindow
-        central = QWidget()
-        self.setCentralWidget(central)
-        
-        # Layout principal pour le widget central
-        main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
-        
-        # Zone centrale : Conteneur d'images
-        main_layout.addWidget(self.image_container_controller.view, 1)  # Stretch factor 1
-        
-        # Créer les docks
-        self.setup_docks()
-    
-    def setup_docks(self):
-        """Configure les docks latéraux"""
-        
-        # Dock gauche : Import Tool
-        self.import_dock = QDockWidget("Import d'images")
-        self.import_dock.setWidget(self.import_tool_controller.get_view())
-        self.import_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        
-        # Définir une taille fixe pour le dock Import Tool
-        self.import_dock.setFixedWidth(280)  # Largeur fixe de 280px
-        self.import_dock.setMinimumWidth(250)  # Largeur minimale
-        self.import_dock.setMaximumWidth(320)  # Largeur maximale
-        
-        self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, import_dock)
-        
-        # Dock droit : Preview d'image
-        self.preview_dock = QDockWidget("Aperçu")
-        self.preview_dock.setWidget(self.image_preview_controller.view)
-        self.preview_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
-        self.addDockWidget(Qt.DockWidgetArea.RightDockWidgetArea, preview_dock)
-        
-        # Masquer le dock de preview par défaut (s'ouvrira au clic sur une image)
-        self.preview_dock.hide()
-    
     def _connect_signals(self):
         """Connecte les signaux entre les widgets"""
         # Quand une image est cliquée dans le conteneur
@@ -215,6 +168,7 @@ class MainWindow(QMainWindow):
         self.menu_controller.file_quit_requested.connect(self.close)
         self.menu_controller.file_import_requested.connect(self._on_menu_import)
         self.menu_controller.file_export_requested.connect(self._on_menu_export)
+        self.menu_controller.toggle_import_tool.connect(self._on_toggle_import_tool)
     
     def _on_image_clicked(self, img: Image):
         """Gère le clic sur une image"""
@@ -251,6 +205,13 @@ class MainWindow(QMainWindow):
         """Gère l'export depuis le menu"""
         # Le menu gère déjà l'export via handle_export()
         pass
+    
+    def _on_toggle_import_tool(self):
+        """Gère l'affichage/masquage de l'Import Tool"""
+        if self.import_dock.isVisible():
+            self.import_dock.hide()
+        else:
+            self.import_dock.show()
     
     def cleanup(self):
         """Nettoie les ressources avant la fermeture"""
