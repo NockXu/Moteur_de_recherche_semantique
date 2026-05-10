@@ -33,7 +33,16 @@ class SqliteManager:
     def execute(self, query: str, params: Tuple = ()):
         try:
             self.cursor.execute(query, params)
+        except Exception as e:
+            print(f"❌ SQL error: {e}")
+            raise
+
+    def executemany(self, query: str, params_list: List[Tuple]):
+
+        try:
+            self.cursor.executemany(query, params_list)
             self.conn.commit()
+
         except Exception as e:
             print(f"❌ SQL error: {e}")
             raise

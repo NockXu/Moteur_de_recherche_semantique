@@ -15,7 +15,7 @@ class DatasetRepository:
         self.db = db
 
     def get_all(self) -> List[Dataset]:
-        rows = self.db.execute("SELECT id, name FROM datasets")
+        rows = self.db.fetch_all("SELECT id, name FROM datasets")
         if rows is None:
             return []
         return [Dataset(id=row[0], name=row[1]) for row in rows]

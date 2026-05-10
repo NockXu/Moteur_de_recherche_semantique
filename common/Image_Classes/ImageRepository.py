@@ -98,7 +98,106 @@ class ImageRepository:
             blob
         ))
 
+        self.db.commit()
+
         return True
+
+    def save_many_images(self, images: List[Image]) -> int:
+
+        success_count = 0
+
+        query = """
+            INSERT INTO images (
+                path,
+                name,
+                description,
+                keywords,
+                indexed_at,
+                dataset_id,
+                embedding
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(path) DO UPDATE SET
+                name = excluded.name,
+                description = excluded.description,
+                keywords = excluded.keywords,
+                indexed_at = excluded.indexed_at,
+                dataset_id = excluded.dataset_id,
+                embedding = excluded.embedding
+        """
+
+        rows = []
+
+        for image in images:
+
+            blob = None
+
+            if image.embedding is not None:
+                blob = np.array(
+                    image.embedding,
+                    dtype=np.float32
+                ).tobytes()
+
+            # Dataset
+            if not image.dataset_id and image.dataset_name:
+
+                dataset = self._dataset_repo.get_by_name(
+                    image.dataset_name
+                )
+
+                if dataset:
+                    image.dataset_id = dataset.id
+
+                else:
+                    dataset = self._dataset_repo.create(
+                        image.dataset_name
+                    )
+
+                    if dataset:
+                        image.dataset_id = dataset.id
+
+                    else:
+                        dataset = self._dataset_repo.get_by_name(
+                            image.dataset_name
+                        )
+
+                        if dataset:
+                            image.dataset_id = dataset.id
+
+            rows.append((
+                str(image.path),
+                image.name,
+                image.description,
+                json.dumps(image.keywords),
+                datetime.now().isoformat(),
+                image.dataset_id,
+                blob
+            ))
+
+        try:
+            # Insertion rapide
+            self.db.executemany(query, rows)
+
+            success_count = len(rows)
+
+        except Exception as batch_error:
+
+            print(f"Erreur batch : {batch_error}")
+
+            # Fallback ligne par ligne
+            for row in rows:
+
+                try:
+                    self.db.execute(query, row)
+                    success_count += 1
+
+                except Exception as row_error:
+                    print(f"Erreur ligne : {row_error}")
+
+        self.db.commit()
+
+        return success_count
+        
 
     def train_index(self):
         # -------------------------
@@ -348,12 +447,21 @@ class ImageRepository:
                 print(f"⚠️ Dataset {row[6]} non trouvé pour l'image {row[0]}")
                 dataset = None
             
+            # Désérialiser l'embedding depuis le blob (numpy)
+            embedding = []
+            if row[7]:
+                try:
+                    embedding = np.frombuffer(row[7], dtype=np.float32).tolist()
+                except:
+                    embedding = []
+            
             # Création de l'image avec le vrai objet Dataset
             new_image = Image(
                 path=row[1],
                 dataset=dataset,  # Vrai objet Dataset
                 description=row[3] or "",
                 keywords=keywords,
+                embedding=embedding,
                 image_id=row[0]
             )
 
