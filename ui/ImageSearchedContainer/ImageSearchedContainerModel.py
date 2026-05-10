@@ -3,6 +3,7 @@ import sys
 from typing import List, Dict, Optional
 
 from common.Image_Classes.Image import Image
+from common.Image_Classes.ImageRepository import SearchResults
 
 
 class ImageSearchedContainerModel:
@@ -29,16 +30,16 @@ class ImageSearchedContainerModel:
     # DATA MANAGEMENT (append only)
     # ─────────────────────────────────────────────
 
-    def append_results(self, search_results):
+    def append_results(self, search_results : SearchResults):
         """
         Ajoute un batch SearchResults (LOAD MORE)
         """
         if not search_results:
             return
 
-        self.images.extend(search_results.images)
-        self.next_cursor = search_results.next_cursor
-        self.has_more = search_results.has_more
+        self.images.extend(search_results['images'])
+        self.next_cursor = search_results['next_cursor']
+        self.has_more = search_results['has_more']
 
     def reset(self):
         """Reset complet (nouvelle recherche)"""

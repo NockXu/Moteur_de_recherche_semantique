@@ -33,7 +33,11 @@ class Research:
         # ALL IMAGES MODE
         # -------------------------
         if query is None:
-            return self._find_all_images()
+            return SearchResults(
+                images=self._find_all_images(),
+                next_cursor=None,
+                has_more=False
+            )
 
         # -------------------------
         # EMBEDDING

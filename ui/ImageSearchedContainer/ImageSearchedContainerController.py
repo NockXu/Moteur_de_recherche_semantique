@@ -1,4 +1,5 @@
 import sys
+import time
 from typing import List, Optional, Callable
 from PyQt6.QtCore import QObject, pyqtSignal
 
@@ -6,7 +7,7 @@ from ui.ImageSearchedContainer.ImageSearchedContainerView import ImageSearchedCo
 from ui.ImageSearchedContainer.ImageSearchedContainerModel import ImageSearchedContainerModel
 from ui.ImageSearchedContainer.Research import Research
 from common.Image_Classes.Image import Image
-from common.Image_Classes.ImageRepository import ImageRepository
+from common.Image_Classes.ImageRepository import ImageRepository, SearchResults
 from database.DbService import DbService
 
 from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
@@ -60,11 +61,6 @@ class ImageSearchedContainerController(QObject):
         self.view.load_more_requested.connect(self.load_more_images)
         self.view.reload_requested.connect(self.reload_images)
 
-        # 🔥 SEARCH BAR (IMPORTANT)
-        self.view.search_controller.search_requested.connect(
-            self._on_search_triggered
-        )
-
     # ─────────────────────────────
     # SEARCH ENTRY POINT
     # ─────────────────────────────
@@ -74,7 +70,7 @@ class ImageSearchedContainerController(QObject):
         self.state.cursor = None
         self.state.has_more = False
 
-        self.model.clear()
+        self.model.reset()
         self._update_view()
 
         self._loading = True
@@ -95,8 +91,8 @@ class ImageSearchedContainerController(QObject):
 
         self._loading = False
 
-        self.model.clear()
-        self.model.add_images(result.images)
+        self.model.reset()
+        self.model.append_results(result)
         self._update_view()
 
         self.state.cursor = result.next_cursor
@@ -129,7 +125,7 @@ class ImageSearchedContainerController(QObject):
                 cursor=self.state.cursor
             )
 
-            self.model.add_images(result.images)
+            self.model.append_results(result)
             self._update_view()
 
             self.state.cursor = result.next_cursor
@@ -146,8 +142,8 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     def _update_view(self):
         self.view.display_images(
-            image_data=self.model.get_all_loaded_images(),
-            total_count=self.model.count(),
+            image_data=self.model.get_visible_images(),
+            total_count=len(self.model.images),
         )
 
     # ─────────────────────────────
@@ -169,22 +165,15 @@ class ImageSearchedContainerController(QObject):
         self.image_click_callback = callback
 
     def clear_images(self):
-        self.model.clear()
+        self.model.reset()
         self.state = SearchState()
         self._update_view()
 
     def reload_images(self):
-        try:
-            images = self.repo.get_all()
-
-            print(f"[Controller] Reload {len(images)} images")
-
-            self.model.clear()
-            self.model.add_images(images)
-            self._update_view()
-
-        except Exception as e:
-            print(f"Reload error: {e}")
+        self.model.reset()
+        search_results = self.research.find()
+        self.model.append_results(search_results)
+        self._update_view()
 
     # ─────────────────────────────
     # CONFIG
@@ -194,7 +183,8 @@ class ImageSearchedContainerController(QObject):
         self._update_view()
 
     def set_max_per_load(self, value: int):
-        self.model.set_max_images_per_page(value)
+        # Cette méthode n'existe pas dans le modèle, on l'ignore pour l'instant
+        pass
 
 if __name__ == "__main__":
     import sys
