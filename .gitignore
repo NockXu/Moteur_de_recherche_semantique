@@ -5,3 +5,4 @@ dataset.zip
 embeddings.db
 images.index
 storage/database/embeddings.db
+storage/database/images.index
