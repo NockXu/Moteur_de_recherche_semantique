@@ -114,6 +114,8 @@ class ImportToolView(QWidget):
     def _build_body(self, parent):
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
         self.scroll.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
         self.container = QWidget()
