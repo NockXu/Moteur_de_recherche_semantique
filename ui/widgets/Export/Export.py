@@ -4,10 +4,13 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-# Ajouter la racine du projet au sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+from PyQt6.QtWidgets import (
+    QDialog, QVBoxLayout, QHBoxLayout, QLabel, 
+    QPushButton, QRadioButton, QButtonGroup, QGroupBox,
+    QFileDialog, QMessageBox
+)
+from PyQt6.QtCore import Qt
+from PyQt6.QtGui import QFont
 
 from common.Image_Classes.Image import Image, ProcessingStatus
 
@@ -91,3 +94,182 @@ class Export:
             indent=2,
             ensure_ascii=False
         )
+
+
+class ExportDialog(QDialog):
+    """
+    Boîte de dialogue d'export avec choix du mode
+    """
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Exporter les données")
+        self.setMinimumSize(400, 300)
+        self.setModal(True)
+        
+        # Mode sélectionné
+        self.selected_mode = None
+        
+        self._setup_ui()
+        self._setup_connections()
+    
+    def _setup_ui(self):
+        """Configure l'interface utilisateur"""
+        layout = QVBoxLayout(self)
+        layout.setSpacing(15)
+        
+        # Titre
+        title = QLabel("Choisir le mode d'export")
+        title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
+        title.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(title)
+        
+        # Groupe de choix
+        choice_group = QGroupBox("Mode d'export")
+        choice_layout = QVBoxLayout(choice_group)
+        
+        # Boutons radio
+        self.radio_simple = QRadioButton("Export simple (images uniquement)")
+        self.radio_simple.setChecked(True)  # Sélectionné par défaut
+        
+        simple_desc = QLabel("Exporte uniquement les images avec leurs métadonnées.")
+        simple_desc.setStyleSheet("color: #666; font-size: 10px; margin-left: 20px;")
+        simple_desc.setWordWrap(True)
+        
+        self.radio_integral = QRadioButton("Export intégral (datasets + images)")
+        
+        integral_desc = QLabel("Exporte les datasets et les images dans un fichier complet.")
+        integral_desc.setStyleSheet("color: #666; font-size: 10px; margin-left: 20px;")
+        integral_desc.setWordWrap(True)
+        
+        choice_layout.addWidget(self.radio_simple)
+        choice_layout.addWidget(simple_desc)
+        choice_layout.addWidget(self.radio_integral)
+        choice_layout.addWidget(integral_desc)
+        
+        layout.addWidget(choice_group)
+        
+        # Boutons
+        button_layout = QHBoxLayout()
+        
+        self.export_button = QPushButton("Exporter...")
+        self.export_button.setDefault(True)
+        
+        self.cancel_button = QPushButton("Annuler")
+        
+        button_layout.addStretch()
+        button_layout.addWidget(self.export_button)
+        button_layout.addWidget(self.cancel_button)
+        
+        layout.addLayout(button_layout)
+        layout.addStretch()
+    
+    def _setup_connections(self):
+        """Configure les connexions des signaux"""
+        self.export_button.clicked.connect(self._on_export_clicked)
+        self.cancel_button.clicked.connect(self.reject)
+    
+    def _on_export_clicked(self):
+        """Gère le clic sur le bouton Exporter"""
+        # Déterminer le mode sélectionné
+        if self.radio_simple.isChecked():
+            self.selected_mode = "simple"
+        elif self.radio_integral.isChecked():
+            self.selected_mode = "integral"
+        else:
+            QMessageBox.warning(self, "Erreur", "Veuillez sélectionner un mode d'export.")
+            return
+        
+        # Choisir le fichier de destination
+        default_name = "export_simple.json" if self.selected_mode == "simple" else "export_integral.json"
+        
+        file_path, _ = QFileDialog.getSaveFileName(
+            self,
+            "Choisir le fichier d'export",
+            default_name,
+            "Fichiers JSON (*.json);;Tous les fichiers (*.*)"
+        )
+        
+        if file_path:
+            # Effectuer l'export
+            success = self._perform_export(file_path)
+            
+            if success:
+                QMessageBox.information(
+                    self, 
+                    "Export réussi", 
+                    f"Les données ont été exportées avec succès dans:\n{file_path}"
+                )
+                self.accept()
+            else:
+                QMessageBox.critical(
+                    self, 
+                    "Erreur d'export", 
+                    "Une erreur est survenue lors de l'export."
+                )
+    
+    def _perform_export(self, file_path: str) -> bool:
+        """Effectue l'export selon le mode sélectionné"""
+        try:
+            if self.selected_mode == "simple":
+                from .export_simple import export_images_file
+                export_images_file(file_path)
+            elif self.selected_mode == "integral":
+                from .export_integrale import export_integral_file
+                export_integral_file(file_path)
+            else:
+                return False
+            
+            return True
+            
+        except Exception as e:
+            print(f"Erreur lors de l'export: {e}")
+            return False
+    
+    def get_selected_mode(self) -> Optional[str]:
+        """Retourne le mode sélectionné"""
+        return self.selected_mode
+
+
+# ─────────────────────────────────────────────
+# FONCTION UTILITAIRE POUR UTILISATION RAPIDE
+# ─────────────────────────────────────────────
+
+def show_export_dialog(parent=None) -> Optional[str]:
+    """
+    Affiche la boîte de dialogue d'export
+    
+    Args:
+        parent: Widget parent
+        
+    Returns:
+        str: Mode sélectionné ('simple', 'integral') ou None si annulé
+    """
+    dialog = ExportDialog(parent)
+    result = dialog.exec()
+    
+    if result == QDialog.DialogCode.Accepted:
+        return dialog.get_selected_mode()
+    
+    return None
+
+
+# ─────────────────────────────────────────────
+# EXEMPLE D'UTILISATION
+# ─────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import sys
+    from PyQt6.QtWidgets import QApplication
+    
+    app = QApplication(sys.argv)
+    
+    # Test de la boîte de dialogue
+    mode = show_export_dialog()
+    
+    if mode:
+        print(f"Mode sélectionné: {mode}")
+    else:
+        print("Export annulé")
+    
+    sys.exit()
