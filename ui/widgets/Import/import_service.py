@@ -20,6 +20,30 @@ class ImportService:
         self.dataset_repo = DatasetRepository(DbService().sqlite)
         self.configs = configs
         self.mode = mode
+        self.path_cache = self._build_path_cache()
+
+    def _build_path_cache(self) -> Dict[str, tuple[str, str]]:
+        """
+        Scanne tous les dossiers UNE SEULE FOIS au démarrage
+        Retourne: {nom_fichier: (chemin_complet, nom_dataset)}
+        """
+        cache = {}
+        
+        for config in self.configs:
+            base_path = Path(config["path"])
+            
+            if not base_path.exists() or not base_path.is_dir():
+                continue
+            
+            # Scanner tous les fichiers du dossier
+            for file_path in base_path.iterdir():
+                if file_path.is_file():
+                    filename = file_path.name
+                    # Si le fichier existe déjà dans le cache, garde la première occurrence
+                    if filename not in cache:
+                        cache[filename] = (str(file_path), config["name"])
+
+        return cache
 
     # -------------------------
     # LOAD JSON
@@ -104,75 +128,12 @@ class ImportService:
     # PATH RESOLUTION
     # -------------------------
     def resolve_path(self, image: Image) -> Optional[str]:
-        """Résout le chemin de l'image"""
-
-        # Chercher la config qui correspond au nom du dataset de l'image
-        for config in self.configs:
-            if config["name"] == image.dataset_name:  # Comparer avec le nom du dataset
-                base_path = Path(config["path"])
-                
-                if base_path.exists() and base_path.is_dir():
-                    result = str(base_path / image.name)
-                    return result
-
-        # Sinon on essaye pour chaque config
-        for config in self.configs:
-            base_path = Path(config["path"])
-            
-            if base_path.exists() and base_path.is_dir():
-                result = str(base_path / image.name)
-                image.dataset_name = config["name"]
-                return result
-
+        """Résout le chemin INSTANTANÉMENT via le cache"""
+        
+        if image.name in self.path_cache:
+            full_path, dataset_name = self.path_cache[image.name]
+            image.dataset_name = dataset_name
+            return full_path
+        
         image.dataset_name = "default"
         return None
-
-    # -------------------------
-    # MAIN IMPORT PIPELINE
-    # -------------------------
-    def import_file(self, file_path: str) -> ImportResult:
-        result = ImportResult()
-        data = self.load_file(file_path)
-
-        # Créer les datasets d'abord et récupérer leurs IDs
-        dataset_ids = {}
-        print("datasets:", data["datasets"])
-        for dataset in data["datasets"]:
-            success = self.dataset_repo.create(dataset.name)
-            print("Success:", success)
-
-            if success is None:
-                result.add_error(f"DB insert failed: {dataset.name}")
-            else:
-                result.success += 1
-                # Récupérer l'ID du dataset créé
-                dataset_obj = self.dataset_repo.get_by_name(dataset.name)
-                if dataset_obj:
-                    dataset_ids[dataset.name] = dataset_obj.id
-
-        # Mettre à jour les images avec les bons dataset_id
-        for image in data["images"]:
-            if image.dataset and image.dataset.name in dataset_ids:
-                image.dataset_id = dataset_ids[image.dataset.name]
-
-        for image in data["images"]:
-            try:
-                final_path = self.resolve_path(image)
-
-                if not final_path:
-                    result.add_error(f"Mapping failed: {image.name}")
-                    continue
-
-                image.path = final_path
-
-                success = self.image_repo.save_image(image)
-
-                if success is None:
-                    result.add_error(f"DB insert failed: {image.name}")
-                else:
-                    result.success += 1
-
-            except Exception as e:
-                result.add_error(f"{image.name}: {str(e)}")
-
-        return result
