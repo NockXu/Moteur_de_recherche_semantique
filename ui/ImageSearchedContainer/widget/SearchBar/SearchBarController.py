@@ -9,57 +9,15 @@ from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbe
 from vision.ollama_wrapper import OllamaWrapper
 
 class SearchBarController(QObject):
-    # Signal émis quand la recherche est terminée avec l'embedding
-    search_completed = pyqtSignal(str, list)
     def __init__(self, ollama_wrapper: OllamaWrapper = None):
         super().__init__()
         self.view = SearchBarView()
         self.model = SearchBarModel()
-        self.ollama_wrapper = ollama_wrapper
-        self.embedding_manager = AsyncEmbeddingManager()
+        
         self._connect_signals()
         
     def _connect_signals(self):
-        self.view.search_triggered.connect(self._handle_search)
         self.view.search_text_changed.connect(self._handle_text_changed)
-        
-    def _handle_search(self, search_text: str):
-        """Lance la recherche sémantique de manière asynchrone pour ne pas bloquer l'UI"""
-        if not search_text or not search_text.strip():
-            return
-            
-        # Mettre à jour le modèle
-        self.model.text = search_text
-            
-        # Désactiver la barre de recherche pendant la recherche
-        self.view.set_enabled(False)
-        
-        # Appeler la méthode de statut si disponible (pour le test)
-        if hasattr(self, '_update_search_status'):
-            self._update_search_status(self.model.text)
-        
-        # Lancer la recherche sémantique asynchrone
-        self.embedding_manager.start_search(
-            query=self.model.text,
-            on_finished=self.on_search_finished,
-            on_error=self._on_embedding_error
-        )
-    
-    def on_search_finished(self, result):
-
-        self.model.clear()
-
-        self.model.add_images(result.images)
-        self._update_view()
-
-        self.state.cursor = result.next_cursor
-        self.state.has_more = result.has_more
-    
-    def _on_embedding_error(self, error_msg):
-        """Appelé en cas d'erreur pendant l'embedding"""
-        # Réactiver la barre de recherche
-        self.view.set_enabled(True)
-        print(f"Erreur d'embedding: {error_msg}")
         
     def _handle_text_changed(self, text):
         self.model.text = text
@@ -83,15 +41,6 @@ if __name__ == "__main__":
 
     # Charger les variables d'environnement depuis le fichier .env
     load_dotenv()
-    
-    # Créer le wrapper Ollama
-    ollama_url = os.getenv("OLLAMA_BASE_URL")
-    if not ollama_url:
-        print("Erreur: OLLAMA_BASE_URL non défini dans le fichier .env")
-        sys.exit(1)
-    
-    wrapper = OllamaWrapper(ollama_url)
-    print(f"Connexion à Ollama: {ollama_url}")
 
     class TestWindow(QMainWindow):
         def __init__(self):
@@ -114,13 +63,7 @@ if __name__ == "__main__":
             layout.addWidget(instructions)
             
             # Créer le contrôleur avec le wrapper
-            self.search_controller = SearchBarController(ollama_wrapper=wrapper)
-            
-            # Remplacer les callbacks du contrôleur pour afficher les résultats
-            self.original_on_finished = self.search_controller._on_embedding_finished
-            self.original_on_error = self.search_controller._on_embedding_error
-            self.search_controller._on_embedding_finished = self._on_embedding_finished
-            self.search_controller._on_embedding_error = self._on_embedding_error
+            self.search_controller = SearchBarController()
             
             layout.addWidget(self.search_controller.view)
             
@@ -138,41 +81,6 @@ if __name__ == "__main__":
             """Met à jour le statut de recherche"""
             self.status_label.setText(f"Recherche en cours pour: '{text}'...")
             self.results_area.clear()
-        
-        def _on_embedding_finished(self, embedding):
-            """Affiche les résultats de l'embedding"""
-            self.search_controller.view.set_enabled(True)
-            self.status_label.setText("Embedding terminé avec succès!")
-            
-            # Afficher les résultats
-            result_text = f"✅ Embedding réussi!\n"
-            result_text += f"📏 Dimensions: {len(embedding)}\n"
-            result_text += f"📊 Premières valeurs: {embedding[:5]}...\n"
-            result_text += f"🔢 Type: {type(embedding).__name__}\n"
-            result_text += f"⚡ Somme: {sum(embedding):.4f}\n"
-            result_text += f"📐 Norme: {(sum(x**2 for x in embedding) ** 0.5):.4f}"
-            
-            self.results_area.setText(result_text)
-        
-        def _on_embedding_error(self, error_msg):
-            """Affiche les erreurs"""
-            self.search_controller.view.set_enabled(True)
-            self.status_label.setText(f"Erreur: {error_msg}")
-            
-            error_text = f"Erreur d'embedding!\n\n"
-            error_text += f"Message: {error_msg}\n"
-            error_text += f"Verifiez:\n"
-            error_text += f"   • Connexion à Ollama ({ollama_url})\n"
-            error_text += f"   • Modèle 'nomic-embed-text:v1.5' disponible\n"
-            error_text += f"   • Service Ollama en cours d'exécution"
-            
-            self.results_area.setText(error_text)
-        
-        def closeEvent(self, event):
-            """Ferme proprement les threads avant de quitter"""
-            if self.search_controller.embedding_manager.is_running():
-                self.search_controller.embedding_manager.stop_embedding()
-            event.accept()
 
     # Lancer l'application
     app = QApplication(sys.argv)

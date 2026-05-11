@@ -29,8 +29,11 @@ class FaissManager:
     # =========================
     def _load_or_create(self):
         if self.index_path.exists():
-            self.index = faiss.read_index(str(self.index_path))
-            self.index.nprobe = NPROBE
+            loaded_index = faiss.read_index(str(self.index_path))
+            # Si c'est un IndexIDMap, appliquer nprobe à l'index interne
+            if hasattr(loaded_index, 'index') and hasattr(loaded_index.index, 'nprobe'):
+                loaded_index.index.nprobe = NPROBE
+            self.index = loaded_index
         else:
             self.index = self._create_index(0, N_CLUSTERS)
 
@@ -51,9 +54,9 @@ class FaissManager:
             faiss.METRIC_INNER_PRODUCT
         )
 
+        base_index.nprobe = NPROBE
+        
         index = faiss.IndexIDMap(base_index)
-
-        index.nprobe = NPROBE
         self.index = index
 
     # =========================

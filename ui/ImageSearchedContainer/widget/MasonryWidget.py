@@ -26,16 +26,31 @@ class MasonryLayout(QWidget):
     # ------------------------------------------------------------------
 
     def set_cards(self, cards: list[QWidget]):
-        """Remplace toutes les cartes actuelles par une nouvelle liste."""
-        # Supprimer les anciennes
-        for card in self._cards:
-            card.setParent(None)
-            card.deleteLater()
+        """Ajoute de nouvelles cartes sans supprimer les existantes."""
+        # Créer un set des nouveaux widgets pour comparaison rapide
+        new_widgets_set = set(cards)
+        
+        # Supprimer seulement les widgets qui ne sont plus dans la nouvelle liste
+        cards_to_remove = [card for card in self._cards if card not in new_widgets_set]
+        for card in cards_to_remove:
+            try:
+                card.setParent(None)
+                card.deleteLater()
+            except RuntimeError:
+                # Widget déjà supprimé
+                pass
+        
+        # Mettre à jour la liste
         self._cards = cards
 
+        # Ajouter les nouveaux widgets
         for card in self._cards:
-            card.setParent(self)
-            card.show()
+            try:
+                card.setParent(self)
+                card.show()
+            except RuntimeError:
+                # Widget déjà supprimé
+                pass
 
         self._relayout()
 

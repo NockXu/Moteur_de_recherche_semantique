@@ -24,11 +24,21 @@ def TextToEmbedding(wrapper: OllamaWrapper, image: Image) -> None:
         return None
 
 def inputToEmbedding(wrapper: OllamaWrapper, input: str) -> List[float]:
+    print(f"[DEBUG] inputToEmbedding appelé avec: '{input}'")
+    print(f"[DEBUG] wrapper: {wrapper}")
     try:
+        print(f"[DEBUG] Appel à wrapper.embed()...")
         result = wrapper.embed(
             model="nomic-embed-text:v1.5",
             text=input
         )
+        print(f"[DEBUG] Résultat de wrapper.embed(): {type(result)}")
+        if result:
+            print(f"[DEBUG] Dimensions de l'embedding: {len(result)}")
+        else:
+            print("[DEBUG] wrapper.embed() a retourné None")
         return result
     except Exception as e:
+        print(f"[DEBUG] Exception dans inputToEmbedding: {e}")
+        print(f"[DEBUG] Type d'exception: {type(e)}")
         return None

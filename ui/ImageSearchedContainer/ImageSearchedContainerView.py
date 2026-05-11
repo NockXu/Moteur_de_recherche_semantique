@@ -1,7 +1,7 @@
 import sys
 import os
 
-from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout
+from PyQt6.QtWidgets import QWidget, QVBoxLayout, QLabel, QScrollArea, QPushButton, QHBoxLayout, QSlider, QSpinBox, QSlider
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
 
@@ -38,6 +38,7 @@ class ImageSearchedContainerView(QWidget):
     load_more_requested = pyqtSignal()
     reload_requested = pyqtSignal()
     search_requested = pyqtSignal(str, list)
+    threshold_changed = pyqtSignal(float)
 
     def __init__(self, parent=None, enable_lazy_loading: bool = True):
         super().__init__(parent)
@@ -77,12 +78,37 @@ class ImageSearchedContainerView(QWidget):
         self.header_label = QLabel("0 image")
         self.header_label.setFont(QFont("Segoe UI", 10))
 
+        # Threshold selector
+        threshold_label = QLabel("Threshold:")
+        self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
+        self.threshold_slider.setRange(0, 100)
+        self.threshold_slider.setValue(50)
+        self.threshold_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.threshold_slider.setTickInterval(10)
+        self.threshold_slider.valueChanged.connect(self._on_threshold_changed)
+        
+        # Label pour afficher la valeur actuelle
+        self.threshold_value_label = QLabel("50%")
+        self.threshold_value_label.setMinimumWidth(50)  # Éviter le saut de layout
+
         self.reload_button = QPushButton("Recharger")
         self.reload_button.clicked.connect(self.reload_requested.emit)
 
         header.addWidget(self.header_label)
         header.addWidget(self.reload_button)
+        
+        # Espace pour le slider (prend la moitié)
         header.addStretch()
+        
+        header.addWidget(threshold_label)
+        header.addWidget(self.threshold_slider)
+        header.addWidget(self.threshold_value_label)
+        
+        # Espace restant pour la recherche (dynamique)
+        header.addStretch()
+
+        # Largeur dynamique : 1/3 de la fenêtre minimum
+        self.search_controller.view.setMinimumWidth(300)
         header.addWidget(self.search_controller.view)
 
         layout.addLayout(header)
@@ -91,7 +117,9 @@ class ImageSearchedContainerView(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(
+                Qt.ScrollBarPolicy.ScrollBarAsNeeded
+            )
 
         self.scroll_area.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
@@ -110,26 +138,39 @@ class ImageSearchedContainerView(QWidget):
             }
         """)
 
+    def resizeEvent(self, event):
+        """Ajuster la largeur de la recherche dynamiquement"""
+        super().resizeEvent(event)
+        self._update_search_width()
+
+    def _update_search_width(self):
+        """Calcule 1/2 de la largeur disponible"""
+        if hasattr(self, 'search_controller') and self.search_controller:
+            available_width = self.width() - 40  # Marge pour les autres éléments
+            if available_width > 300:  # Minimum raisonnable
+                search_width = max(300, available_width // 2)
+                self.search_controller.view.setMinimumWidth(search_width)
+
     # ─────────────────────────────────────────────
     # SCROLL → LOAD MORE + LAZY LOADING
     # ─────────────────────────────────────────────
 
     def _on_scroll(self, value: int):
-        # ✅ Trigger lazy loading check si activé
+
+        # lazy loading
         if self._lazy_enabled:
             self._check_visible_cards()
-        
+
         if self._loading:
             return
 
         bar = self.scroll_area.verticalScrollBar()
-        if bar.maximum() <= 0:
-            return
 
-        ratio = value / bar.maximum()
+        # distance restante avant le bas
+        remaining = bar.maximum() - value
 
-        # Load more à 85%
-        if ratio > 0.85:
+        # trigger quand il reste < 300px
+        if remaining < 300:
             self._trigger_load_more()
 
     def _trigger_load_more(self):
@@ -262,7 +303,8 @@ class ImageSearchedContainerView(QWidget):
             card = ImageThumbnailWidget(
                 image_path=str(image.path),
                 title=image.name,
-                lazy=self._lazy_enabled  # ✅ Mode lazy activable
+                lazy=self._lazy_enabled,  # ✅ Mode lazy activable
+                score=image.score  # ✅ Ajouter le score
             )
 
             card.clicked.connect(
@@ -289,6 +331,12 @@ class ImageSearchedContainerView(QWidget):
     # ─────────────────────────────────────────────
     # CLEAR
     # ─────────────────────────────────────────────
+
+    def _on_threshold_changed(self, value: int):
+        """Appelé quand le threshold change"""
+        threshold = value / 100.0  # Convertir % en float
+        self.threshold_value_label.setText(f"{value}%")
+        self.threshold_changed.emit(threshold)
 
     def clear(self):
         self._cards.clear()

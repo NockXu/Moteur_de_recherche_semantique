@@ -1,6 +1,5 @@
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.DatasetRepository import DatasetRepository
-from common.LRUCache import LRUCache
 from database.faiss_manager.manager import FaissManager
 from database.sqlite.manager import SqliteManager
 from database.DbService import DbService
@@ -12,22 +11,17 @@ from typing import List, TypedDict, Optional, Tuple
 import numpy as np
 
 class SearchResults(TypedDict):
-    """Résultats de recherche avec pagination"""
+    """Résultats de recherche avec k actuel"""
     images: List[Image]
-    next_cursor: Optional[float]
-    has_more: bool
-
-    def __init__(self, images: List[Image], next_cursor: Optional[float], has_more: bool):
-        self.images = images
-        self.next_cursor = next_cursor
-        self.has_more = has_more
+    k: int
 
 class ImageRepository:
     def __init__(self, db: SqliteManager, faiss: FaissManager):
         self.db = db
         self.faiss = faiss
         self._dataset_repo = DatasetRepository(db)
-        self._dataset_cache = {}  # Cache pour éviter les requêtes répétées
+        self._dataset_cache = {}
+
         
     def _get_dataset_by_id(self, dataset_id: int):
         """
@@ -244,9 +238,6 @@ class ImageRepository:
         self.faiss.save()
 
         print(self.faiss.stats())
-
-    def _make_cache_key(query: List[float]) -> str:
-        return hashlib.md5(np.array(query, dtype=np.float32).tobytes()).hexdigest()
     
     # =========================
     # SEARCH ENGINE
@@ -255,66 +246,34 @@ class ImageRepository:
         self,
         query: List[float],
         threshold: float = 0.5,
-        limit: int = 20,
         k: int = 200,
         cursor: Optional[Tuple[float, int]] = None
     ) -> SearchResults:
-
         # =========================
-        # INIT CACHE
+        # FAISS RETRIEVAL
         # =========================
-        if not hasattr(self, "_cache"):
-            self._cache = LRUCache(max_size=512)
 
-        cache_key = hashlib.md5(
-            np.array(query, dtype=np.float32).tobytes()
-        ).hexdigest()
+        raw_results = self.faiss.search(query, k)
 
-        # =========================
-        # FAISS RETRIEVAL (WITH CACHE)
-        # =========================
-        cached = self._cache.get(cache_key)
+        if not raw_results:
+            return SearchResults(images=[], k=k)
 
-        if cached is None:
-            raw_results = self.faiss.search(query, k)
+        raw_results = [
+            (idx, score)
+            for idx, score in raw_results
+            if idx != -1 and score >= threshold
+        ]
 
-            if not raw_results:
-                return SearchResults([], None, False)
-
-            raw_results = [
-                (idx, score)
-                for idx, score in raw_results
-                if idx != -1 and score >= threshold
-            ]
-
-            # stable sort (important for cursor)
-            raw_results.sort(key=lambda x: (-x[1], x[0]))
-
-            self._cache.set(cache_key, raw_results)
-
-        else:
-            raw_results = cached
-
-        # =========================
-        # CURSOR PAGINATION
-        # =========================
-        if cursor:
-            last_score, last_id = cursor
-
-            raw_results = [
-                (idx, score)
-                for idx, score in raw_results
-                if (score < last_score) or (score == last_score and idx < last_id)
-            ]
+        # stable sort
+        raw_results.sort(key=lambda x: (-x[1], x[0]))
 
         # =========================
         # PAGE SELECTION
         # =========================
-        page = raw_results[:limit]
-        has_more = len(raw_results) > limit
+        page = raw_results
 
         if not page:
-            return SearchResults([], None, False)
+            return SearchResults(images=[], k=k)
 
         # =========================
         # SQL FETCH (EMBEDDINGS + METADATA)
@@ -379,8 +338,7 @@ class ImageRepository:
         # =========================
         # FINAL PAGE
         # =========================
-        final_page = deduped[:limit]
-        has_more = len(deduped) > limit
+        final_page = deduped
 
         # =========================
         # BUILD RESULTS
@@ -405,21 +363,11 @@ class ImageRepository:
             )
 
         # =========================
-        # CURSOR OUTPUT
-        # =========================
-        if has_more:
-            last = final_page[-1]
-            next_cursor = (last[1], last[0])  # (score, id)
-        else:
-            next_cursor = None
-
-        # =========================
         # RETURN
         # =========================
         return SearchResults(
             images=images,
-            next_cursor=next_cursor,
-            has_more=has_more
+            k=k
         )
 
     def get_all(self) -> List[Image]:

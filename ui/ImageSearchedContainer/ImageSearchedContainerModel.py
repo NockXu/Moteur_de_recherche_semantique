@@ -25,27 +25,27 @@ class ImageSearchedContainerModel:
         self.sort_by: str = "score"
         self.sort_order: str = "desc"
         self.filter_tags: List[str] = []
+        self.threshold: float = 0.5
 
     # ─────────────────────────────────────────────
     # DATA MANAGEMENT (append only)
     # ─────────────────────────────────────────────
 
-    def append_results(self, search_results : SearchResults):
+    def append_results(self, search_results : SearchResults) -> Optional[List[Image]]:
         """
-        Ajoute un batch SearchResults (LOAD MORE)
+        Ajoute un batch SearchResults (LOAD MORE) - sans duplication
         """
-        if not search_results:
-            return
-
-        self.images.extend(search_results['images'])
-        self.next_cursor = search_results['next_cursor']
-        self.has_more = search_results['has_more']
+        new_images = [img for img in search_results['images'] if img not in self.images]
+        self.images.extend(new_images)
+        self.k = search_results['k']
+        
+        print(f"[DEBUG] Ajout de {len(new_images)} nouvelles images au modèle")
+        return new_images
 
     def reset(self):
         """Reset complet (nouvelle recherche)"""
         self.images.clear()
-        self.next_cursor = None
-        self.has_more = True
+        self.k = 200
 
     # ─────────────────────────────────────────────
     # FILTERS (UI only)
@@ -90,16 +90,6 @@ class ImageSearchedContainerModel:
         return self.apply_sorting(filtered)
 
     # ─────────────────────────────────────────────
-    # LOAD MORE STATE
-    # ─────────────────────────────────────────────
-
-    def can_load_more(self) -> bool:
-        return self.has_more
-
-    def get_cursor(self) -> Optional[float]:
-        return self.next_cursor
-
-    # ─────────────────────────────────────────────
     # SINGLE IMAGE ACCESS
     # ─────────────────────────────────────────────
 
@@ -129,8 +119,6 @@ class ImageSearchedContainerModel:
         return {
             "total_images": len(self.images),
             "visible_images": len(visible),
-            "has_more": self.has_more,
-            "next_cursor": self.next_cursor,
             "unique_tags": len(self.get_all_tags()),
             "avg_score": (
                 sum(i.score for i in self.images) / len(self.images)
@@ -151,3 +139,7 @@ class ImageSearchedContainerModel:
     def set_sorting(self, sort_by: str, sort_order: str = "desc"):
         self.sort_by = sort_by
         self.sort_order = sort_order
+
+    def set_threshold(self, threshold: float):
+        """Définit le threshold de recherche"""
+        self.threshold = threshold

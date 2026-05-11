@@ -11,7 +11,7 @@ from database.DbService import DbService
 # =========================
 class EmbeddingWorker(QObject):
 
-    finished = pyqtSignal(object)  # SearchResults
+    finished = pyqtSignal(dict)  # SearchResults
     error = pyqtSignal(str)
 
     def __init__(self, query, threshold=0.0, cursor=None, auto_research=None):
@@ -29,28 +29,35 @@ class EmbeddingWorker(QObject):
         try:
             result = self.auto_research.find(
                 query=self.query,
-                threshold=self.threshold,
-                cursor=self.cursor
+                threshold=self.threshold
             )
-
-            self.finished.emit(result)
+            
+            if result is None:
+                print("[DEBUG] Result est None, envoi d'un résultat vide")
+                self.on_finished({'images': [], 'k': self.auto_research.k})
+            else:
+                self.on_finished(result)
 
         except Exception as e:
-            self.error.emit(str(e))
+            self.on_error(str(e))
+
+    def on_finished(self, result : dict) -> None:
+        self.finished.emit(result)
+
+    def on_error(self, error : str) -> None:
+        self.error.emit(error)
 
 
 # =========================
 # MANAGER
 # =========================
-class AsyncEmbeddingManager:
+class AsyncEmbeddingManager(QObject):
+    result = pyqtSignal(dict)
 
     def __init__(self):
+        super().__init__()
         self.current_worker = None
         self.current_thread = None
-
-        # callbacks
-        self.on_finished_cb = None
-        self.on_error_cb = None
 
     # -------------------------
     # START SEARCH
@@ -60,15 +67,10 @@ class AsyncEmbeddingManager:
         query,
         threshold=0.0,
         cursor=None,
-        auto_research=None,
-        on_finished=None,
-        on_error=None
+        auto_research=None
     ):
 
         self.stop_search()
-
-        self.on_finished_cb = on_finished
-        self.on_error_cb = on_error
 
         self.current_worker = EmbeddingWorker(
             query=query,
@@ -96,17 +98,14 @@ class AsyncEmbeddingManager:
     # -------------------------
     def _handle_finished(self, result):
         try:
-            if self.on_finished_cb:
-                self.on_finished_cb(result)
+            self.result.emit(result)
         finally:
             self._cleanup()
 
     def _handle_error(self, error):
         try:
-            if self.on_error_cb:
-                self.on_error_cb(error)
-            else:
-                print(f"[EmbeddingWorker ERROR] {error}")
+            print(f"[EmbeddingWorker ERROR] {error}")
+            self.result.emit({})
         finally:
             self._cleanup()
 
@@ -140,9 +139,7 @@ class AsyncEmbeddingManager:
     # -------------------------
     # COMPAT
     # -------------------------
-    def start_embedding(self, model, text, wrapper=None, on_finished=None, on_error=None):
+    def start_embedding(self, text):
         return self.start_search(
-            query=text,
-            on_finished=on_finished,
-            on_error=on_error
+            query=text
         )

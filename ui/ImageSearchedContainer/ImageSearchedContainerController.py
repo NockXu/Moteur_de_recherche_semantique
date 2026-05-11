@@ -22,7 +22,6 @@ class SearchState:
         self.cursor: Optional[tuple[float, int]] = None
         self.has_more: bool = False
 
-
 # =========================
 # CONTROLLER
 # =========================
@@ -60,81 +59,92 @@ class ImageSearchedContainerController(QObject):
         self.view.image_clicked.connect(self._on_image_clicked)
         self.view.load_more_requested.connect(self.load_more_images)
         self.view.reload_requested.connect(self.reload_images)
+        self.view.search_controller.view.search_triggered.connect(self._on_search_triggered)
+        self.embedding_manager.result.connect(self._on_search_finished)
+        self.view.threshold_changed.connect(self._on_threshold_changed)
 
     # ─────────────────────────────
     # SEARCH ENTRY POINT
     # ─────────────────────────────
-    def _on_search_triggered(self, search_text: str, embedding: list):
-
+    def _on_search_triggered(self, search_text: str):
         self.state.query = search_text
         self.state.cursor = None
         self.state.has_more = False
 
         self.model.reset()
+        self.view.clear()
         self._update_view()
 
         self._loading = True
 
+        print('start')
+
         self.embedding_manager.start_search(
             query=search_text,
-            threshold=0.0,
-            cursor=None,
-            auto_research=self.research,
-            on_finished=self._on_search_finished,
-            on_error=self._on_search_error
+            threshold=self.model.threshold,
+            cursor=self.state.cursor,
+            auto_research=self.research
         )
+        print('end')
 
     # ─────────────────────────────
     # SEARCH CALLBACK
     # ─────────────────────────────
     def _on_search_finished(self, result):
+        print(f"[DEBUG] _on_search_finished appelé avec result: {type(result)}")
 
         self._loading = False
 
-        self.model.reset()
-        self.model.append_results(result)
-        self._update_view()
+        if result is None:
+            print("[DEBUG] Result est None, pas de résultats à afficher")
+            return
 
-        self.state.cursor = result.next_cursor
-        self.state.has_more = result.has_more
+        self.model.reset()
+        self.model.append_results({'images': result.get('images', []), 'k': result.get('k', 200)})
+        self._update_view()
 
     def _on_search_error(self, error: str):
         self._loading = False
         print(f"[Search ERROR] {error}")
 
+    def _on_threshold_changed(self, threshold: float):
+        """Appelé quand le threshold change depuis la vue"""
+        self.model.set_threshold(threshold)
+
     # ─────────────────────────────
     # LOAD MORE (INFINITE SCROLL)
     # ─────────────────────────────
     def load_more_images(self, reset: bool = False):
-
         if not self.state.query:
             return
 
         if self._loading:
             return
 
-        if not self.state.has_more:
-            return
-
         self._loading = True
+
+        self.research.k += 500
 
         try:
             result = self.research.find(
                 query=self.state.query,
-                threshold=0.0,
-                cursor=self.state.cursor
+                threshold=self.model.threshold
             )
 
-            self.model.append_results(result)
-            self._update_view()
-
-            self.state.cursor = result.next_cursor
-            self.state.has_more = result.has_more
+            print(f"[DEBUG] Load more: {len(result.get('images', []))} images trouvées")
+            new_images = self.model.append_results(result)
+            print(f"[DEBUG] Total images dans modèle: {len(self.model.images)}")
+            
+            self.view.display_images(
+                image_data=new_images,
+                total_count=len(self.model.images),
+            )
 
         except Exception as e:
             print(f"Load more error: {e}")
 
         finally:
+            print("[DEBUG] Fin du chargement")
             self._loading = False
 
     # ─────────────────────────────
@@ -171,6 +181,7 @@ class ImageSearchedContainerController(QObject):
 
     def reload_images(self):
         self.model.reset()
+        self.view.clear()
         search_results = self.research.find()
         self.model.append_results(search_results)
         self._update_view()

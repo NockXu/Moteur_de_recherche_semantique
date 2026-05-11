@@ -45,3 +45,7 @@ class SearchBarModel:
     
     def clear(self):
         self.text = None
+    
+    def add_images(self, images):
+        """Ajoute des images au modèle (pour la recherche)"""
+        pass  # Pour l'instant, ne fait rien

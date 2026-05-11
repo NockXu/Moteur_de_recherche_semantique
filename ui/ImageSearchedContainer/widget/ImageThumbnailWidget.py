@@ -1,6 +1,7 @@
 from ui.widgets.ImageThumbnailWidget import ImageThumbnailWidget as BaseImageThumbnailWidget
-from PyQt6.QtGui import QPixmap, QPainter, QColor
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QSizePolicy
 
 
 class ImageThumbnailWidget(BaseImageThumbnailWidget):
@@ -17,19 +18,22 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         image_path: str, 
         title: str = "", 
         col_width: int = 200,
-        lazy: bool = False  # NOUVEAU paramètre
+        lazy: bool = False,
+        score: float = 0.0
     ):
         # État lazy loading AVANT super().__init__
         self._lazy_mode = lazy
         self._is_loaded = not lazy  # Si pas lazy, considérer comme chargé
         self._original_image_path = image_path
+        self._score = score
+        self._title = title
         
-        # Si lazy, passer un placeholder temporaire au parent
+        # Passer le titre sans score au parent (on va gérer le score nous-mêmes)
         if lazy:
             placeholder_path = self._create_placeholder()
             super().__init__(
                 image_path=placeholder_path,
-                title=title,
+                title=title,  # Titre seul
                 status=None,
                 col_width=col_width,
                 show_status_badge=False,
@@ -38,11 +42,14 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             # Mode normal : chargement immédiat
             super().__init__(
                 image_path=image_path,
-                title=title,
+                title=title,  # Titre seul
                 status=None,
                 col_width=col_width,
                 show_status_badge=False,
             )
+        
+        # Personnaliser l'affichage du titre et du score
+        self._customize_title_layout()
     
     def _create_placeholder(self) -> str:
         """
@@ -52,6 +59,45 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         # Si BaseImageThumbnailWidget gère bien les chemins invalides,
         # on peut juste retourner un chemin vide
         return ""
+    
+    def _customize_title_layout(self):
+        """Personnaliser l'affichage du titre et du score"""
+        if hasattr(self, 'title_label'):
+            # Créer un layout horizontal pour titre + score
+            title_layout = QHBoxLayout()
+            title_layout.setContentsMargins(8, 4, 8, 8)
+            title_layout.setSpacing(4)
+            
+            # Titre à gauche
+            title_widget = QLabel(self._title)
+            title_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
+            title_widget.setWordWrap(True)
+            title_widget.setFont(QFont("Segoe UI", 9))
+            title_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+            
+            # Score à droite en pourcentage
+            score_widget = QLabel("")
+            score_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+            score_widget.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+            score_widget.setStyleSheet("color: #666; margin-left: 8px;")
+            
+            # Afficher le score seulement si > 0
+            if self._score > 0:
+                score_percentage = int(self._score * 100)
+                score_widget.setText(f"{score_percentage}%")
+            
+            # Ajouter au layout
+            title_layout.addWidget(title_widget)
+            title_layout.addWidget(score_widget)
+            
+            # Remplacer le layout existant
+            if hasattr(self.title_label, 'parent') and self.title_label.parent():
+                # Retirer l'ancien label et ajouter le nouveau layout
+                parent_layout = self.title_label.parent().layout()
+                if parent_layout:
+                    parent_layout.removeWidget(self.title_label)
+                    self.title_label.deleteLater()
+                    parent_layout.addLayout(title_layout)
     
     def load_image(self):
         """
