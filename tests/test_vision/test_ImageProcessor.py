@@ -2,6 +2,9 @@ import unittest
 from pathlib import Path
 import tempfile
 import os
+from unittest.mock import patch, MagicMock
+from PIL import Image as PILImage
+import io
 
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
@@ -11,17 +14,23 @@ from vision.ollama_wrapper import OllamaGenerateResult
 
 from .FakeOllamaWrapper import FakeOllamaWrapper
 
-TEST_IMAGE_PATH = str(Path(__file__).parent.parent.parent / "dataset" / "Dataset_test" / "weezer.png")
-
 class test_ImageProcessor(unittest.TestCase):
 
     def setUp(self) -> None:
         self.ollama = FakeOllamaWrapper()
         self.processor = ImageProcessor(self.ollama, "test_model")
+        # Créer une image de test avec PIL (pas de dépendance à un fichier réel)
+        self.temp_dir = Path(tempfile.mkdtemp())
+        self.test_image_path = self.temp_dir / "test_image.png"
+        
+        # Créer une image PIL de test
+        fake_image = PILImage.new("RGB", (100, 100), color="red")
+        fake_image.save(self.test_image_path)
+        
         self.image_test = Image(
-            path=TEST_IMAGE_PATH,
-            name="weezer.png",
-            dataset=Dataset(0, "Dataset_test")
+            path=str(self.test_image_path),
+            name="test_image.png",
+            dataset=Dataset(0, "test_dataset")
         )
 
         # Utiliser le prompt exact que ImageToData utilise
