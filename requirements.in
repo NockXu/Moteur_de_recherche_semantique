@@ -6,3 +6,4 @@ qt-material
 faiss-cpu
 coverage
 Pillow
+pytest

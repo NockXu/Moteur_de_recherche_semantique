@@ -4,10 +4,14 @@
 #
 #    pip-compile
 #
+colorama==0.4.6
+    # via pytest
 coverage==7.14.0
     # via -r requirements.in
 faiss-cpu==1.13.2
     # via -r requirements.in
+iniconfig==2.3.0
+    # via pytest
 jinja2==3.1.6
     # via qt-material
 markupsafe==3.0.3
@@ -19,15 +23,22 @@ numpy==2.4.4
 packaging==26.2
     # via
     #   faiss-cpu
+    #   pytest
     #   qtpy
 pillow==12.2.0
     # via -r requirements.in
+pluggy==1.6.0
+    # via pytest
+pygments==2.20.0
+    # via pytest
 pyqt6==6.11.0
     # via -r requirements.in
 pyqt6-qt6==6.11.0
     # via pyqt6
 pyqt6-sip==13.11.1
     # via pyqt6
+pytest==9.0.3
+    # via -r requirements.in
 python-dotenv==1.2.2
     # via -r requirements.in
 qt-material==2.17
