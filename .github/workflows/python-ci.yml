@@ -29,13 +29,13 @@ jobs:
           coverage report
 
       - name: Generate HTML report
-        run: coverage html -d site/coverage
+        run: coverage html -d docs/coverage
 
       - name: Prepare docs folder
-        run: mkdir -p site
+        run: mkdir -p docs
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: site
+          publish_dir: docs
