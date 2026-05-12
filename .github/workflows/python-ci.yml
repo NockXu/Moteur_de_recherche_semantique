@@ -26,8 +26,10 @@ jobs:
       - name: Run tests
         run: |
           python -m unittest discover -s tests -v
-          coverage report
         working-directory: .
+
+      - name: Coverage report
+        run: coverage report
 
       - name: Generate HTML report
         run: coverage html -d docs/coverage
