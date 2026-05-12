@@ -22,7 +22,7 @@ class WithoutDatasetModel:
     def exist(self) -> None:
         """Vérifie si le modèle est valide"""
         for data in self.datasets_data:
-            if any(dataset.name == data.name for dataset in self._datasets_cache):
+            if any(dataset.name == data["name"] for dataset in self._datasets_cache):
                 data["status"] = WithoutDatasetStatus.EXISTS
             else:
                 data["status"] = WithoutDatasetStatus.NOT_EXISTS

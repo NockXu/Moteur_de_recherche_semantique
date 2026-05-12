@@ -8,13 +8,7 @@ import os
 import sys
 import hashlib
 
-# Ajouter la racine du projet au sys.path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from common.Dataset_Classes import Dataset
-
+from common.Dataset_Classes.Dataset import Dataset
 
 class ProcessingStatus(Enum):
     NOT_STARTED = "not_started"
@@ -22,7 +16,6 @@ class ProcessingStatus(Enum):
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     ERROR = "error"
-
 
 class Image:
     """
@@ -103,11 +96,10 @@ class Image:
     def from_dict(cls, data: dict) -> "Image":
         start = datetime.fromisoformat(data["processing_start_time"]) if data.get("processing_start_time") else None
         end = datetime.fromisoformat(data["processing_end_time"]) if data.get("processing_end_time") else None
-
+        dataset = Dataset(id=data.get("dataset_id", 0), name=data.get("dataset_name", ""))
         return cls(
             path=data["path"],
-            dataset_id=data["dataset_id"],
-            dataset_name=data.get("dataset_name"),
+            dataset=dataset,
             score=data.get("score", 0.0),
             status=ProcessingStatus(data.get("status", "not_started")),
             description=data.get("description", ""),
@@ -140,10 +132,10 @@ class Image:
     # =========================
 
     def copy(self) -> "Image":
+        dataset = Dataset(id=self.dataset_id, name=self.dataset_name)
         return Image(
             path=self.path,
-            dataset_id=self.dataset_id,
-            dataset_name=self.dataset_name,
+            dataset=dataset,
             score=self.score,
             status=self.status,
             description=self.description,

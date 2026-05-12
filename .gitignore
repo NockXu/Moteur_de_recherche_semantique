@@ -1,6 +1,5 @@
 __pycache__
 dataset
-test_env
 dataset.zip
 
 # Base de données SQLite
@@ -11,6 +10,18 @@ storage/database/
 *.index
 storage/indexes/
 
+storage/images_reduced/
+
 # Cache et fichiers temporaires
 storage/preview_cache/
 __pycache__/
+
+MagicMock
+
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+htmlcov/
+.env

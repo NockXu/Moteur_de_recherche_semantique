@@ -57,21 +57,16 @@ class ImportService:
 
         images = []
         datasets = []
+        dataset_names = set()
 
-        # Lire les images depuis la section "images"
-        images_data = data.get("images", {})
-        datasets_data = data.get("datasets", {})
-        
-        for filename, image_data in images_data.items():
-            # Récupérer le nom du dataset depuis dataset_id
-            dataset_id = image_data.get("dataset_id")
-            dataset_name = "default"
-            
-            # Chercher le nom du dataset correspondant
-            for dataset in datasets_data:
-                if dataset["id"] == dataset_id:
-                    dataset_name = dataset["name"]
-                    break
+        # Nouveau format : les images sont directement dans le dictionnaire principal
+        for filename, image_data in data.items():
+            if filename in ["metadata", "export_info", "datasets"]:
+                continue
+                
+            # Récupérer le nom du dataset depuis le champ "dataset"
+            dataset_name = image_data.get("dataset", "default")
+            dataset_names.add(dataset_name)
             
             images.append(
                 Image(
@@ -84,11 +79,12 @@ class ImportService:
                 )
             )
 
-        for dataset_name, dataset_data in datasets_data.items():
+        # Créer les datasets uniques trouvés
+        for dataset_name in dataset_names:
             datasets.append(
                 Dataset(
                     name=dataset_name,
-                    id=dataset_data.get("id")
+                    id=None
                 )
             )
 

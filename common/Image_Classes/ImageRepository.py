@@ -63,10 +63,11 @@ class ImageRepository:
                     if dataset:  # Vérifier que create() a réussi
                         image.dataset_id = dataset.id
                     else:
-                        # Si create() a échoué (dataset existe déjà), récupérer à nouveau
-                        dataset = self._dataset_repo.get_by_name(image.dataset_name)
+                        dataset = self._dataset_repo.get_by_name("default")
                         if dataset:
                             image.dataset_id = dataset.id
+                            image.dataset_name = dataset.name
+                        
 
         # 2.2 Insertion de l'image
         self.db.execute("""
@@ -135,28 +136,25 @@ class ImageRepository:
             # Dataset
             if not image.dataset_id and image.dataset_name:
 
-                dataset = self._dataset_repo.get_by_name(
-                    image.dataset_name
-                )
+                dataset = self._dataset_repo.get_by_name(image.dataset_name)
 
                 if dataset:
                     image.dataset_id = dataset.id
+                    image.dataset_name = dataset.name
 
                 else:
-                    dataset = self._dataset_repo.create(
-                        image.dataset_name
-                    )
+                    dataset = self._dataset_repo.create(image.dataset_name)
 
                     if dataset:
                         image.dataset_id = dataset.id
+                        image.dataset_name = dataset.name
 
                     else:
-                        dataset = self._dataset_repo.get_by_name(
-                            image.dataset_name
-                        )
-
+                        dataset = self._dataset_repo.get_by_name("default")
+                        
                         if dataset:
                             image.dataset_id = dataset.id
+                            image.dataset_name = dataset.name
 
             rows.append((
                 str(image.path),
@@ -176,8 +174,6 @@ class ImageRepository:
 
         except Exception as batch_error:
 
-            print(f"Erreur batch : {batch_error}")
-
             # Fallback ligne par ligne
             for row in rows:
 
@@ -185,15 +181,15 @@ class ImageRepository:
                     self.db.execute(query, row)
                     success_count += 1
 
-                except Exception as row_error:
-                    print(f"Erreur ligne : {row_error}")
+                except Exception:
+                    pass
 
         self.db.commit()
 
         return success_count
         
 
-    def train_index(self):
+    def train_index(self) -> bool:
         # -------------------------
         # LOAD ALL EMBEDDINGS
         # -------------------------
@@ -216,11 +212,6 @@ class ImageRepository:
         nb_vectors = len(vectors)
         n_clusters = max(1, int(nb_vectors ** 0.5))
 
-        # sécurité FAISS
-        if nb_vectors < n_clusters:
-            print("Erreur: Pas assez de données pour train")
-            return
-
         # -------------------------
         # RECREATE INDEX
         # -------------------------
@@ -235,9 +226,7 @@ class ImageRepository:
         self.faiss.train(vectors)
         self.faiss.add(vectors, all_ids)
 
-        self.faiss.save()
-
-        print(self.faiss.stats())
+        return self.faiss.save()
     
     # =========================
     # SEARCH ENGINE
@@ -268,17 +257,9 @@ class ImageRepository:
         raw_results.sort(key=lambda x: (-x[1], x[0]))
 
         # =========================
-        # PAGE SELECTION
-        # =========================
-        page = raw_results
-
-        if not page:
-            return SearchResults(images=[], k=k)
-
-        # =========================
         # SQL FETCH (EMBEDDINGS + METADATA)
         # =========================
-        ids = [idx for idx, _ in page]
+        ids = [idx for idx, _ in raw_results]
 
         placeholders = ",".join(["?"] * len(ids))
 
@@ -307,7 +288,7 @@ class ImageRepository:
         # =========================
         reranked = []
 
-        for idx, _ in page:
+        for idx, _ in raw_results:
             row = row_map.get(idx)
             if not row:
                 continue
@@ -347,8 +328,8 @@ class ImageRepository:
 
         for idx, score in final_page:
             row = row_map.get(idx)
-            if not row:
-                continue
+
+            if not row: continue
 
             images.append(
                 Image(
@@ -392,7 +373,6 @@ class ImageRepository:
             dataset = self._get_dataset_by_id(row[6])
             
             if not dataset:
-                print(f"⚠️ Dataset {row[6]} non trouvé pour l'image {row[0]}")
                 dataset = None
             
             # Désérialiser l'embedding depuis le blob (numpy)

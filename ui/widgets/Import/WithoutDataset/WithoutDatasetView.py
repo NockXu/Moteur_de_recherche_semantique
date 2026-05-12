@@ -110,39 +110,76 @@ class WithoutDatasetView(QWidget):
         self.clear_dynamic()
         self.clear_header()
 
-        self.scroll_area.hide()
+        self.scroll_area.show()
 
+        # Nom du dataset (unique en haut)
+        name_container = QWidget()
+        name_row = QHBoxLayout(name_container)
+        name_label = QLabel("Nom du dataset de destination:")
+        name_line_edit = QLineEdit()
+        name_row.addWidget(name_label)
+        name_row.addWidget(name_line_edit)
+
+        self.status = QLabel("")
+        self.status.hide()
+
+        # Titre pour les chemins
+        title = QLabel("Dossiers sources à fusionner :")
+        self.header_layout.addWidget(name_container)
+        self.header_layout.addWidget(self.status)
+        self.header_layout.addWidget(title)
+
+        # Bouton pour ajouter des dossiers
+        add_btn = QPushButton("Ajouter un dossier")
+        add_btn.clicked.connect(self.add_merge_folder)
+        self.header_layout.addWidget(add_btn)
+
+        # Config pour le nom (global)
+        self.merge_name_config = name_line_edit
+
+    def add_merge_folder(self):
+        """Ajoute un dossier source pour le mode merge (utilise le nom global)"""
+        h_layout = QHBoxLayout()
+
+        # Pas de nom pour les dossiers sources en mode merge
+        # Le nom sera celui du dataset de destination
+        
+        path = QLineEdit()
+        path.setPlaceholderText("Chemin du dossier source")
+        
+        browse_btn = QPushButton("Parcourir")
+        delete_btn = QPushButton("Supprimer")
+
+        v_layout = QVBoxLayout()
         container = QWidget()
-        row = QHBoxLayout(container)
 
-        label = QLabel("Dataset destination:")
+        v_layout.setSpacing(2)
+        v_layout.setContentsMargins(0, 0, 0, 0)
 
-        line_edit = QLineEdit()
-        merged_input = QLineEdit()
-        btn = QPushButton("Parcourir")
-
-        btn.clicked.connect(lambda: self._browse_pair(merged_input, line_edit))
-
-        status = QLabel("")
-        status.hide()
-
-        row.addWidget(label)
-        row.addWidget(line_edit)
-        row.addWidget(merged_input)
-        row.addWidget(btn)
-
-        self.header_layout.addWidget(container)
-        self.header_layout.addWidget(status)
+        h_layout.setSpacing(5)
+        h_layout.setContentsMargins(0, 0, 0, 0)
 
         config = WithoutDatasetConfig(
-            name=line_edit,
-            path=merged_input,
-            status=status
+            name=self.merge_name_config,
+            path=path,
+            status=self.status
         )
-        self.config = [config]
+        self.config.append(config)
 
-        merged_input.textChanged.connect(self.config_changed.emit)
-        line_edit.textChanged.connect(self.config_changed.emit)
+        browse_btn.clicked.connect(lambda: self._browse_pair(path, None))
+        delete_btn.clicked.connect(lambda: self._delete_folder(container, config))
+
+        path.textChanged.connect(self.config_changed.emit)
+
+        h_layout.addWidget(path)
+        h_layout.addWidget(browse_btn)
+        h_layout.addWidget(delete_btn)
+
+        v_layout.addLayout(h_layout)
+
+        container.setLayout(v_layout)
+
+        self.scroll_layout.addWidget(container)
 
     # ---------------- SEPARATE ----------------
 
@@ -209,11 +246,34 @@ class WithoutDatasetView(QWidget):
 
         self.scroll_layout.addWidget(container)
 
+    def _browse_multiple_paths(self, paths_input: QLineEdit):
+        """Ouvre un dialogue pour sélectionner plusieurs dossiers sources"""
+        from PyQt6.QtWidgets import QFileDialog
+        
+        folders = QFileDialog.getExistingDirectories(
+            self,
+            "Sélectionner les dossiers sources",
+            "",
+            QFileDialog.Option.ShowDirsOnly
+        )
+        if folders:
+            # Joindre les chemins avec des points-virgules
+            paths_text = ";".join(folders)
+            paths_input.setText(paths_text)
+
     def _browse_pair(self, path_edit, name_edit):
-        folder = QFileDialog.getExistingDirectory(self, "Choisir dossier")
+        """Ouvre un dialogue pour sélectionner un dossier"""
+        folder = QFileDialog.getExistingDirectory(
+            self,
+            "Sélectionner un dossier",
+            "",
+            QFileDialog.Option.ShowDirsOnly
+        )
         if folder:
             path_edit.setText(folder)
-            name_edit.setText(Path(folder).name)
+            # Ne modifier le nom que si on est en mode separate (name_edit n'est pas None)
+            if name_edit is not None:
+                name_edit.setText(Path(folder).name)
             self.config_changed.emit()
 
     def _delete_folder(self, widget, config):

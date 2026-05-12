@@ -1,0 +1,20 @@
+[run]
+source =
+    vision
+    database
+    common
+
+omit =
+    */__init__.py
+    */test/*
+    */venv/*
+    */site-packages/*
+    */ollama_wrapper.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    conn.commit()
+    conn.close()
+    except sqlite3.OperationalError as e:

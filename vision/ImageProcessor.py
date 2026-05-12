@@ -79,7 +79,7 @@ mot1, mot2, mot3, mot4"""
 
             self.clean_reduce_img()
 
-            response = result.response.strip()
+            response = result.response.response.strip()
 
             # Parsing
             if "KEYWORDS:" in response:
@@ -108,16 +108,24 @@ mot1, mot2, mot3, mot4"""
 
     def TextToEmbedding(self, image: Image) -> None:
         """
-        Génère un embedding à partir de la description
+        Génère un embedding à partir de la description + keywords
         """
         try:
             if not image.description:
                 image.embedding = []
                 return
 
+            # Construire le texte avec description + keywords
+            text_for_embedding = image.description
+            
+            # Ajouter les keywords s'ils existent
+            if image.keywords and len(image.keywords) > 0:
+                keywords_str = ", ".join(image.keywords)
+                text_for_embedding += f", {keywords_str}"
+            
             result = self.wrapper.embed(
                 model="nomic-embed-text:v1.5",
-                text=image.description
+                text=text_for_embedding
             )
             image.embedding = result
 
@@ -156,23 +164,27 @@ mot1, mot2, mot3, mot4"""
 
             return img_path
 
-    def clean_reduce_img(self) -> None:
-        base_dir = Path(__file__).resolve().parent
+    def clean_reduce_img(
+        self,
+        output_dir: Path | None = None
+    ) -> None:
 
-        storage_dir = base_dir.parent / "storage"
-        output_dir = storage_dir / "images_reduced"
+        if output_dir is None:
 
-        # Vérifie que le dossier existe
-        if not os.path.exists(output_dir):
+            base_dir = Path(__file__).resolve().parent
+
+            storage_dir = base_dir.parent / "storage"
+
+            output_dir = storage_dir / "images_reduced"
+
+        if not output_dir.exists():
             return
 
-        # Supprime tous les fichiers
-        for file in os.listdir(output_dir):
-            file_path = os.path.join(output_dir, file)
+        for file_path in output_dir.iterdir():
 
-            if os.path.isfile(file_path):
-                os.remove(file_path)
-            
+            if file_path.is_file():
+                file_path.unlink()
+                
 
 if __name__ == "__main__":
     from pathlib import Path

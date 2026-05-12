@@ -19,20 +19,15 @@ class ExportIntegrale:
     Export intégral des données au format JSON avec datasets et images
     Structure:
     {
-        "datasets": [
-            {"id": <id>, "name": <name>},
-            ...
-        ],
-        "images": [
-            "<name>": {
-                "id": <name>,
-                "path": <path>,
-                "description": <description>,
-                "keywords": [<keyword>, ...],
-                "embedding": [<float>, ...]
-            },
-            ...
-        ]
+        "<name>": {
+            "id": <name>,
+            "path": <path>,
+            "description": <description>,
+            "keywords": [<keyword>, ...],
+            "dataset": <dataset_name>,
+            "embedding": [<float>, ...]
+        },
+        ...
     }
     """
 
@@ -51,17 +46,11 @@ class ExportIntegrale:
             Dict: Les données exportées
         """
         try:
-            # Récupérer tous les datasets
-            datasets = self._get_all_datasets()
-            
             # Récupérer toutes les images
             images = self._get_all_images()
             
             # Construire la structure de données
-            export_data = {
-                "datasets": datasets,
-                "images": images
-            }
+            export_data = images
             
             # Écrire dans le fichier
             self._write_json_file(file_path, export_data)
@@ -71,27 +60,6 @@ class ExportIntegrale:
         except Exception as e:
             print(f"Erreur lors de l'export: {e}")
             raise
-
-    def _get_all_datasets(self) -> List[Dict[str, Any]]:
-        """Récupère tous les datasets de la base de données"""
-        try:
-            from common.Dataset_Classes.DatasetRepository import DatasetRepository
-            dataset_repo = DatasetRepository(DbService().sqlite)
-            raw_datasets = dataset_repo.get_all()
-            print(f"Raw datasets: {raw_datasets}")
-            
-            datasets = []
-            for dataset in raw_datasets:
-                datasets.append({
-                    "id": dataset.id,
-                    "name": dataset.name
-                })
-            
-            return datasets
-            
-        except Exception as e:
-            print(f"Erreur lors de la récupération des datasets: {e}")
-            return []
 
     def _get_all_images(self) -> Dict[str, Any]:
         """Récupère toutes les images et les formate selon la structure demandée"""
@@ -109,6 +77,7 @@ class ExportIntegrale:
                     "path": str(image.path),
                     "description": image.description or "",
                     "keywords": image.keywords or [],
+                    "dataset": image.dataset_name or "",
                     "embedding": image.embedding or []
                 }
             
@@ -149,10 +118,7 @@ class ExportIntegrale:
             images = self._get_all_images()
             
             # Construire la structure de données
-            export_data = {
-                "datasets": datasets,
-                "images": images
-            }
+            export_data = images
             
             # Convertir en JSON string
             return json.dumps(export_data, indent=2, ensure_ascii=False)

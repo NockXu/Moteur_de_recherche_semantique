@@ -137,7 +137,7 @@ class AdvancedImportDialog(QDialog):
             # Extraire les noms de datasets uniques
             self.detected_datasets = set()
             for k, img in data.items():
-                if k not in ["metadata", "export_info"] and "dataset" in img:
+                if k not in ["metadata", "export_info", "datasets"] and "dataset" in img:
                     self.detected_datasets.add(img["dataset"])
 
             has_dataset = bool(self.detected_datasets)
