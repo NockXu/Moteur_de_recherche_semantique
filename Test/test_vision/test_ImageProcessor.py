@@ -9,7 +9,7 @@ from common.Dataset_Classes.Dataset import Dataset
 from vision.ImageProcessor import ImageProcessor
 from vision.ollama_wrapper import OllamaGenerateResult
 
-from test.test_vision.FakeOllamaWrapper import FakeOllamaWrapper
+from .FakeOllamaWrapper import FakeOllamaWrapper
 
 TEST_IMAGE_PATH = str(Path(__file__).parent.parent.parent / "dataset" / "Dataset_test" / "weezer.png")
 
