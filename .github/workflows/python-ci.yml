@@ -33,16 +33,16 @@ jobs:
 
       - name: Generate HTML report
         run: |
-          mkdir -p docs/coverage
-          coverage html -d docs/coverage
+          mkdir -p coverage_html
+          coverage html -d coverage_html
 
       - name: Debug generated files
         run: |
-          ls -R docs
+          ls -R coverage_html
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: docs
+          publish_dir: coverage_html
           force_orphan: true
