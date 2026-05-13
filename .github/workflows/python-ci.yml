@@ -22,23 +22,19 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install coverage
-      
+
       - name: Clean coverage
         run: coverage erase
-        working-directory: .
 
       - name: Run tests
         run: |
           coverage run -m unittest discover -s tests -v
-        working-directory: .
+          coverage report
 
       - name: Generate HTML report
-        run: coverage html -d docs/coverage
-        working-directory: .
-
-      - name: Prepare docs folder
-        run: mkdir -p docs
-        working-directory: .
+        run: |
+          mkdir -p docs/coverage
+          coverage html -d docs/coverage
 
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
