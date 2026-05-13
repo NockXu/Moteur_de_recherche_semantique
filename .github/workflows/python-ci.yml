@@ -2,15 +2,12 @@ name: Python CI
 
 on:
   push:
+    branches: [ main ]
   pull_request:
 
 jobs:
   test:
     runs-on: ubuntu-latest
-    
-    # IMPORTANT : Ajouter les permissions nécessaires
-    permissions:
-      contents: write
 
     steps:
       - name: Checkout code
@@ -27,27 +24,33 @@ jobs:
           pip install -r requirements.txt
           pip install coverage
 
-      - name: Clean coverage
-        run: coverage erase
-
-      - name: Run tests
+      - name: Run tests with coverage
         run: |
           coverage run -m unittest discover -s tests -v
           coverage report
-
-      - name: Generate HTML report
-        run: |
-          mkdir -p coverage_html
           coverage html -d coverage_html
 
-      - name: Debug generated files
-        run: |
-          ls -R coverage_html
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: coverage_html
-          force_orphan: true
+          path: ./coverage_html
+
+  deploy:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    permissions:
+      pages: write
+      id-token: write
+    
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
