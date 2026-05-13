@@ -30,11 +30,21 @@ jobs:
           coverage report
           coverage html -d coverage_html
 
+      - name: Prepare GitHub Pages
+        run: |
+          # Créer le dossier de destination
+          mkdir -p gh_pages
+          # Copier d'abord les fichiers docs (index.html à la racine)
+          cp -r docs/* gh_pages/
+          # Ensuite copier le coverage dans son sous-dossier
+          mkdir -p gh_pages/coverage
+          cp -r coverage_html/* gh_pages/coverage/
+
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          path: ./coverage_html
+          path: ./gh_pages
 
   deploy:
     needs: test
