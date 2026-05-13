@@ -172,6 +172,35 @@ class TestImageRepository(unittest.TestCase):
         mock_repo.create.assert_called_once_with(self.dataset.name)
 
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_save_image_with_dataset_return_false(self, mock_dataset_repo_class):
+        """Test la méthode save_image avec un dataset inexistant et une erreur lors de la création"""
+        # Créer un mock de DatasetRepository
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        
+        # Mock de la base de données
+        mock_db = MagicMock()
+        mock_db.execute = Exception("test exeption")
+        mock_db.commit = MagicMock()  # commit ne retourne rien
+        
+        repository = ImageRepository(mock_db, self.dbs.faiss)
+        
+        # Test avec un dataset inexistant (doit créer le dataset)
+        self.image.dataset_id = None
+        
+        def mock_get_by_name(name):
+            if name == "default":
+                return Dataset(1, "default")
+            return None
+        
+        mock_repo.get_by_name.side_effect = mock_get_by_name
+        mock_repo.create.return_value = None
+        
+        result = repository.save_image(self.image)
+
+        self.assertFalse(result)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_save_many_images(self, mock_dataset_repo_class):
         """Test la méthode save_many_images"""
         # Créer un mock de DatasetRepository
@@ -399,6 +428,93 @@ class TestImageRepository(unittest.TestCase):
         self.assertTrue(result)
 
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_train_image_with_no_embedding(self, mock_dataset_repo_class):
+        """Test train"""
+        # Créer un mock de DatasetRepository
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        
+        # Créer 2000 embeddings différents
+        ids, embeddings = self._generate_test_embeddings(2000)
+
+        # Mock de la base de données
+        mock_db = MagicMock()
+        # Retourner une liste de tuples (id, embedding_blob)
+        mock_db.fetch_all.return_value = [(id, None) for id in ids]
+
+        # Mock l'index faiss
+        mock_faiss = MagicMock()
+        mock_faiss.train = MagicMock()
+        mock_faiss.add = MagicMock()
+        mock_faiss.save = MagicMock()
+        mock_faiss._create_index = MagicMock()
+        
+        repository = ImageRepository(mock_db, mock_faiss)
+        
+        result = repository.train_index()
+        
+        # Vérifications
+        self.assertFalse(result)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_train_image_with_empty_embedding(self, mock_dataset_repo_class):
+        """Test train"""
+        # Créer un mock de DatasetRepository
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        
+        # Créer 2000 embeddings différents
+        ids, embeddings = self._generate_test_embeddings(2000)
+
+        # Mock de la base de données
+        mock_db = MagicMock()
+        # Retourner une liste de tuples (id, embedding_blob)
+        mock_db.fetch_all.return_value = [(id, np.array([], dtype=np.float32)) for id in ids]
+
+        # Mock l'index faiss
+        mock_faiss = MagicMock()
+        mock_faiss.train = MagicMock()
+        mock_faiss.add = MagicMock()
+        mock_faiss.save = MagicMock()
+        mock_faiss._create_index = MagicMock()
+        
+        repository = ImageRepository(mock_db, mock_faiss)
+        
+        result = repository.train_index()
+        
+        # Vérifications
+        self.assertFalse(result)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_train_with_error(self, mock_dataset_repo_class):
+        """Test train"""
+        # Créer un mock de DatasetRepository
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        
+        # Créer 2000 embeddings différents
+        ids, embeddings = self._generate_test_embeddings(2000)
+
+        # Mock de la base de données
+        mock_db = MagicMock()
+        # Retourner une liste de tuples (id, embedding_blob)
+        mock_db.fetch_all.return_value = [(id, embedding) for id, embedding in zip(ids, embeddings)]
+
+        # Mock l'index faiss
+        mock_faiss = MagicMock()
+        mock_faiss.train.return_value = False
+        mock_faiss.add = MagicMock()
+        mock_faiss.save = MagicMock()
+        mock_faiss._create_index = MagicMock()
+        
+        repository = ImageRepository(mock_db, mock_faiss)
+        
+        result = repository.train_index()
+        
+        # Vérifications
+        self.assertFalse(result)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_search(self, mock_dataset_repo_class):
 
         mock_repo = MagicMock()
@@ -454,6 +570,84 @@ class TestImageRepository(unittest.TestCase):
         self.assertEqual(result['k'], 10)
 
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_search_no_id(self, mock_dataset_repo_class):
+
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        mock_repo.get_by_id.return_value = self.dataset
+
+        mock_db = MagicMock()
+
+        mock_faiss = MagicMock()
+        mock_faiss.search.return_value = [(-1, 0.95), (-1, 0.95)]
+
+        repository = ImageRepository(mock_db, mock_faiss)
+
+        query_embedding = [0.5] * DIMENSION
+
+        result = repository.search(query_embedding, k=10)
+        
+        # Vérifications
+        self.assertEqual(len(result['images']), 0)
+        self.assertEqual(result['k'], 10)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_search_no_embedding(self, mock_dataset_repo_class):
+
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        mock_repo.get_by_id.return_value = self.dataset
+
+        mock_db = MagicMock()
+        mock_db.fetch_all.return_value = [
+            (
+                1,
+                b"",
+                "path",
+                "name",
+                "desc",
+                "[]",
+                1
+            )
+        ]
+
+        mock_faiss = MagicMock()
+        mock_faiss.search.return_value = [(1, 0.95), (2, 0.95)]
+
+        repository = ImageRepository(mock_db, mock_faiss)
+
+        query_embedding = [0.5] * DIMENSION
+
+        result = repository.search(query_embedding, k=10)
+        
+        # Vérifications
+        self.assertEqual(len(result['images']), 0)
+        self.assertEqual(result['k'], 10)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_search_no_data_in_database(self, mock_dataset_repo_class):
+
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        mock_repo.get_by_id.return_value = self.dataset
+
+        mock_db = MagicMock()
+        mock_db.fetch_all.return_value = []
+
+        mock_faiss = MagicMock()
+        mock_faiss.search.return_value = [(1, 0.95), (2, 0.95)]
+
+        repository = ImageRepository(mock_db, mock_faiss)
+
+        query_embedding = [0.5] * DIMENSION
+
+        result = repository.search(query_embedding, k=10)
+        
+        # Vérifications
+        self.assertEqual(len(result['images']), 0)
+        self.assertEqual(result['k'], 10)
+
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_search_row_map_error(self, mock_dataset_repo_class):
         """Test search quand row_map.get(idx) retourne None (continue exécuté)"""
         mock_repo = MagicMock()
@@ -495,7 +689,7 @@ class TestImageRepository(unittest.TestCase):
         
         mock_db = MagicMock()
         mock_db.fetch_all.return_value = [
-            (1, 'test_path', 'test_path', 'test_desc', '["tag1", "tag2"]', None, 1, b'\x00\x00\x80\x3f')
+            (1, 'test_path', 'test_path', 'test_desc', '["tag1", "tag2"]', 1, b'\x00\x00\x80\x3f')
         ]
         
         repository = ImageRepository(mock_db, None)
@@ -521,7 +715,7 @@ class TestImageRepository(unittest.TestCase):
         
         mock_db = MagicMock()
         mock_db.fetch_all.return_value = [
-            (1, 'test_path', 'test_path', 'test_desc', 'tag1 tag2', None, 1, '\x00\x00\x80\x3f')
+            (1, 'test_path', 'test_path', 'test_desc', 'tag1 tag2', 1, '\x00\x00\x80\x3f')
         ]
         
         repository = ImageRepository(mock_db, None)
@@ -537,7 +731,24 @@ class TestImageRepository(unittest.TestCase):
         self.assertEqual(result[0].dataset_id, None)
         self.assertEqual(result[0].embedding, [])
 
-    def test_exist(self):
+    @patch('common.Image_Classes.ImageRepository.DatasetRepository')
+    def test_get_all_nothing(self, mock_dataset_repo_class):
+        """Test get_all"""
+
+        mock_repo = MagicMock()
+        mock_dataset_repo_class.return_value = mock_repo
+        mock_repo.get_by_id.return_value = None
+        
+        mock_db = MagicMock()
+        mock_db.fetch_all.return_value = []
+        
+        repository = ImageRepository(mock_db, None)
+        
+        result = repository.get_all()
+        
+        self.assertEqual(len(result), 0)
+
+    def test_exist_true(self):
         """Test exist"""
         mock_db = MagicMock()
         mock_db.fetch_one.return_value = "Test"
@@ -548,16 +759,16 @@ class TestImageRepository(unittest.TestCase):
         
         self.assertTrue(result)
 
-    def test_image_exists(self):
-        """Test image_exists"""
+    def test_exist_false(self):
+        """Test exist"""
         mock_db = MagicMock()
-        mock_db.fetch_one.return_value = "Test"
+        mock_db.fetch_one.return_value = None
         
         repository = ImageRepository(mock_db, None)
         
-        result = repository.image_exists("test")
+        result = repository.exist(1)
         
-        self.assertTrue(result)
+        self.assertFalse(result)
 
     def test_get_all_image_path(self):
         """Test get_all_image_path"""

@@ -189,11 +189,11 @@ class TestDatasetRepository(unittest.TestCase):
 
     def test_create_database_error(self):
         """Test create avec une erreur de base de données"""
-        # Mock la base de données pour lever une exception
         with patch.object(self.db_manager, 'execute', side_effect=Exception("DB Error")):
-            dataset = self.repository.create("error_dataset")
-            
-            self.assertIsNone(dataset)
+            with self.assertRaises(RuntimeError) as ctx:
+                self.repository.create("error_dataset")
+
+            self.assertIn("DB Error", str(ctx.exception))
 
     def test_get_all_with_none_return(self):
         """Test get_all quand fetch_all retourne None"""

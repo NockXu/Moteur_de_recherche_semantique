@@ -7,21 +7,27 @@ from common.Dataset_Classes.Dataset import Dataset
 from common.Image_Classes.Image import Image
 
 
+from pathlib import Path
+from typing import Iterable
+
 class ImageScanService:
     """
-    Service dédié au scan de répertoires d'images.
+    Service responsible for scanning directories and discovering image files.
 
-    Responsabilités :
-    - Scanner un dossier
-    - Filtrer les fichiers image
-    - Créer des objets Image "light" (sans embedding)
+    Responsibilities:
+        - Scan a directory recursively
+        - Filter supported image formats
+        - Produce lightweight Image objects (without embeddings)
     """
 
-    SUPPORTED_EXTENSIONS = {
-        ".jpg", ".jpeg", ".png", ".webp"
+    SUPPORTED_EXTENSIONS: set[str] = {
+        ".jpg",
+        ".jpeg",
+        ".png",
+        ".webp",
     }
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     # ─────────────────────────────────────────────
@@ -33,7 +39,20 @@ class ImageScanService:
         dataset: Optional[Dataset] = None
     ) -> List[Image]:
         """
-        Scan complet (attention: peut être lourd sur gros dossier)
+        Scan a directory and return all discovered images.
+
+        This method performs a full scan of the given directory.
+        It may be expensive on large folders.
+
+        Args:
+            directory (str):
+                Path to the directory to scan.
+
+            dataset (Optional[Dataset]):
+                Optional dataset to associate with scanned images.
+
+        Returns:
+            List of discovered Image objects.
         """
         return list(self._scan_generator(directory, dataset))
 
@@ -46,7 +65,22 @@ class ImageScanService:
         dataset: Optional[Dataset] = None
     ) -> Iterable[Image]:
         """
-        Générateur → idéal pour pagination / load progressif
+        Lazily scan a directory and yield Image objects.
+
+        This generator is optimized for:
+            - Large directories
+            - Streaming processing
+            - Progressive loading / pagination
+
+        Args:
+            directory (str):
+                Path to the directory to scan.
+
+            dataset (Optional[Dataset]):
+                Optional dataset associated with scanned images.
+
+        Yields:
+            Next discovered Image object.
         """
         return self._scan_generator(directory, dataset)
 
@@ -58,6 +92,21 @@ class ImageScanService:
         directory: str,
         dataset: Optional[Dataset]
     ) -> Iterable[Image]:
+        """
+        Internal generator that recursively scans a directory
+        and yields Image objects for supported file types.
+
+        Args:
+            directory (str):
+                Directory path to scan.
+
+            dataset (Optional[Dataset]):
+                Dataset associated with scanned images.
+
+        Yields:
+            Image:
+                Lightweight Image object (no embedding, no processing).
+        """
 
         base_path = Path(directory)
 
@@ -91,21 +140,43 @@ class ImageScanService:
         dataset: Optional[Dataset] = None
     ) -> List[Image]:
         """
-        Scan + pagination directe (évite de tout charger)
+        Scan a directory with pagination support.
+
+        This method avoids loading all results in memory by using
+        a lazy generator and slicing results on the fly.
+
+        Args:
+            directory (str):
+                Path to the directory to scan.
+
+            page (int):
+                Page index (0-based).
+
+            page_size (int):
+                Number of items per page.
+
+            dataset (Optional[Dataset]):
+                Optional dataset associated with images.
+
+        Returns:
+            Paginated list of Image objects.
         """
+
+        if page < 0 or page_size <= 0:
+            return []
+
         start = page * page_size
         end = start + page_size
 
-        results = []
-        count = 0
+        results: List[Image] = []
 
-        for image in self._scan_generator(directory, dataset):
-            if count >= start and count < end:
-                results.append(image)
+        for idx, image in enumerate(self._scan_generator(directory, dataset)):
+            if idx < start:
+                continue
 
-            if count >= end:
+            if idx >= end:
                 break
 
-            count += 1
+            results.append(image)
 
         return results

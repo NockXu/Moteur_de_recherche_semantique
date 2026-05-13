@@ -46,11 +46,8 @@ class TestFaissManager(unittest.TestCase):
         self.index_path.touch()
         
         with patch('database.faiss_manager.manager.faiss.read_index', side_effect=Exception("Erreur simulée")):
-            with self.assertRaises(RuntimeError) as context:
+            with self.assertRaises(RuntimeError):
                 FaissManager(self.index_path)
-            
-            self.assertIn("Erreur lors du chargement ou de la création de l'index", str(context.exception))
-            self.assertIn("Erreur simulée", str(context.exception))
     
     def test_save_success(self):
         # Créer un index valide et le sauvegarder

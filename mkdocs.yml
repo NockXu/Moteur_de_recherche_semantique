@@ -1,0 +1,8 @@
+site_name: Documentation Moteur de Recherche Sémantique
+
+docs_dir: documentation
+site_dir: ../docs/documentation
+
+plugins:
+  - search
+  - mkdocstrings

@@ -10,13 +10,28 @@ TSqlite = TypeVar('TSqlite', bound=SqliteManager)
 TFaiss = TypeVar('TFaiss', bound=FaissManager)
 
 class DbService:
-    _instance: 'DbService' = None
-    
-    # Attributs typés
+    """
+    Singleton service that provides access to database and FAISS index managers.
+
+    This class ensures a single shared instance of database services across
+    the application.
+    """
+
+    _instance: "DbService" = None
+
+    # Typed attributes
     sqlite: TSqlite
     faiss: TFaiss
 
-    def __new__(cls):
+    def __new__(cls) -> "DbService":
+        """
+        Create or return the singleton instance.
+
+        Initializes database managers on first creation.
+
+        Returns:
+            The singleton instance.
+        """
         if cls._instance is None:
             cls._instance = super().__new__(cls)
 

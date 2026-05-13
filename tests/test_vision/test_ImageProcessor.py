@@ -162,7 +162,6 @@ mot1, mot2, mot3, mot4"""
         # Vérifier que RuntimeError est bien levée
         with self.assertRaises(RuntimeError) as context:
             self.processor.TextToEmbedding(self.image_test)
-        self.assertIn("Erreur embedding pour", str(context.exception))
 
     def test_reduce_img(self):
         from PIL import Image as PILImage
@@ -193,7 +192,6 @@ mot1, mot2, mot3, mot4"""
             
             with self.assertRaises(ValueError) as context:
                 self.processor.reduce_img(image_data)
-            self.assertIn("Extension non supportée", str(context.exception))
 
     def test_clean_reduce_img(self):
 

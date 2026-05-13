@@ -28,6 +28,10 @@ jobs:
         run: |
           pytest tests/ -v --html=test_report.html --self-contained-html --cov=. --cov-report=html:coverage_html
 
+      - name: Generate Documentation
+        run: |
+          mkdocs build
+
       - name: Prepare GitHub Pages
         run: |
           mkdir -p gh_pages

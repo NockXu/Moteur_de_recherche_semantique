@@ -7,3 +7,5 @@ faiss-cpu
 coverage
 Pillow
 pytest
+mkdocs
+mkdocstrings[python]

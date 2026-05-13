@@ -1,5 +1,6 @@
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.DatasetRepository import DatasetRepository
+from common.Dataset_Classes.Dataset import Dataset
 from database.faiss_manager.manager import FaissManager
 from database.sqlite.manager import SqliteManager
 from database.DbService import DbService
@@ -11,96 +12,147 @@ from typing import List, TypedDict, Optional, Tuple
 import numpy as np
 
 class SearchResults(TypedDict):
-    """Résultats de recherche avec k actuel"""
+    """
+    Represents the result of a search operation.
+
+    This structure contains the retrieved images and the number
+    of results requested (k).
+
+    Args:
+        images (List[Image]):
+            List of retrieved images.
+        k (int):
+            Number of results requested.
+    """
     images: List[Image]
     k: int
 
 class ImageRepository:
+    """
+    Repository responsible for managing Image persistence and search operations.
+
+    This class acts as a bridge between:
+    - SQLite database (metadata storage)
+    - FAISS index (vector search)
+
+    Args:
+        db (SqliteManager):
+            SQLite database manager.
+
+        faiss (FaissManager):
+            FAISS index manager used for similarity search.
+    """
+
     def __init__(self, db: SqliteManager, faiss: FaissManager):
         self.db = db
         self.faiss = faiss
         self._dataset_repo = DatasetRepository(db)
         self._dataset_cache = {}
+        
+    def _get_dataset_by_id(self, dataset_id: int) -> Optional[Dataset]:
+        """
+        Retrieve a Dataset by its ID using an internal cache to reduce database queries.
 
-        
-    def _get_dataset_by_id(self, dataset_id: int):
-        """
-        Récupère un dataset par son ID avec cache pour éviter les requêtes répétées
-        
+        This method first checks the cache before querying the repository.
+
         Args:
-            dataset_id: ID du dataset
-            
+            dataset_id (int):
+                ID of the dataset to retrieve.
+
         Returns:
-            Dataset ou None si non trouvé
+            The dataset if found, otherwise None.
         """
-        # Vérifier le cache d'abord
+        # Check cache first
         if dataset_id in self._dataset_cache:
             return self._dataset_cache[dataset_id]
-        
-        # Récupérer depuis la BDD
+
+        # Fetch from repository
         dataset = self._dataset_repo.get_by_id(dataset_id)
-        
-        # Mettre en cache
-        if dataset:
+
+        # Store in cache if found
+        if dataset is not None:
             self._dataset_cache[dataset_id] = dataset
-        
+
         return dataset
     
     def save_image(self, image: Image) -> bool:
-        # 1. FAISS
-        if image.embedding is not None:
-            blob = np.array(image.embedding, dtype=np.float32).tobytes()
+        """
+        Save or update an image in both SQLite and FAISS storage.
 
-        # 2. SQLite
-        # 2.1 Insertion du dataset si besoin
-        if not image.dataset_id:
-            if image.dataset_name:
+        This method:
+        - ensures dataset existence
+        - stores image metadata in SQLite
+        - prepares embedding for FAISS storage (if available)
+
+        Returns:
+            True if the operation succeeded, False otherwise.
+        """
+        try:
+            blob = None
+
+            # 1. FAISS embedding preparation
+            if image.embedding is not None:
+                blob = np.array(image.embedding, dtype=np.float32).tobytes()
+
+            # 2. Ensure dataset exists
+            if image.dataset_id is None and image.dataset_name:
                 dataset = self._dataset_repo.get_by_name(image.dataset_name)
+
+                if dataset is None:
+                    dataset = self._dataset_repo.create(image.dataset_name)
+
                 if dataset:
                     image.dataset_id = dataset.id
+                    image.dataset_name = dataset.name
                 else:
-                    dataset = self._dataset_repo.create(image.dataset_name)
-                    if dataset:  # Vérifier que create() a réussi
-                        image.dataset_id = dataset.id
-                    else:
-                        dataset = self._dataset_repo.get_by_name("default")
-                        if dataset:
-                            image.dataset_id = dataset.id
-                            image.dataset_name = dataset.name
-                        
+                    default_dataset = self._dataset_repo.get_by_name("default")
+                    if default_dataset:
+                        image.dataset_id = default_dataset.id
+                        image.dataset_name = default_dataset.name
 
-        # 2.2 Insertion de l'image
-        self.db.execute("""
-            INSERT INTO images (
-                path, name, description, keywords,
-                indexed_at, dataset_id, embedding
+            # 3. SQLite insert/update
+            self.db.execute(
+                """
+                INSERT INTO images (
+                    path, name, description, keywords,
+                    indexed_at, dataset_id, embedding
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(path) DO UPDATE SET
+                    name = excluded.name,
+                    description = excluded.description,
+                    keywords = excluded.keywords,
+                    indexed_at = excluded.indexed_at,
+                    dataset_id = excluded.dataset_id,
+                    embedding = excluded.embedding
+                """,
+                (
+                    str(image.path),
+                    image.name,
+                    image.description,
+                    json.dumps(image.keywords),
+                    datetime.now().isoformat(),
+                    image.dataset_id,
+                    blob
+                )
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(path) DO UPDATE SET
-                name = excluded.name,
-                description = excluded.description,
-                keywords = excluded.keywords,
-                indexed_at = excluded.indexed_at,
-                dataset_id = excluded.dataset_id,
-                embedding = excluded.embedding
-        """, (
-            str(image.path),
-            image.name,
-            image.description,
-            json.dumps(image.keywords),
-            datetime.now().isoformat(),
-            image.dataset_id,
-            blob
-        ))
 
-        self.db.commit()
+            self.db.commit()
+            return True
 
-        return True
+        except Exception:
+            return False
 
     def save_many_images(self, images: List[Image]) -> int:
+        """
+        Save multiple images in batch into SQLite.
 
-        success_count = 0
+        This method uses bulk insertion (executemany) with a fallback
+        to row-by-row insertion in case of failure.
 
+        Returns:
+            Number of successfully saved images.
+        """
         query = """
             INSERT INTO images (
                 path,
@@ -122,39 +174,30 @@ class ImageRepository:
         """
 
         rows = []
+        success_count = 0
 
         for image in images:
-
             blob = None
 
+            # Embedding
             if image.embedding is not None:
-                blob = np.array(
-                    image.embedding,
-                    dtype=np.float32
-                ).tobytes()
+                blob = np.array(image.embedding, dtype=np.float32).tobytes()
 
-            # Dataset
-            if not image.dataset_id and image.dataset_name:
-
+            # Dataset resolution
+            if image.dataset_id is None and image.dataset_name:
                 dataset = self._dataset_repo.get_by_name(image.dataset_name)
+
+                if dataset is None:
+                    dataset = self._dataset_repo.create(image.dataset_name)
 
                 if dataset:
                     image.dataset_id = dataset.id
                     image.dataset_name = dataset.name
-
                 else:
-                    dataset = self._dataset_repo.create(image.dataset_name)
-
-                    if dataset:
-                        image.dataset_id = dataset.id
-                        image.dataset_name = dataset.name
-
-                    else:
-                        dataset = self._dataset_repo.get_by_name("default")
-                        
-                        if dataset:
-                            image.dataset_id = dataset.id
-                            image.dataset_name = dataset.name
+                    default = self._dataset_repo.get_by_name("default")
+                    if default:
+                        image.dataset_id = default.id
+                        image.dataset_name = default.name
 
             rows.append((
                 str(image.path),
@@ -167,29 +210,30 @@ class ImageRepository:
             ))
 
         try:
-            # Insertion rapide
             self.db.executemany(query, rows)
-
             success_count = len(rows)
 
-        except Exception as batch_error:
+        except Exception:
+            # fallback safe row-by-row
+            success_count = 0
 
-            # Fallback ligne par ligne
             for row in rows:
-
                 try:
                     self.db.execute(query, row)
                     success_count += 1
-
                 except Exception:
-                    pass
+                    continue
 
         self.db.commit()
-
         return success_count
-        
 
     def train_index(self) -> bool:
+        """
+        Rebuild and train the FAISS index from all stored image embeddings.
+
+        Returns:
+            True if training and indexing succeeded, False otherwise.
+        """
         # -------------------------
         # LOAD ALL EMBEDDINGS
         # -------------------------
@@ -199,10 +243,22 @@ class ImageRepository:
         all_ids = []
 
         for image_id, embedding_blob in rows:
-            vec = np.frombuffer(embedding_blob, dtype=np.float32)
+            if embedding_blob is None:
+                embedding = []
+            else:
+                embedding = np.frombuffer(
+                    embedding_blob,
+                    dtype=np.float32
+                ).tolist()
 
-            all_vectors.append(vec)
+            if len(embedding) == 0:
+                continue
+
+            all_vectors.append(embedding)
             all_ids.append(image_id)
+
+        if not all_vectors:
+            return False
 
         vectors = np.vstack(all_vectors).astype(np.float32)
 
@@ -215,15 +271,14 @@ class ImageRepository:
         # -------------------------
         # RECREATE INDEX
         # -------------------------
-
-        # IMPORTANT: update clusters dynamiques dans index
         self.faiss._create_index(nb_vectors, n_clusters)
 
         # -------------------------
         # TRAIN + ADD
         # -------------------------
+        if not self.faiss.train(vectors):
+            return False
 
-        self.faiss.train(vectors)
         self.faiss.add(vectors, all_ids)
 
         return self.faiss.save()
@@ -235,13 +290,26 @@ class ImageRepository:
         self,
         query: List[float],
         threshold: float = 0.5,
-        k: int = 200,
-        cursor: Optional[Tuple[float, int]] = None
+        k: int = 200
     ) -> SearchResults:
+        """
+        Search similar images using FAISS + SQLite metadata + reranking.
+
+        Args:
+            query (List[float]):
+                Query embedding.
+            threshold (float):
+                Minimum similarity score.
+            k (int):
+                Number of results to return.
+
+        Returns:
+            List of matched images sorted by similarity score.
+        """
+
         # =========================
         # FAISS RETRIEVAL
         # =========================
-
         raw_results = self.faiss.search(query, k)
 
         if not raw_results:
@@ -253,13 +321,15 @@ class ImageRepository:
             if idx != -1 and score >= threshold
         ]
 
-        # stable sort
         raw_results.sort(key=lambda x: (-x[1], x[0]))
 
         # =========================
-        # SQL FETCH (EMBEDDINGS + METADATA)
+        # VALIDATE IDS
         # =========================
         ids = [idx for idx, _ in raw_results]
+
+        if not ids:
+            return SearchResults(images=[], k=k)
 
         placeholders = ",".join(["?"] * len(ids))
 
@@ -279,47 +349,44 @@ class ImageRepository:
             tuple(ids)
         )
 
+        if not rows:
+            return SearchResults(images=[], k=k)
+
         row_map = {r[0]: r for r in rows}
 
         query_vec = np.array(query, dtype=np.float32)
 
         # =========================
-        # RERANK (COSINE EXACT)
+        # RERANK
         # =========================
         reranked = []
 
         for idx, _ in raw_results:
             row = row_map.get(idx)
-            if not row:
+            if row is None:
                 continue
 
             emb = np.frombuffer(row[1], dtype=np.float32)
 
+            if emb.size == 0:
+                continue
+
+            # cosine-like score (FAISS cohérent si normalisé)
             score = float(np.dot(query_vec, emb))
 
             reranked.append((idx, score))
 
         # =========================
-        # DEDUP
+        # DEDUP + SORT
         # =========================
         seen = set()
-        deduped = []
+        final_page = []
 
-        for idx, score in reranked:
+        for idx, score in sorted(reranked, key=lambda x: (-x[1], x[0])):
             if idx in seen:
                 continue
             seen.add(idx)
-            deduped.append((idx, score))
-
-        # =========================
-        # FINAL SORT
-        # =========================
-        deduped.sort(key=lambda x: (-x[1], x[0]))
-
-        # =========================
-        # FINAL PAGE
-        # =========================
-        final_page = deduped
+            final_page.append((idx, score))
 
         # =========================
         # BUILD RESULTS
@@ -328,8 +395,8 @@ class ImageRepository:
 
         for idx, score in final_page:
             row = row_map.get(idx)
-
-            if not row: continue
+            if row is None:
+                continue
 
             images.append(
                 Image(
@@ -343,9 +410,6 @@ class ImageRepository:
                 )
             )
 
-        # =========================
-        # RETURN
-        # =========================
         return SearchResults(
             images=images,
             k=k
@@ -353,79 +417,98 @@ class ImageRepository:
 
     def get_all(self) -> List[Image]:
         """
-        Récupère toutes les images de la base de données.
-        
+        Retrieve all images from the database.
+
         Returns:
-            List[Image]: Liste de toutes les images
+            List of all stored images.
         """
-        rows = self.db.fetch_all("SELECT * FROM images")
+
+        rows = self.db.fetch_all(
+            """
+            SELECT
+                id,
+                path,
+                name,
+                description,
+                keywords,
+                dataset_id,
+                embedding
+            FROM images
+            """
+        )
+
         images = []
+
         for row in rows:
-            # Désérialiser les keywords depuis JSON
-            keywords = []
-            if row[4]:
-                try:
-                    keywords = json.loads(row[4])
-                except:
-                    keywords = []
-            
-            # Récupérer le dataset par ID
-            dataset = self._get_dataset_by_id(row[6])
-            
-            if not dataset:
-                dataset = None
-            
-            # Désérialiser l'embedding depuis le blob (numpy)
-            embedding = []
-            if row[7]:
-                try:
-                    embedding = np.frombuffer(row[7], dtype=np.float32).tolist()
-                except:
-                    embedding = []
-            
-            # Création de l'image avec le vrai objet Dataset
-            new_image = Image(
-                path=row[1],
-                dataset=dataset,  # Vrai objet Dataset
-                description=row[3] or "",
-                keywords=keywords,
-                embedding=embedding,
-                image_id=row[0]
+            image_id, path, name, description, keywords_json, dataset_id, embedding_blob = row
+
+            # -------------------------
+            # Keywords
+            # -------------------------
+            try:
+                keywords = json.loads(keywords_json) if keywords_json else []
+            except json.JSONDecodeError:
+                keywords = []
+
+            # -------------------------
+            # Dataset
+            # -------------------------
+            dataset = self._get_dataset_by_id(dataset_id)
+
+            # -------------------------
+            # Embedding
+            # -------------------------
+            try:
+                embedding = (
+                    np.frombuffer(embedding_blob, dtype=np.float32).tolist()
+                    if embedding_blob
+                    else []
+                )
+            except Exception:
+                embedding = []
+
+            # -------------------------
+            # Build Image
+            # -------------------------
+            images.append(
+                Image(
+                    path=path,
+                    dataset=dataset,
+                    description=description or "",
+                    keywords=keywords,
+                    embedding=embedding,
+                    image_id=image_id,
+                    name=name
+                )
             )
 
-            images.append(new_image)
         return images
 
-    def exist(self, path : str) -> bool:
+    def exist(self, path: str) -> bool:
         """
-        Vérifie si une image existe dans la base de données.
-        
-        Args:
-            path (str): Chemin de l'image
-            
-        Returns:
-            bool: True si l'image existe, False sinon
-        """
-        return self.db.fetch_one("SELECT 1 FROM images WHERE path = ?", (path,)) is not None
+        Check if an image exists in the database.
 
-    def image_exists(self, path: str) -> bool:
-        """
-        Vérifie si une image existe dans la base de données
-        
         Args:
-            path (str): Chemin de l'image
-            
+            path (str):
+                Path of the image.
+
         Returns:
-            bool: True si l'image existe, False sinon
+            True if the image exists, otherwise False.
         """
-        return self.db.fetch_one("SELECT 1 FROM images WHERE path = ?", (path,)) is not None
+        return (
+            self.db.fetch_one(
+                "SELECT 1 FROM images WHERE path = ?",
+                (path,)
+            )
+            is not None
+        )
 
     def get_all_image_paths(self) -> set[str]:
         """
-        Récupère tous les chemins d'images de la base de données en un seul appel
-        
+        Retrieve all image paths stored in the database.
+
         Returns:
-            set[str]: Ensemble des chemins d'images existants
+            Set of existing image paths.
         """
         rows = self.db.fetch_all("SELECT path FROM images")
         return {row[0] for row in rows}

@@ -11,22 +11,63 @@ import hashlib
 from common.Dataset_Classes.Dataset import Dataset
 
 class ProcessingStatus(Enum):
+    """
+    Represents the status of a processing task.
+
+    This enum is used to track the lifecycle state of a process,
+    from not started to completion or failure.
+    """
+
     NOT_STARTED = "not_started"
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
     COMPLETED = "completed"
     ERROR = "error"
 
+from typing import Optional, List, Union
+from pathlib import Path
+from datetime import datetime
+import hashlib
+
 class Image:
     """
-    Modèle métier pur (aucune logique BDD ici)
+    Class representing an image.
+
+    This class does not contains database logic.
+    It is used across the application for processing, indexing and analysis.
+
+    Args:
+        path (Union[str, Path]):
+            Path to the image file.
+        dataset (Dataset):
+            Dataset to which the image belongs.
+        name (Optional[str]):
+            Name of the image.
+        score (float):
+            Score of the image.
+        status (ProcessingStatus):
+            Status of the image.
+        description (str):
+            Description of the image.
+        keywords (Optional[List[str]]):
+            Keywords of the image.
+        embedding (Optional[List[float]]):
+            Embedding of the image.
+        error_message (str):
+            Error message of the image.
+        processing_start_time (Optional[datetime]):
+            Processing start time of the image.
+        processing_end_time (Optional[datetime]):
+            Processing end time of the image.
+        image_id (Optional[str]): 
+            ID of the image.
     """
 
     def __init__(
         self,
         path: Union[str, Path],
         dataset: Dataset,
-        name: str = None,
+        name: Optional[str] = None,
         score: float = 0.0,
         status: ProcessingStatus = ProcessingStatus.NOT_STARTED,
         description: str = "",
@@ -39,7 +80,7 @@ class Image:
     ):
         self.path = Path(path)
 
-        # dataset = data simple, PAS objet DB
+        # Dataset reference
         self.dataset_id = dataset.id if dataset else None
         self.dataset_name = dataset.name if dataset else None
 
@@ -53,16 +94,13 @@ class Image:
         self.processing_start_time = processing_start_time
         self.processing_end_time = processing_end_time
 
-        # ID stable
-        if image_id:
-            self.id = image_id
-        else:
-            self.id = "img_" + hashlib.md5(str(self.path).encode()).hexdigest()[:16]
+        # Stable ID (will not be used in bdd)
+        self.id = image_id or (
+            "img_" + hashlib.md5(str(self.path).encode()).hexdigest()[:16]
+        )
 
-        if name:
-            self.name = name
-        else:
-            self.name = self.path.name
+        # File metadata
+        self.name = name or self.path.name
         self.stem = self.path.stem
         self.suffix = self.path.suffix.lower()
 
@@ -76,6 +114,12 @@ class Image:
     # =========================
 
     def to_dict(self) -> dict:
+        """
+        Convert the Image object into a JSON-serializable dictionary.
+
+        Returns:
+            Dictionary representation of the Image model.
+        """
         return {
             "id": self.id,
             "path": str(self.path),
@@ -88,15 +132,50 @@ class Image:
             "keywords": self.keywords,
             "embedding": self.embedding,
             "error_message": self.error_message,
-            "processing_start_time": self.processing_start_time.isoformat() if self.processing_start_time else None,
-            "processing_end_time": self.processing_end_time.isoformat() if self.processing_end_time else None,
+            "processing_start_time": (
+                self.processing_start_time.isoformat()
+                if self.processing_start_time else None
+            ),
+            "processing_end_time": (
+                self.processing_end_time.isoformat()
+                if self.processing_end_time else None
+            ),
         }
 
+    from typing import Any, Dict
+
     @classmethod
-    def from_dict(cls, data: dict) -> "Image":
-        start = datetime.fromisoformat(data["processing_start_time"]) if data.get("processing_start_time") else None
-        end = datetime.fromisoformat(data["processing_end_time"]) if data.get("processing_end_time") else None
-        dataset = Dataset(id=data.get("dataset_id", 0), name=data.get("dataset_name", ""))
+    def from_dict(cls, data: Dict[str, Any]) -> Image:
+        """
+        Create an Image instance from a dictionary representation.
+
+        This method is used to reconstruct an Image object from serialized data
+        (e.g., database row, JSON, or cache).
+
+        Args:
+            data (Dict[str, Any]):
+                Dictionary containing image fields.
+
+        Returns:
+            Reconstructed Image instance.
+        """
+        start = (
+            datetime.fromisoformat(data["processing_start_time"])
+            if data.get("processing_start_time")
+            else None
+        )
+
+        end = (
+            datetime.fromisoformat(data["processing_end_time"])
+            if data.get("processing_end_time")
+            else None
+        )
+
+        dataset = Dataset(
+            id=data.get("dataset_id", 0),
+            name=data.get("dataset_name", "")
+        )
+
         return cls(
             path=data["path"],
             dataset=dataset,
@@ -131,8 +210,17 @@ class Image:
     # UTILS
     # =========================
 
-    def copy(self) -> "Image":
+    from typing import Any
+
+    def copy(self) -> Image:
+        """
+        Create a deep copy of the Image instance.
+
+        Returns:
+            A new Image instance with the same data but independent mutable fields.
+        """
         dataset = Dataset(id=self.dataset_id, name=self.dataset_name)
+
         return Image(
             path=self.path,
             dataset=dataset,
@@ -148,7 +236,20 @@ class Image:
         )
 
     def __eq__(self, other) -> bool:
+        """
+        Compare two Image objects based on their unique ID.
+
+        Returns:
+            True if both objects are Image instances with the same ID.
+        """
         return isinstance(other, Image) and self.id == other.id
 
+
     def __hash__(self) -> int:
+        """
+        Return a hash based on the unique image ID.
+
+        Returns:
+            Hash value of the image ID.
+        """
         return hash(self.id)
