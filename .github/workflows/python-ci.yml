@@ -36,6 +36,10 @@ jobs:
           mkdir -p docs/coverage
           coverage html -d docs/coverage
 
+      - name: Debug generated files
+        run: |
+          ls -R docs
+
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
