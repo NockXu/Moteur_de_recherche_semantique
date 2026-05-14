@@ -1,14 +1,12 @@
 import sys
 import os
 
-# Ajouter le chemin racine du projet au sys.path pour les imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
-
 from PyQt6.QtWidgets import QWidget, QHBoxLayout, QLabel, QSizePolicy
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon, QPixmap, QPainter, QColor
-from ui.ImportTool.widget.ConnectionVerificator.ConnectionVerificatorModel import State
+from ui.ImportTool.widget.ConnectionVerificator.ConnectionVerificatorModel import State, ConnectionStatus
+
+import gradio as gr
 
 
 class ConnectionVerificatorView(QWidget):
@@ -161,6 +159,27 @@ class ConnectionVerificatorView(QWidget):
         """Retourne le widget vue"""
         return self
 
+class GradioConnectionVerificatorView():
+    def __init__(self):
+        self.ui = self.build(State.DISCONNECTED)
+        self.state = State.DISCONNECTED
+
+    def update(self):
+        return self.state.icon, self.state.value, self.state.version
+    # -------------------------
+    # construction UI (équivalent _setup_ui)
+    # -------------------------
+    def build(self):
+
+        with gr.Blocks() as ui:
+
+            icon = gr.Text()
+            status = gr.Text()
+            version = gr.Text()
+
+            ui.load(fn=self.update, inputs=[self.state], outputs=[icon, status, version])
+
+        return ui
 
 if __name__ == "__main__":
     import sys
@@ -187,3 +206,6 @@ if __name__ == "__main__":
     
     view.show()
     sys.exit(app.exec())
+
+    demo = build_ui()
+    demo.launch()

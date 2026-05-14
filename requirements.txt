@@ -4,25 +4,87 @@
 #
 #    pip-compile
 #
+annotated-doc==0.0.4
+    # via
+    #   fastapi
+    #   typer
+annotated-types==0.7.0
+    # via pydantic
+anyio==4.13.0
+    # via
+    #   gradio
+    #   httpx
+    #   starlette
+brotli==1.2.0
+    # via gradio
+certifi==2026.4.22
+    # via
+    #   httpcore
+    #   httpx
 click==8.3.3
-    # via mkdocs
+    # via
+    #   mkdocs
+    #   typer
+    #   uvicorn
 colorama==0.4.6
     # via
     #   click
     #   mkdocs
     #   pytest
+    #   tqdm
 coverage==7.14.0
     # via -r requirements.in
 faiss-cpu==1.13.2
     # via -r requirements.in
+fastapi==0.136.1
+    # via gradio
+filelock==3.29.0
+    # via huggingface-hub
+fsspec==2026.4.0
+    # via
+    #   gradio-client
+    #   huggingface-hub
 ghp-import==2.1.0
     # via mkdocs
+gradio==6.14.0
+    # via -r requirements.in
+gradio-client==2.5.0
+    # via
+    #   gradio
+    #   hf-gradio
 griffelib==2.0.2
     # via mkdocstrings-python
+groovy==0.1.2
+    # via gradio
+h11==0.16.0
+    # via
+    #   httpcore
+    #   uvicorn
+hf-gradio==0.4.1
+    # via gradio
+hf-xet==1.5.0
+    # via huggingface-hub
+httpcore==1.0.9
+    # via httpx
+httpx==0.28.1
+    # via
+    #   gradio
+    #   gradio-client
+    #   huggingface-hub
+    #   safehttpx
+huggingface-hub==1.14.0
+    # via
+    #   gradio
+    #   gradio-client
+idna==3.15
+    # via
+    #   anyio
+    #   httpx
 iniconfig==2.3.0
     # via pytest
 jinja2==3.1.6
     # via
+    #   gradio
     #   mkdocs
     #   mkdocstrings
     #   qt-material
@@ -32,12 +94,17 @@ markdown==3.10.2
     #   mkdocs-autorefs
     #   mkdocstrings
     #   pymdown-extensions
+markdown-it-py==4.2.0
+    # via rich
 markupsafe==3.0.3
     # via
+    #   gradio
     #   jinja2
     #   mkdocs
     #   mkdocs-autorefs
     #   mkdocstrings
+mdurl==0.1.2
+    # via markdown-it-py
 mergedeep==1.3.4
     # via
     #   mkdocs
@@ -63,22 +130,43 @@ numpy==2.4.4
     # via
     #   -r requirements.in
     #   faiss-cpu
+    #   gradio
+    #   pandas
+orjson==3.11.9
+    # via gradio
 packaging==26.2
     # via
     #   faiss-cpu
+    #   gradio
+    #   gradio-client
+    #   huggingface-hub
     #   mkdocs
     #   pytest
     #   qtpy
+pandas==3.0.3
+    # via gradio
 pathspec==1.1.1
     # via mkdocs
 pillow==12.2.0
-    # via -r requirements.in
+    # via
+    #   -r requirements.in
+    #   gradio
 platformdirs==4.9.6
     # via mkdocs-get-deps
 pluggy==1.6.0
     # via pytest
+pydantic==2.13.4
+    # via
+    #   fastapi
+    #   gradio
+pydantic-core==2.46.4
+    # via pydantic
+pydub==0.25.1
+    # via gradio
 pygments==2.20.0
-    # via pytest
+    # via
+    #   pytest
+    #   rich
 pymdown-extensions==10.21.2
     # via mkdocstrings
 pyqt6==6.11.0
@@ -90,11 +178,19 @@ pyqt6-sip==13.11.1
 pytest==9.0.3
     # via -r requirements.in
 python-dateutil==2.9.0.post0
-    # via ghp-import
+    # via
+    #   ghp-import
+    #   pandas
 python-dotenv==1.2.2
     # via -r requirements.in
+python-multipart==0.0.28
+    # via gradio
+pytz==2026.2
+    # via gradio
 pyyaml==6.0.3
     # via
+    #   gradio
+    #   huggingface-hub
     #   mkdocs
     #   mkdocs-get-deps
     #   pymdown-extensions
@@ -107,7 +203,47 @@ qtawesome==1.4.2
     # via -r requirements.in
 qtpy==2.4.3
     # via qtawesome
+rich==15.0.0
+    # via typer
+safehttpx==0.1.7
+    # via gradio
+semantic-version==2.10.0
+    # via gradio
+shellingham==1.5.4
+    # via typer
 six==1.17.0
     # via python-dateutil
+starlette==1.0.0
+    # via
+    #   fastapi
+    #   gradio
+tomlkit==0.14.0
+    # via gradio
+tqdm==4.67.3
+    # via huggingface-hub
+typer==0.25.1
+    # via
+    #   gradio
+    #   hf-gradio
+    #   huggingface-hub
+typing-extensions==4.15.0
+    # via
+    #   anyio
+    #   fastapi
+    #   gradio
+    #   gradio-client
+    #   huggingface-hub
+    #   pydantic
+    #   pydantic-core
+    #   starlette
+    #   typing-inspection
+typing-inspection==0.4.2
+    # via
+    #   fastapi
+    #   pydantic
+tzdata==2026.2
+    # via pandas
+uvicorn==0.46.0
+    # via gradio
 watchdog==6.0.0
     # via mkdocs

@@ -1,9 +1,4 @@
 import sys
-import os
-
-# Ajouter le chemin racine du projet au sys.path pour les imports
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
 
 from PyQt6.QtCore import QObject, pyqtSignal, QThread, QTimer
 from PyQt6.QtWidgets import QWidget, QLabel

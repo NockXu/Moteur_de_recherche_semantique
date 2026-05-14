@@ -1,5 +1,6 @@
 import sys
 import os
+from pathlib import Path
 
 # Ajouter le chemin racine du projet au sys.path pour les imports
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
@@ -15,12 +16,18 @@ load_dotenv(dotenv_path)
 from enum import Enum
 from vision.ollama_wrapper import OllamaWrapper, OllamaConnectionError, OllamaResponseError
 
+class ConnectionStatus():
+    def __init__(self, icon : Path, value : str, version : str = ""):
+        self.icon = icon
+        self.value = value
+        self.version = version
 
 class State(Enum):
     """États de connexion possibles"""
-    DISCONNECTED = "non_connecté"
-    CONNECTED = "connecté"
-    ERROR = "erreur_connection"
+    DISCONNECTED = ConnectionStatus(Path("ui/Icon/circle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"), "déconnecté")
+    CONNECTED = ConnectionStatus(Path("ui/Icon/check_circle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"), "connecté")
+    CHECKING = ConnectionStatus(Path("ui/Icon/change_circle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"), "en cours")
+    ERROR = ConnectionStatus(Path("ui/Icon/x_circle_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg"), "erreur")
 
 
 class ConnectionVerificatorModel:
@@ -31,24 +38,17 @@ class ConnectionVerificatorModel:
         
         self.base_url = base_url
         self.timeout_s = timeout_s
-        self._state = State.DISCONNECTED
-        self._error_message = ""
-        self._version = ""
+        self._connection_status = State.DISCONNECTED
         
     @property
     def state(self) -> State:
         """Retourne l'état actuel de la connexion"""
-        return self._state
-    
-    @property
-    def error_message(self) -> str:
-        """Retourne le message d'erreur si l'état est ERROR"""
-        return self._error_message
+        return self._connection_status.value
     
     @property
     def version(self) -> str:
         """Retourne la version du serveur si connecté"""
-        return self._version
+        return self._connection_status.version
     
     def check_connection(self) -> State:
         """
@@ -64,44 +64,30 @@ class ConnectionVerificatorModel:
             # Vérifier si le serveur est en cours d'exécution
             if wrapper.is_server_running():
                 # Récupérer la version pour confirmation
-                self._version = wrapper.get_version()
-                self._state = State.CONNECTED
-                self._error_message = ""
+                self._connection_status.version = wrapper.get_version()
+                self._connection_status = State.CONNECTED
             else:
-                self._state = State.DISCONNECTED
-                self._error_message = "Serveur Ollama non démarré ou inaccessible"
-                self._version = ""
-                
-        except OllamaConnectionError as e:
-            self._state = State.ERROR
-            self._error_message = f"Erreur de connexion: {str(e)}"
-            self._version = ""
-            
-        except OllamaResponseError as e:
-            self._state = State.ERROR
-            self._error_message = f"Réponse invalide du serveur: {str(e)}"
-            self._version = ""
+                self._connection_status.version = ""
+                self._connection_status = State.DISCONNECTED
             
         except Exception as e:
-            self._state = State.ERROR
-            self._error_message = f"Erreur inattendue: {str(e)}"
-            self._version = ""
+            self._connection_status.version = ""
+            self._connection_status = State.ERROR
         
-        return self._state
+        return self._connection_status
     
     def is_connected(self) -> bool:
         """Retourne True si la connexion est active"""
-        return self._state == State.CONNECTED
+        return self._connection_status == State.CONNECTED
     
     def has_error(self) -> bool:
         """Retourne True si il y a une erreur de connexion"""
-        return self._state == State.ERROR
+        return self._connection_status == State.ERROR
     
     def reset(self) -> None:
         """Réinitialise l'état à DISCONNECTED"""
-        self._state = State.DISCONNECTED
-        self._error_message = ""
-        self._version = ""
+        self._connection_status = State.DISCONNECTED
+        self._connection_status.version = ""
     
     def get_status_info(self) -> dict:
         """
@@ -111,11 +97,10 @@ class ConnectionVerificatorModel:
             dict: Informations sur l'état de connexion
         """
         return {
-            "state": self._state.value,
+            "state": self.state,
             "is_connected": self.is_connected(),
             "has_error": self.has_error(),
-            "error_message": self._error_message,
-            "version": self._version,
+            "version": self.version,
             "base_url": self.base_url,
             "timeout": self.timeout_s
         }
@@ -139,9 +124,9 @@ if __name__ == "__main__":
     if verifier.is_connected():
         print(f"Connecté - Version: {verifier.version}")
     elif verifier.has_error():
-        print(f"Erreur: {verifier.error_message}")
+        print(f"Erreur: {verifier.state}")
     else:
-        print(f"Non connecté: {verifier.error_message}")
+        print(f"Non connecté: {verifier.state}")
     
     # Afficher toutes les informations
     print("\nInformations complètes:")
