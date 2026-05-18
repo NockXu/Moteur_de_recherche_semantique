@@ -66,7 +66,7 @@ class MenuBarController(QObject):
             for action in actions:
                 if action.name == "Quitter":
                     action.signal = self.file_quit_requested
-                elif action.name == "Import Tool":
+                elif action.name == "Outil d'importation d'image":
                     action.signal = self.toggle_import_tool
                 # Importer et Exporter utilisent les handlers directs, pas besoin de signal
     

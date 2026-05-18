@@ -1,17 +1,17 @@
 import sys
 import os
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-
 from PyQt6.QtWidgets import (
-    QWidget, QVBoxLayout, QLabel, QScrollArea,
-    QFrame, QHBoxLayout, QSizePolicy
+    QGridLayout, QWidget, QVBoxLayout, QLabel, QScrollArea,
+    QFrame, QHBoxLayout, QSizePolicy, QLayout
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
 
 from common.Image_Classes.Image import Image
+
+from ui.utils.FlowLayout import FlowLayout
+from ui.utils.ResponsiveImageLabel import ResponsiveImageLabel
 
 
 class ImagePreviewView(QWidget):
@@ -32,70 +32,155 @@ class ImagePreviewView(QWidget):
 
     def _setup_ui(self):
         root = QVBoxLayout(self)
-        root.setContentsMargins(10, 10, 10, 10)
-        root.setSpacing(10)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
 
-        # HEADER
-        self.title = QLabel("Aucune image sélectionnée")
-        self.title.setFont(QFont("Segoe UI", 11))
-        root.addWidget(self.title)
-
-        # ✅ IMAGE DISPLAY WIDGET
-        self.image_label = QLabel()
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setMinimumHeight(200)
-        self.image_label.setMaximumWidth(280)  # ✅ Limiter la largeur
-        self.image_label.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #ccc;
-                border-radius: 8px;
-                background-color: #f9f9f9;
-                color: #999;
-            }
-        """)
-        self.image_label.setText("Aucune image")
-        root.addWidget(self.image_label)
-
-        # IMAGE INFO PANEL (simple et correct, pas de scroll horizontal)
+        # SCROLL AREA GLOBALE
         self.scroll = QScrollArea()
         self.scroll.setWidgetResizable(True)
         self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
 
-        self.container = QWidget()
-        self.layout = QVBoxLayout(self.container)
-        self.layout.setContentsMargins(12, 12, 12, 12)
-        self.layout.setSpacing(8)
-        # ✅ Forcer la largeur maximale pour éviter le dépassement
-        self.container.setMaximumWidth(280)
+        container = QWidget()
+        container.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Ignored
+        )
+        main_layout = QVBoxLayout(container)
+        main_layout.setContentsMargins(20, 20, 20, 20)
+        main_layout.setSpacing(0)
 
-        self.scroll.setWidget(self.container)
-        root.addWidget(self.scroll, 1)
-
-        # FIELDS simples
-        self.name_label = QLabel()
-        self.name_label.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
-        self.layout.addWidget(self.name_label)
+        # ═══════════════════════════════════════════════════════════
+        # SECTION IMAGE
+        # ═══════════════════════════════════════════════════════════
         
+        image_section = QWidget()
+        image_layout = QVBoxLayout(image_section)
+        image_layout.setContentsMargins(0, 0, 0, 0)
+        image_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        image_layout.setSpacing(12)
+
+        # Image display
+        self.image_label = ResponsiveImageLabel()
+        self.image_label.setSizePolicy(
+            QSizePolicy.Policy.Expanding,
+            QSizePolicy.Policy.Expanding
+        )
+        self.image_label.setMinimumSize(1, 1)
+        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.image_label.setStyleSheet("QLabel { background: transparent; }")
+        image_layout.addWidget(self.image_label)
+
+        # Nom de l'image (sous l'image, style caption)
+        self.title = QLabel()
+        self.title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
+        self.title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
+        self.title.setWordWrap(True)
+        self.title.setStyleSheet("QLabel { background: transparent; }")
+        image_layout.addWidget(self.title)
+
+        main_layout.addWidget(image_section)
+        
+        # Séparateur visuel
+        separator1 = QFrame()
+        separator1.setFrameShape(QFrame.Shape.HLine)
+        separator1.setFixedHeight(1)
+        separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
+        main_layout.addSpacing(12)
+        main_layout.addWidget(separator1)
+        main_layout.addSpacing(12)
+
+        # ═══════════════════════════════════════════════════════════
+        # SECTION INFORMATIONS
+        # ═══════════════════════════════════════════════════════════
+        
+        info_section = QWidget()
+        info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
+        info_layout = QVBoxLayout(info_section)
+        info_layout.setContentsMargins(0, 0, 0, 0)
+        info_layout.setSpacing(20)
+
+        # Chemin
+        self.path_group = self._create_info_group("Emplacement")
         self.path_label = QLabel()
         self.path_label.setFont(QFont("Segoe UI", 9))
-        self.layout.addWidget(self.path_label)
-        
+        self.path_label.setWordWrap(True)
+        self.path_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.path_group.layout().addWidget(self.path_label)
+        info_layout.addWidget(self.path_group)
+
+        # Description
+        self.desc_group = self._create_info_group("Description")
         self.desc_label = QLabel()
         self.desc_label.setFont(QFont("Segoe UI", 9))
-        self.layout.addWidget(self.desc_label)
-        
-        self.tags_label = QLabel()
-        self.tags_label.setFont(QFont("Segoe UI", 9))
-        self.layout.addWidget(self.tags_label)
+        self.desc_label.setWordWrap(True)
+        self.desc_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.desc_label.setAlignment(Qt.AlignmentFlag.AlignJustify)
+        self.desc_group.layout().addWidget(self.desc_label)
+        info_layout.addWidget(self.desc_group)
 
-        for w in [self.path_label, self.desc_label, self.tags_label]:
-            w.setWordWrap(True)
+        # Tags
+        self.tags_group = self._create_info_group("Mots-clés")
+        self.tags_group.layout().setContentsMargins(0, 0, 0, 10)
+        self.tags_container = QWidget()
+        self.tags_layout = FlowLayout(self.tags_container)
+        self.tags_layout.setContentsMargins(0, 0, 0, 0)
+        self.tags_layout.setSpacing(8)
+        self.tags_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        self.tags_group.layout().addWidget(self.tags_container)
+        info_layout.addWidget(self.tags_group)
 
+        main_layout.addWidget(info_section)
+
+        # ═══════════════════════════════════════════════════════════
         # EMPTY STATE
-        self.empty = QLabel("Sélectionne une image pour afficher les détails")
+        # ═══════════════════════════════════════════════════════════
+        
+        self.empty = QLabel("Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails")
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.layout.addWidget(self.empty)
+        self.empty.setFont(QFont("Segoe UI", 10))
+        self.empty.setStyleSheet("QLabel { background: transparent; color: rgba(0,0,0,0.4); }")
+        main_layout.addWidget(self.empty)
+
+        self.scroll.setWidget(container)
+        root.addWidget(self.scroll)
+
+        # ═══════════════════════════════════════════════════════════
+        # REDUCTION CORRECTION
+        # ═══════════════════════════════════════════════════════════
+
+        container.setMinimumWidth(0)
+
+        self.path_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred
+        )
+
+        self.desc_label.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred
+        )
+
+        self.title.setSizePolicy(
+            QSizePolicy.Policy.Ignored,
+            QSizePolicy.Policy.Preferred
+        )
+
+    def _create_info_group(self, title: str) -> QWidget:
+        """Crée un groupe d'informations avec un titre."""
+        group = QWidget()
+        group.setStyleSheet("QWidget { background: transparent; }")
+        layout = QVBoxLayout(group)
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.setSpacing(8)
+        
+        title_label = QLabel(title.upper())
+        title_label.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
+        title_label.setStyleSheet(f"QLabel {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
+        layout.addWidget(title_label)
+        
+        return group
 
     # ─────────────────────────────
     # API
@@ -106,70 +191,101 @@ class ImagePreviewView(QWidget):
             self._clear()
             return
 
+        # Masquer l'empty state
         self.empty.hide()
+        
+        # Afficher les sections d'info
+        self.path_group.show()
+        self.desc_group.show()
+        self.tags_group.show()
 
-        self.title.setText(image.name)
-
-        # ✅ Charger et afficher l'image
+        # ═══════════════════════════════════════════════════════════
+        # IMAGE
+        # ═══════════════════════════════════════════════════════════
+        
         try:
             pixmap = QPixmap(str(image.path))
             if not pixmap.isNull():
-                # Redimensionner pour le preview (max 280px de largeur)
-                scaled_pixmap = pixmap.scaled(
-                    280, 280, 
-                    Qt.AspectRatioMode.KeepAspectRatio, 
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                self.image_label.setPixmap(scaled_pixmap)
-                self.image_label.setStyleSheet("""
-                    QLabel {
-                        border: 2px solid #ddd;
-                        border-radius: 8px;
-                        background-color: white;
-                    }
-                """)
+                self.image_label.setPixmap(pixmap)
             else:
-                self.image_label.setText("Image non chargeable")
-                self.image_label.clear()
+                self.image_label.setText("⚠\nImage non chargeable")
+                self.image_label.setFixedSize(200, 200)
         except Exception as e:
             print(f"[PREVIEW] Erreur chargement image: {e}")
-            self.image_label.setText("Erreur chargement")
-            self.image_label.clear()
+            self.image_label.setText("⚠\nErreur de chargement")
+            self.image_label.setFixedSize(200, 200)
 
-        self.name_label.setText(image.name)
+        # ═══════════════════════════════════════════════════════════
+        # TITRE
+        # ═══════════════════════════════════════════════════════════
         
-        # ✅ Chemin complet avec word wrap comme la description
-        self.path_label.setText(f"Chemin:\n{image.path}")
-        
-        self.desc_label.setText(f"Description:\n{image.description or 'Aucune'}")
+        self.title.setText(image.name)
 
-        # ✅ Tags sur plusieurs lignes
+        # ═══════════════════════════════════════════════════════════
+        # CHEMIN
+        # ═══════════════════════════════════════════════════════════
+        
+        self.path_label.setText(str(image.path).replace('\\', '/'))
+
+        # ═══════════════════════════════════════════════════════════
+        # DESCRIPTION
+        # ═══════════════════════════════════════════════════════════
+        
+        if image.description:
+            self.desc_label.setText(image.description)
+            self.desc_group.show()
+        else:
+            self.desc_label.setText("Aucune description")
+            self.desc_label.setStyleSheet("QLabel { background: transparent; padding: 8px; color: rgba(0,0,0,0.4); font-style: italic; }")
+
+        # ═══════════════════════════════════════════════════════════
+        # TAGS (BADGES)
+        # ═══════════════════════════════════════════════════════════
+        
+        # Nettoyer les anciens tags
+        while self.tags_layout.count():
+            item = self.tags_layout.takeAt(0)
+            if item.widget():
+                item.widget().deleteLater()
+
         tags = image.keywords or []
         if tags:
-            # Mettre chaque tag sur une ligne avec •
-            tags_text = "\n".join(f"• {tag}" for tag in tags)
-            self.tags_label.setText(f"Tags:\n{tags_text}")
+            # Créer un flow layout pour les badges
+            for tag in tags:
+                tag_badge = QLabel(tag)
+                tag_badge.setFont(QFont("Segoe UI", 8))
+                tag_badge.setStyleSheet(f"""
+                    QLabel {{
+                        background: {os.environ["QTMATERIAL_SECONDARYDARKCOLOR"]};
+                        border: 1px solid {os.environ["QTMATERIAL_PRIMARYCOLOR"]};
+                        border-radius: 12px;
+                        padding: 4px 12px;
+                    }}
+                """)
+                tag_badge.setFixedHeight(24)
+                self.tags_layout.addWidget(tag_badge)
+            
+            # Spacer pour pousser à gauche
+            self.tags_group.show()
         else:
-            self.tags_label.setText("Tags: Aucun")
+            no_tags = QLabel("Aucun mot-clé")
+            no_tags.setFont(QFont("Segoe UI", 9))
+            no_tags.setStyleSheet("QLabel { background: transparent; color: rgba(0,0,0,0.4); font-style: italic; }")
+            self.tags_layout.addWidget(no_tags)
 
     def _clear(self):
-        self.title.setText("Aucune image sélectionnée")
-
-        # ✅ Nettoyer l'image
-        self.image_label.clear()
-        self.image_label.setText("Aucune image")
-        self.image_label.setStyleSheet("""
-            QLabel {
-                border: 2px dashed #ccc;
-                border-radius: 8px;
-                background-color: #f9f9f9;
-                color: #999;
-            }
-        """)
-
-        self.path_label.clear()
-        self.name_label.clear()
-        self.desc_label.clear()
-        self.tags_label.clear()
-
+        # Afficher l'empty state
         self.empty.show()
+        
+        # Masquer les sections d'info
+        self.path_group.hide()
+        self.desc_group.hide()
+        self.tags_group.hide()
+
+        # Réinitialiser l'image
+        self.image_label.clear()
+        self.image_label.setText("")
+        self.image_label.setFixedSize(0, 0)
+        
+        # Réinitialiser le titre
+        self.title.setText("")

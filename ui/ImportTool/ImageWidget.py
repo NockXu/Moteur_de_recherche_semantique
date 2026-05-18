@@ -43,7 +43,7 @@ class ImageWidget(ImageThumbnailWidget):
             show_status_badge=True,
             parent=parent,
         )
-        self.setFixedSize(self.CARD_WIDTH, self.CARD_HEIGHT)
+        self.setFixedWidth(self.CARD_WIDTH)
         self._add_filename_label()
 
     def _add_filename_label(self):
@@ -53,6 +53,7 @@ class ImageWidget(ImageThumbnailWidget):
         self.filename_label = QLabel(display)
         self.filename_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.filename_label.setFont(QFont("Segoe UI", 8))
+        self.filename_label.setStyleSheet("QLabel { background: transparent; }")
         self.filename_label.setContentsMargins(4, 2, 4, 4)
         self.filename_label.setToolTip(name)
         self.layout().addWidget(self.filename_label)

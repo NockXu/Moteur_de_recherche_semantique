@@ -415,6 +415,36 @@ class ImageRepository:
             k=k
         )
 
+    def get_k(self, k : int) -> List[Image]:
+        """
+        Retrieve the first k images from the database.
+
+        Args:
+            k (int):
+                Number of images to retrieve
+
+        Returns:
+            List of k images
+        """
+        
+        query = """
+            SELECT
+                id,
+                path,
+                name,
+                description,
+                keywords,
+                dataset_id,
+                embedding
+            FROM images
+            LIMIT ?
+        """
+        params = [k]
+
+        rows = self.db.fetch_all(query, params)
+
+        return self._construct_from_rows(rows)
+
     def get_all(self) -> List[Image]:
         """
         Retrieve all images from the database.
@@ -437,6 +467,10 @@ class ImageRepository:
             """
         )
 
+        return self._construct_from_rows(rows)
+
+
+    def _construct_from_rows(self, rows) -> List[Image]:
         images = []
 
         for row in rows:

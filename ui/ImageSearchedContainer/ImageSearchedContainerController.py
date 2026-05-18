@@ -91,12 +91,9 @@ class ImageSearchedContainerController(QObject):
     # SEARCH CALLBACK
     # ─────────────────────────────
     def _on_search_finished(self, result):
-        print(f"[DEBUG] _on_search_finished appelé avec result: {type(result)}")
-
         self._loading = False
 
         if result is None:
-            print("[DEBUG] Result est None, pas de résultats à afficher")
             return
 
         self.model.reset()
@@ -115,9 +112,6 @@ class ImageSearchedContainerController(QObject):
     # LOAD MORE (INFINITE SCROLL)
     # ─────────────────────────────
     def load_more_images(self, reset: bool = False):
-        if not self.state.query:
-            return
-
         if self._loading:
             return
 
@@ -131,9 +125,7 @@ class ImageSearchedContainerController(QObject):
                 threshold=self.model.threshold
             )
 
-            print(f"[DEBUG] Load more: {len(result.get('images', []))} images trouvées")
             new_images = self.model.append_results(result)
-            print(f"[DEBUG] Total images dans modèle: {len(self.model.images)}")
             
             self.view.display_images(
                 image_data=new_images,
@@ -144,7 +136,6 @@ class ImageSearchedContainerController(QObject):
             print(f"Load more error: {e}")
 
         finally:
-            print("[DEBUG] Fin du chargement")
             self._loading = False
 
     # ─────────────────────────────

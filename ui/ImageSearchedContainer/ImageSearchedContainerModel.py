@@ -39,7 +39,6 @@ class ImageSearchedContainerModel:
         self.images.extend(new_images)
         self.k = search_results['k']
         
-        print(f"[DEBUG] Ajout de {len(new_images)} nouvelles images au modèle")
         return new_images
 
     def reset(self):

@@ -216,17 +216,18 @@ class FaissManager:
 
         return True
 
-    def reset(self) -> None:
+    def reset(self) -> bool:
         """
         Reset the FAISS index by creating a new empty index and saving it.
 
         This operation removes all previously stored embeddings.
 
         Returns:
-            None
+            True if the index was successfully reset, False otherwise.
         """
         self.index = self._create_index(0, N_CLUSTERS)
-        self.save()
+        
+        return self.save()
 
     # =========================
     # STATS

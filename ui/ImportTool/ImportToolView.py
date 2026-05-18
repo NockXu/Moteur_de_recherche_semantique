@@ -1,18 +1,14 @@
 import sys
 import os
 
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
     QScrollArea, QFileDialog, QLabel, QFrame,
-    QGridLayout, QProgressBar, QSizePolicy,
-    QGraphicsDropShadowEffect,
+    QGridLayout, QProgressBar, QGraphicsDropShadowEffect,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer
-from PyQt6.QtGui import QFont, QColor, QResizeEvent
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
+from PyQt6.QtGui import QColor, QResizeEvent, QIcon, QPixmap, QPainter
+from PyQt6.QtSvg import QSvgRenderer
 
 from pathlib import Path
 
@@ -100,14 +96,26 @@ class ImportToolView(QWidget):
         self.folder_label = QLabel("Aucun dossier")
         lay.addWidget(self.folder_label)
 
-        self.btn_select = QPushButton("📁 Dossier")
-        self.btn_select.clicked.connect(self._on_select_folder)
-        lay.addWidget(self.btn_select)
+        button_layout = QHBoxLayout()
 
-        self.btn_start = QPushButton("▶ Start")
-        # FIX: distinguer Start et Stop selon le texte du bouton
+        self.btn_select = QPushButton("Dossier")
+        self.btn_select.clicked.connect(self._on_select_folder)
+        button_layout.addWidget(self.btn_select)
+
+        self.icon_start = colored_icon("./ui/Icon/play_arrow.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
+        self.icon_stop = colored_icon("./ui/Icon/stop.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
+        self.is_running = False
+
+        self.btn_start = QPushButton()
+        self.btn_start.setIcon(self.icon_start)
+        self.btn_start.setIconSize(QSize(20, 20))
         self.btn_start.clicked.connect(self._on_start_stop_clicked)
-        lay.addWidget(self.btn_start)
+        button_layout.addWidget(self.btn_start)
+
+        button_layout.setStretch(0, 2)
+        button_layout.setStretch(1, 1)
+
+        lay.addLayout(button_layout)
 
         parent.addWidget(card)
 
@@ -122,6 +130,7 @@ class ImportToolView(QWidget):
         self.grid = QGridLayout(self.container)
         self.grid.setSpacing(self._GRID_GAP)
         self.grid.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        self.scroll.setStyleSheet(f"background-color: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]};")
 
         self.scroll.setWidget(self.container)
         parent.addWidget(self.scroll, 1)
@@ -152,20 +161,20 @@ class ImportToolView(QWidget):
         self.progress = QProgressBar()
         self.progress.setFixedHeight(5)
         self.progress.setTextVisible(False)
-        self.progress.setStyleSheet("""
-            QProgressBar {
+        self.progress.setStyleSheet(f"""
+            QProgressBar {{
                 border: none;
                 border-radius: 5px;
                 background-color: #e9ecef;
-            }
-            QProgressBar::chunk {
+            }}
+            QProgressBar::chunk {{
                 border-radius: 5px;
                 background: qlineargradient(
                     x1:0, y1:0, x2:1, y2:0,
-                    stop:0 #4361ee,
-                    stop:1 #7209b7
+                    stop:0 {os.environ["QTMATERIAL_PRIMARYCOLOR"]},
+                    stop:1 {os.environ["QTMATERIAL_PRIMARYLIGHTCOLOR"]}
                 );
-            }
+            }}
         """)
 
         progress_vlay.addWidget(self._progress_label)
@@ -206,7 +215,7 @@ class ImportToolView(QWidget):
 
     def _on_start_stop_clicked(self):
         # FIX: un seul bouton connecté, délégation selon l'état
-        if self.btn_start.text().startswith("▶"):
+        if not self.is_running:
             self.start_processing_requested.emit()
         else:
             self.stop_processing_requested.emit()
@@ -238,7 +247,6 @@ class ImportToolView(QWidget):
     def _make_widget(self, img: Image) -> ImageWidget:
         w = ImageWidget(str(img.path), img.status)
         w.clicked.connect(lambda _: self.image_clicked.emit(img))
-        w.setFixedSize(w.CARD_WIDTH, w.CARD_HEIGHT)
         return w
 
     def _compute_cols(self) -> int:
@@ -359,7 +367,8 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def set_processing_mode(self, running: bool):
-        self.btn_start.setText("⏹ Stop" if running else "▶ Start")
+        self.is_running = running
+        self.btn_start.setIcon(self.icon_stop if running else self.icon_start)
 
     # ─────────────────────────────────────────────
     # Model injection
@@ -377,3 +386,21 @@ class ImportToolView(QWidget):
 
     def cleanup(self):
         self._clear()
+
+# ─────────────────────────────────────────────
+# Icons
+# ─────────────────────────────────────────────
+def colored_icon(path: str, color: str, size: int = 24) -> QIcon:
+    renderer = QSvgRenderer(path)
+
+    pixmap = QPixmap(size, size)
+    pixmap.fill(Qt.GlobalColor.transparent)
+
+    painter = QPainter(pixmap)
+    renderer.render(painter)
+
+    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+    painter.fillRect(pixmap.rect(), QColor(color))
+    painter.end()
+
+    return QIcon(pixmap)

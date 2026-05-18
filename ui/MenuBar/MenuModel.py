@@ -45,13 +45,21 @@ class MenuModel:
                     signal=None  # Sera défini par le contrôleur
                 ),
             ],
-            "Tools": [
+            "Outils": [
                 MenuAction(
-                    name="Import Tool",
+                    name="Outil d'importation d'image",
                     shortcut="Ctrl+T",
                     tooltip="Afficher/Masquer le panneau d'import d'images",
                     signal=None  # Sera défini par le contrôleur
                 ),
+            ],
+            "Styles": [
+                MenuAction(
+                    name="Selectionner un style",
+                    shortcut="",
+                    tooltip="Sélectionner un style pour l'application",
+                    signal=None  # Sera défini par le contrôleur
+                )
             ]
         }
     

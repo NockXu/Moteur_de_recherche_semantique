@@ -48,9 +48,9 @@ STATUS_BORDER: dict[ProcessingStatus, QColor] = {
 
 STATUS_ICON: dict[ProcessingStatus, str] = {
     ProcessingStatus.NOT_STARTED: "",
-    ProcessingStatus.IN_PROGRESS: "⏳",
-    ProcessingStatus.COMPLETED:   "✓",
-    ProcessingStatus.ERROR:       "✕",
+    ProcessingStatus.IN_PROGRESS: "./ui/icon/hourglass.svg",
+    ProcessingStatus.COMPLETED:   "./ui/icon/check.svg",
+    ProcessingStatus.ERROR:       "./ui/icon/error.svg",
 }
 
 
@@ -58,38 +58,87 @@ STATUS_ICON: dict[ProcessingStatus, str] = {
 # Pixmap composite (image + overlay + icône)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _build_import_pixmap(source: QPixmap, size: int, status: ProcessingStatus) -> QPixmap:
-    result = QPixmap(size, size)
-    result.fill(QColor(248, 249, 250))
+def _build_import_pixmap(source: QPixmap, max_width: int, status: ProcessingStatus) -> QPixmap:
+    """
+    Construit un pixmap avec overlay de statut, en préservant les proportions de l'image.
+    
+    Args:
+        source: L'image source à afficher
+        max_width: Largeur maximale de la carte
+        status: Statut de traitement pour l'overlay
+    
+    Returns:
+        Un QPixmap aux dimensions de l'image scalée (pas forcément carré)
+    """
+    # Scaler l'image en gardant les proportions
+    scaled = source.scaled(QSize(max_width, max_width),
+                           Qt.AspectRatioMode.KeepAspectRatio,
+                           Qt.TransformationMode.SmoothTransformation)
+    
+    # Créer un pixmap aux dimensions exactes de l'image scalée
+    result = QPixmap(scaled.width(), scaled.height())
+    result.fill(Qt.GlobalColor.transparent)
 
     p = QPainter(result)
     p.setRenderHint(QPainter.RenderHint.Antialiasing)
     p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
 
-    scaled = source.scaled(QSize(size, size),
-                           Qt.AspectRatioMode.KeepAspectRatio,
-                           Qt.TransformationMode.SmoothTransformation)
-    p.drawPixmap((size - scaled.width()) // 2, (size - scaled.height()) // 2, scaled)
+    # Dessiner l'image (pas de centrage nécessaire, taille exacte)
+    p.drawPixmap(0, 0, scaled)
 
     overlay_color = STATUS_OVERLAY.get(status, QColor(0, 0, 0, 0))
     if overlay_color.alpha() > 0:
         clip = QPainterPath()
-        clip.addRoundedRect(0, 0, size, size, 6, 6)
+        clip.addRect(0, 0, scaled.width(), scaled.height())
         p.setClipPath(clip)
         p.fillPath(clip, QBrush(overlay_color))
         p.setClipping(False)
 
-        icon_text = STATUS_ICON.get(status, "")
-        if icon_text:
-            cx, cy, r  = size // 2, size // 2, 22
-            border_col = STATUS_BORDER.get(status, QColor(150, 150, 150))
-            p.setBrush(QBrush(QColor(255, 255, 255, 230)))
-            p.setPen(QPen(border_col, 2))
-            p.drawEllipse(cx - r, cy - r, r * 2, r * 2)
-            p.setFont(QFont("Segoe UI", 15, QFont.Weight.Bold))
-            p.setPen(QPen(border_col.darker(130), 1))
-            p.drawText(QRect(cx - r, cy - r, r * 2, r * 2),
-                       Qt.AlignmentFlag.AlignCenter, icon_text)
+        icon_path = STATUS_ICON.get(status, "")
+        icon_color = STATUS_BORDER.get(status, QColor(150, 150, 150))
+
+        if icon_path:
+            icon = QPixmap(icon_path)
+
+            if not icon.isNull():
+                icon_size = 28
+
+                icon = icon.scaled(
+                    icon_size,
+                    icon_size,
+                    Qt.AspectRatioMode.KeepAspectRatio,
+                    Qt.TransformationMode.SmoothTransformation
+                )
+
+                # ───── recolorisation ─────
+                colored_icon = QPixmap(icon.size())
+                colored_icon.fill(Qt.GlobalColor.transparent)
+
+                painter_icon = QPainter(colored_icon)
+                painter_icon.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+                painter_icon.drawPixmap(0, 0, icon)
+
+                painter_icon.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+                painter_icon.fillRect(colored_icon.rect(), icon_color)
+
+                painter_icon.end()
+
+                # ───── position ─────
+                cx = scaled.width() // 2
+                cy = scaled.height() // 2
+
+                r = icon_size // 2 + 6
+
+                p.setBrush(QBrush(QColor(255, 255, 255, 230)))
+                p.setPen(QPen(icon_color, 2))
+                p.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+
+                p.drawPixmap(
+                    cx - icon_size // 2,
+                    cy - icon_size // 2,
+                    colored_icon
+                )
     p.end()
     return result
 
@@ -273,16 +322,13 @@ class ImageThumbnailWidget(QWidget):
         self.image_label.setCursor(Qt.CursorShape.PointingHandCursor)
         self.image_label.clicked.connect(lambda: self.clicked.emit(str(self.image_path)))
 
-        # Placeholder gris immédiat
+        # Placeholder transparent immédiat
         placeholder = QPixmap(self.col_width, self.col_width)
-        placeholder.fill(QColor(220, 220, 220))
+        placeholder.fill(Qt.GlobalColor.transparent)
         self.image_label.setPixmap(placeholder)
 
-        if self.show_status_badge:
-            self.image_label.setFixedSize(self.col_width, self.col_width)
-        else:
-            self.image_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
-            self.image_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignHCenter)
+        # Les deux modes utilisent maintenant une taille dynamique basée sur l'image
+        self.image_label.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
 
         layout.addWidget(self.image_label)
 
@@ -319,8 +365,9 @@ class ImageThumbnailWidget(QWidget):
         if self._source_pixmap is None:
             return
         if self.show_status_badge:
+            # Utiliser les dimensions proportionnelles de l'image
             px = _build_import_pixmap(self._source_pixmap, self.col_width, self.status)
-            self.image_label.setFixedSize(self.col_width, self.col_width)
+            self.image_label.setFixedSize(px.width(), px.height())
             self.image_label.setPixmap(px)
         else:
             scaled = self._source_pixmap.scaledToWidth(
@@ -332,7 +379,8 @@ class ImageThumbnailWidget(QWidget):
     def _show_error(self):
         self._loader = None
         self.image_label.setText("⚠")
-        self.image_label.setStyleSheet("QLabel { border-radius: 4px; }")
+        self.image_label.setStyleSheet("QLabel { background: transparent; border-radius: 4px; }")
+        # Garder le placeholder à la largeur demandée, mais adapter la hauteur
         if self.show_status_badge:
             self.image_label.setFixedSize(self.col_width, self.col_width)
 
@@ -342,11 +390,10 @@ class ImageThumbnailWidget(QWidget):
 
     def _apply_card_style(self):
         if not self.show_status_badge:
-            self.setStyleSheet("ImageThumbnailWidget { border-radius: 10px; }")
+            self.setStyleSheet("ImageThumbnailWidget { background: transparent; border-radius: 10px; }")
             return
-        border_col = STATUS_BORDER.get(self.status, QColor(210, 214, 220))
-        self.setStyleSheet(f"ImageThumbnailWidget {{ border: 2px solid {border_col.name()}; }}")
-        self.image_label.setStyleSheet("QLabel { border-radius: 4px; }")
+        self.setStyleSheet(f"ImageThumbnailWidget {{ background: transparent; border: none; }}")
+        self.image_label.setStyleSheet("QLabel { background: transparent; border-radius: 4px; }")
 
     # ─────────────────────────────────────────────────────────────────────────
     # API publique

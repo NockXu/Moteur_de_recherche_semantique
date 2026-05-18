@@ -8,7 +8,7 @@ load_dotenv()
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QDockWidget
+    QDockWidget, QMenu
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
@@ -44,11 +44,12 @@ class MainWindow(QMainWindow):
         app = QApplication.instance()
         if app:
             try:
-                apply_stylesheet(app, theme='dark_lightgreen.xml')
+                apply_stylesheet(app, theme='dark_teal.xml')
+                
             except Exception as e:
                 print(f"Warning: Impossible d'appliquer le thème dark_lightgreen.xml: {e}")
                 # Essayer un thème par défaut
-                apply_stylesheet(app, theme='dark_teal.xml')
+                apply_stylesheet(app, theme='dark_lightgreen.xml')
         
         # Afficher l'interface de chargement simple
         self._setup_loading_ui()
@@ -59,6 +60,8 @@ class MainWindow(QMainWindow):
         
         # Connecter les signaux
         self._connect_signals()
+
+        self.showMaximized()
     
     def _setup_loading_ui(self):
         """Configure l'interface de chargement simple"""
@@ -207,11 +210,12 @@ class MainWindow(QMainWindow):
         pass
     
     def _on_toggle_import_tool(self):
-        """Gère l'affichage/masquage de l'Import Tool"""
-        if self.import_dock.isVisible():
-            self.import_dock.hide()
-        else:
+        if self.import_dock.isHidden():
             self.import_dock.show()
+            self.import_dock.raise_()
+            self.import_dock.activateWindow()
+        else:
+            self.import_dock.hide()
     
     def cleanup(self):
         """Nettoie les ressources avant la fermeture"""
@@ -234,7 +238,12 @@ class MainWindow(QMainWindow):
             
             # Forcer la fermeture de tous les threads PyQt6
             from PyQt6.QtCore import QThreadPool
-            QThreadPool.globalInstance().waitForDone(3000)  # Attendre 3 secondes max
+            pool = QThreadPool.globalInstance()
+
+            pool.clear()        # stop new tasks
+            pool.waitForDone()  # attend fin des threads
+
+            DbService().faiss.reset()
             
             print("Nettoyage de MainWindow terminé")
             
@@ -273,7 +282,6 @@ if __name__ == "__main__":
     
     # Créer et afficher la fenêtre principale
     window = MainWindow()
-    window.show()
     
     print("Application démarrée")
     print("Utilisez Ctrl+C pour fermer proprement")

@@ -1,3 +1,5 @@
+import os
+
 from ui.widgets.ImageThumbnailWidget import ImageThumbnailWidget as BaseImageThumbnailWidget
 from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont
 from PyQt6.QtCore import Qt, pyqtSignal
@@ -79,7 +81,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             score_widget = QLabel("")
             score_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
             score_widget.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-            score_widget.setStyleSheet("color: #666; margin-left: 8px;")
+            score_widget.setStyleSheet(f"color: {os.environ["QTMATERIAL_PRIMARYTEXTCOLOR"]}; margin-left: 8px;")
             
             # Afficher le score seulement si > 0
             if self._score > 0:

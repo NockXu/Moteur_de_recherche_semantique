@@ -10,7 +10,6 @@ from ui.ImageSearchedContainer.widget.ImageThumbnailWidget import ImageThumbnail
 from ui.ImageSearchedContainer.widget.SearchBar.SearchBarController import SearchBarController
 from ui.ImageSearchedContainer.widget.MasonryWidget import MasonryLayout
 
-
 class LazyImageCard:
     """
     Wrapper pour gérer le lazy loading d'une carte
@@ -75,39 +74,32 @@ class ImageSearchedContainerView(QWidget):
         # HEADER
         header = QHBoxLayout()
 
-        self.header_label = QLabel("0 image")
-        self.header_label.setFont(QFont("Segoe UI", 10))
-
         # Threshold selector
-        threshold_label = QLabel("Threshold:")
+        threshold_label = QLabel("Seuil:")
         self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.threshold_slider.setRange(0, 100)
         self.threshold_slider.setValue(50)
-        self.threshold_slider.setTickPosition(QSlider.TickPosition.TicksBelow)
+        self.threshold_slider.setTickPosition(QSlider.TickPosition.NoTicks)
         self.threshold_slider.setTickInterval(10)
         self.threshold_slider.valueChanged.connect(self._on_threshold_changed)
         
         # Label pour afficher la valeur actuelle
         self.threshold_value_label = QLabel("50%")
-        self.threshold_value_label.setMinimumWidth(50)  # Éviter le saut de layout
+        self.threshold_value_label.setMinimumWidth(50)
+
+        self.threshold_layout = QHBoxLayout()
+        self.threshold_layout.addWidget(threshold_label)
+        self.threshold_layout.addWidget(self.threshold_slider)
+        self.threshold_layout.addWidget(self.threshold_value_label)
 
         self.reload_button = QPushButton("Recharger")
         self.reload_button.clicked.connect(self.reload_requested.emit)
 
-        header.addWidget(self.header_label)
         header.addWidget(self.reload_button)
-        
-        # Espace pour le slider (prend la moitié)
-        header.addStretch()
-        
-        header.addWidget(threshold_label)
-        header.addWidget(self.threshold_slider)
-        header.addWidget(self.threshold_value_label)
         
         # Espace restant pour la recherche (dynamique)
         header.addStretch()
 
-        # Largeur dynamique : 1/3 de la fenêtre minimum
         self.search_controller.view.setMinimumWidth(300)
         header.addWidget(self.search_controller.view)
 
@@ -117,9 +109,7 @@ class ImageSearchedContainerView(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(
-                Qt.ScrollBarPolicy.ScrollBarAsNeeded
-            )
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
 
         self.scroll_area.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
@@ -128,14 +118,48 @@ class ImageSearchedContainerView(QWidget):
 
         layout.addWidget(self.scroll_area)
 
+        # Footer avec nombre d'images
+        footer = QHBoxLayout()
+
+        self.number_img_label = QLabel("0 image")
+        self.number_img_label.setFont(QFont("Segoe UI", 10))
+
+        # Partie gauche
+        left_widget = QWidget()
+        left_layout = QHBoxLayout(left_widget)
+        left_layout.setContentsMargins(0, 0, 0, 0)
+        left_layout.addLayout(self.threshold_layout)
+
+        footer.addWidget(left_widget)
+        footer.addStretch()
+        footer.addWidget(self.number_img_label)
+        layout.addLayout(footer)
+
     def _apply_styles(self):
-        self.setStyleSheet("""
-            QPushButton {
+        self.setStyleSheet(f"""
+            QPushButton {{
                 border: none;
                 padding: 5px 12px;
                 border-radius: 4px;
                 font-weight: bold;
-            }
+                background-color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]};
+                color: {os.environ["QTMATERIAL_SECONDARYTEXTCOLOR"]};
+            }}
+
+            QPushButton:hover {{
+                background-color: {os.environ["QTMATERIAL_PRIMARYLIGHTCOLOR"]};
+            }}
+
+            QPushButton:pressed {{
+                background-color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]};
+            }}
+        """)
+
+        self.scroll_area.setStyleSheet(f"""
+            QScrollArea {{
+                background-color: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]};
+                border: 10px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]};
+            }}
         """)
 
     def resizeEvent(self, event):
@@ -290,7 +314,7 @@ class ImageSearchedContainerView(QWidget):
         """
         Ajoute des images en mode lazy
         """
-        self.header_label.setText(f"{total_count} image(s)")
+        self.number_img_label.setText(f"{total_count} image(s)")
 
         new_cards = []
         new_widgets = []
@@ -343,7 +367,7 @@ class ImageSearchedContainerView(QWidget):
         self._render_queue.clear()
         self._lazy_render_timer.stop()
         self.masonry.clear()
-        self.header_label.setText("0 image")
+        self.number_img_label.setText("0 image")
         self._loading = False
         self._total_loaded = 0
 

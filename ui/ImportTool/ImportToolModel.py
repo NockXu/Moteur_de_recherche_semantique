@@ -100,6 +100,9 @@ class ImportToolModel:
     def get_loaded_images(self) -> List[Image]:
         return self._cache
 
+    def get_not_treated_images(self) -> List[Image]:
+        return [img for img in self._cache if img.status != ProcessingStatus.COMPLETED]
+
     def get_images_count(self) -> int:
         return len(self._cache)
 
@@ -137,9 +140,9 @@ class ImportToolModel:
                     image.error_message = error_message
                 return
 
-    def reset_all_status(self):
+    def reset_all_status(self, images: List[Image]):
         """FIX: méthode manquante — remet toutes les images en statut PENDING avant traitement."""
-        for image in self._cache:
+        for image in images:
             image.status = ProcessingStatus.PENDING
 
     # ─────────────────────────────────────────────

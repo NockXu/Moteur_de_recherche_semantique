@@ -236,6 +236,10 @@ class SqliteManager:
         Returns:
             List of rows returned by the query. Each row is a tuple.
         """
+
+        if self.cursor is None:
+            raise RuntimeError("Database connection is closed")
+
         self.cursor.execute(query, params)
         return self.cursor.fetchall()
 

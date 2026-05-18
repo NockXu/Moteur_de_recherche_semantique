@@ -102,7 +102,7 @@ mot1, mot2, mot3, mot4"""
 
             self.clean_reduce_img()
 
-            response = result.response.response.strip()
+            response = result.response.strip()
 
             # Parsing
             if "KEYWORDS:" in response:

@@ -187,11 +187,11 @@ class ImportToolController(QObject):
         if self.processing_manager.is_processing():
             return
 
-        images = self.model.get_loaded_images()
+        images = self.model.get_not_treated_images()
         if not images:
             return
 
-        self.model.reset_all_status()
+        self.model.reset_all_status(images)
 
         self.current_worker = self.processing_manager.start_batch_processing(
             images,
