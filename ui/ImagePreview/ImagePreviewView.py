@@ -33,7 +33,6 @@ class ImagePreviewView(QWidget):
     def _setup_ui(self):
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
-        root.setSpacing(0)
 
         # SCROLL AREA GLOBALE
         self.scroll = QScrollArea()
@@ -48,6 +47,7 @@ class ImagePreviewView(QWidget):
             QSizePolicy.Policy.Ignored
         )
         main_layout = QVBoxLayout(container)
+        main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(0)
 
@@ -56,6 +56,10 @@ class ImagePreviewView(QWidget):
         # ═══════════════════════════════════════════════════════════
         
         image_section = QWidget()
+        image_section.setSizePolicy(
+            QSizePolicy.Policy.Preferred,
+            QSizePolicy.Policy.Expanding
+        )
         image_layout = QVBoxLayout(image_section)
         image_layout.setContentsMargins(0, 0, 0, 0)
         image_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -83,26 +87,26 @@ class ImagePreviewView(QWidget):
         main_layout.addWidget(image_section)
         
         # Séparateur visuel
-        separator1 = QFrame()
-        separator1.setFrameShape(QFrame.Shape.HLine)
-        separator1.setFixedHeight(1)
-        separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
+        self.separator1 = QFrame()
+        self.separator1.setFrameShape(QFrame.Shape.HLine)
+        self.separator1.setFixedHeight(1)
+        self.separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
         main_layout.addSpacing(12)
-        main_layout.addWidget(separator1)
+        main_layout.addWidget(self.separator1)
         main_layout.addSpacing(12)
 
         # ═══════════════════════════════════════════════════════════
         # SECTION INFORMATIONS
         # ═══════════════════════════════════════════════════════════
         
-        info_section = QWidget()
-        info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
-        info_layout = QVBoxLayout(info_section)
+        self.info_section = QWidget()
+        self.info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
+        info_layout = QVBoxLayout(self.info_section)
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(20)
 
         # Chemin
-        self.path_group = self._create_info_group("Emplacement")
+        self.path_group, self.path_title = self._create_info_group("Emplacement")
         self.path_label = QLabel()
         self.path_label.setFont(QFont("Segoe UI", 9))
         self.path_label.setWordWrap(True)
@@ -111,7 +115,7 @@ class ImagePreviewView(QWidget):
         info_layout.addWidget(self.path_group)
 
         # Description
-        self.desc_group = self._create_info_group("Description")
+        self.desc_group, self.desc_title = self._create_info_group("Description")
         self.desc_label = QLabel()
         self.desc_label.setFont(QFont("Segoe UI", 9))
         self.desc_label.setWordWrap(True)
@@ -121,7 +125,7 @@ class ImagePreviewView(QWidget):
         info_layout.addWidget(self.desc_group)
 
         # Tags
-        self.tags_group = self._create_info_group("Mots-clés")
+        self.tags_group, self.tags_title = self._create_info_group("Mots-clés")
         self.tags_group.layout().setContentsMargins(0, 0, 0, 10)
         self.tags_container = QWidget()
         self.tags_layout = FlowLayout(self.tags_container)
@@ -131,7 +135,7 @@ class ImagePreviewView(QWidget):
         self.tags_group.layout().addWidget(self.tags_container)
         info_layout.addWidget(self.tags_group)
 
-        main_layout.addWidget(info_section)
+        main_layout.addWidget(self.info_section)
 
         # ═══════════════════════════════════════════════════════════
         # EMPTY STATE
@@ -167,7 +171,9 @@ class ImagePreviewView(QWidget):
             QSizePolicy.Policy.Preferred
         )
 
-    def _create_info_group(self, title: str) -> QWidget:
+        main_layout.addStretch()
+
+    def _create_info_group(self, title: str) -> tuple[QWidget, QLabel]:
         """Crée un groupe d'informations avec un titre."""
         group = QWidget()
         group.setStyleSheet("QWidget { background: transparent; }")
@@ -177,16 +183,19 @@ class ImagePreviewView(QWidget):
         
         title_label = QLabel(title.upper())
         title_label.setFont(QFont("Segoe UI", 8, QFont.Weight.Bold))
-        title_label.setStyleSheet(f"QLabel {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
+        title_label.setProperty("class", "title")
+        title_label.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
         layout.addWidget(title_label)
         
-        return group
+        return (group, title_label)
 
     # ─────────────────────────────
     # API
     # ─────────────────────────────
 
     def display_image(self, image: Image | None):
+        self._current_image = image
+        print("Displaying image:", image)
         if not image:
             self._clear()
             return
@@ -289,3 +298,16 @@ class ImagePreviewView(QWidget):
         
         # Réinitialiser le titre
         self.title.setText("")
+
+    # ═══════════════════════════════════════════════════════════
+    # THEME
+    # ═══════════════════════════════════════════════════════════
+
+    def _on_theme_changed(self):
+        self.separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
+        self.info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
+        self.path_title.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
+        self.desc_title.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
+        self.tags_title.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
+        if hasattr(self, '_current_image'):
+            self.display_image(self._current_image)

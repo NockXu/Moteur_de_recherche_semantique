@@ -1,28 +1,26 @@
 import sys
 import os
 from dotenv import load_dotenv
+from numpy import save
 
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QHBoxLayout, QPushButton, QLabel,
-    QDockWidget, QMenu
+    QVBoxLayout, QDockWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtGui import QFont
 
 from qt_material import apply_stylesheet
-
 # Import des widgets (chemins relatifs à ui/)
 from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.MenuBar import create_menu_bar
+from ui import load_config, save_in_config
 
 from common.Image_Classes.Image import Image
-from common.Image_Classes.ImageRepository import ImageRepository
 
 # Wrapper pour les controllers
 from vision.ollama_wrapper import OllamaWrapper
@@ -34,6 +32,7 @@ os.environ['QT_LOGGING_RULES'] = 'qt.gui.icc=false'
 class MainWindow(QMainWindow):
     OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL")
     VISION_MODEL = "qwen2.5vl:7b"
+    theme_changed = pyqtSignal(str)
 
     def __init__(self):
         super().__init__()
@@ -42,19 +41,13 @@ class MainWindow(QMainWindow):
         
         # Appliquer le thème d'abord
         app = QApplication.instance()
-        if app:
-            try:
-                apply_stylesheet(app, theme='dark_teal.xml')
-                
-            except Exception as e:
-                print(f"Warning: Impossible d'appliquer le thème dark_lightgreen.xml: {e}")
-                # Essayer un thème par défaut
-                apply_stylesheet(app, theme='dark_lightgreen.xml')
-        
-        # Afficher l'interface de chargement simple
-        self._setup_loading_ui()
-        self.show()
-        
+
+        # Charger la configuration UI
+        self.config = load_config()
+        self.current_theme = self.config.get("theme", "dark_teal.xml")
+
+        apply_stylesheet(app, theme=self.current_theme)
+
         # Initialiser les composants lourds en arrière-plan
         self._initialize_heavy_components()
         
@@ -62,29 +55,8 @@ class MainWindow(QMainWindow):
         self._connect_signals()
 
         self.showMaximized()
-    
-    def _setup_loading_ui(self):
-        """Configure l'interface de chargement simple"""
-        # Widget central obligatoire avec QMainWindow
-        central = QWidget()
-        self.setCentralWidget(central)
-        
-        # Layout principal pour le widget central
-        main_layout = QVBoxLayout(central)
-        main_layout.setContentsMargins(10, 10, 10, 10)
-        main_layout.setSpacing(10)
-        
-        # Texte de chargement centré
-        loading_label = QLabel("Chargement...")
-        loading_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        loading_label.setStyleSheet("""
-            color: #2c3e50; 
-            font-size: 24px; 
-            font-weight: bold;
-            margin: 50px;
-        """)
-        
-        main_layout.addWidget(loading_label)
+
+        self._load_all()
     
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
@@ -149,13 +121,20 @@ class MainWindow(QMainWindow):
     def _setup_controllers(self):
         """Initialise tous les contrôleurs"""
         # Import Tool (dans un dock) avec wrapper et modèle
-        self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL)
+        self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL, self.theme_changed)
         
         # Conteneur d'images recherchées
-        self.image_container_controller = ImageSearchedContainerController()
+        self.image_container_controller = ImageSearchedContainerController(theme_changed=self.theme_changed)
         
         # Preview d'image (dans un dock)
-        self.image_preview_controller = ImagePreviewController()
+        self.image_preview_controller = ImagePreviewController(theme_changed=self.theme_changed)
+
+    def _load_all(self):
+        """Charge tous les éléments de l'interface"""
+        self.import_tool_controller.load()
+        if self.image_preview_controller.load():
+            self.preview_dock.show()
+        self.image_container_controller.load()
     
     def _connect_signals(self):
         """Connecte les signaux entre les widgets"""
@@ -172,10 +151,20 @@ class MainWindow(QMainWindow):
         self.menu_controller.file_import_requested.connect(self._on_menu_import)
         self.menu_controller.file_export_requested.connect(self._on_menu_export)
         self.menu_controller.toggle_import_tool.connect(self._on_toggle_import_tool)
+        self.menu_controller.theme_changed.connect(self._on_theme_changed)
+
+    def _on_theme_changed(self, theme: str):
+        """Gère le changement de thème"""
+        print(f"Changement de thème: {theme}")
+
+        # Émettre le signal de changement de thème
+        self.theme_changed.emit(theme)
+
+        # Sauvegarder la configuration
+        save_in_config("theme", theme)
     
     def _on_image_clicked(self, img: Image):
         """Gère le clic sur une image"""
-        print(f"DEBUG: MainWindow reçu clic sur {os.path.basename(img.path)}")
         
         # Afficher l'image dans le preview
         self.image_preview_controller.set_image(img)

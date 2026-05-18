@@ -1,15 +1,13 @@
-import sys
-import os
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from PyQt6.QtCore import QObject, pyqtSignal
 from typing import Optional, List
-from pathlib import Path
 
 from ui.ImagePreview.ImagePreviewView import ImagePreviewView
 from ui.ImagePreview.ImagePreviewModel import ImagePreviewModel
 from common.Image_Classes.Image import Image
+from common.Image_Classes.ImageRepository import ImageRepository
+from database.DbService import DbService
+
+from ui import load_from_config, save_in_config
 
 
 class ImagePreviewController(QObject):
@@ -20,11 +18,14 @@ class ImagePreviewController(QObject):
     image_changed = pyqtSignal(Image)
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, theme_changed : Optional[pyqtSignal] = None):
         super().__init__(parent)
 
         self.view = ImagePreviewView()
         self.model = ImagePreviewModel()
+
+        if theme_changed:
+            theme_changed.connect(self.view._on_theme_changed)
 
         self._connect()
 
@@ -44,12 +45,10 @@ class ImagePreviewController(QObject):
     # ─────────────────────────────
 
     def set_image(self, image: Image) -> bool:
-        if not image:
-            self.error_occurred.emit("Image invalide")
-            return False
-
         self.model.set_image(image)
         self.view.display_image(image)
+
+        save_in_config("current_image", image.id)
 
         self.image_changed.emit(image)
         return True
@@ -79,3 +78,13 @@ class ImagePreviewController(QObject):
 
     def get_history(self) -> List[Image]:
         return self.model.get_history()
+
+    def load(self) -> bool:
+        current_image_id = load_from_config("current_image")
+        if current_image_id:
+            repo = ImageRepository(DbService().sqlite, DbService().faiss)
+            image = repo.get_image_by_id(current_image_id)
+            if image:
+                print("ImagePreviewController: Loading image:", image.id)
+                return self.set_image(image)
+        return False

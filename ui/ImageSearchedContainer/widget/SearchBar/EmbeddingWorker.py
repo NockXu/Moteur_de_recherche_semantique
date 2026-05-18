@@ -14,7 +14,7 @@ class EmbeddingWorker(QObject):
     finished = pyqtSignal(dict)  # SearchResults
     error = pyqtSignal(str)
 
-    def __init__(self, query, threshold=0.0, cursor=None, auto_research=None):
+    def __init__(self, query, threshold=0.0, cursor=None, auto_research : Research =None):
         super().__init__()
 
         self.query = query
@@ -33,7 +33,6 @@ class EmbeddingWorker(QObject):
             )
             
             if result is None:
-                print("[DEBUG] Result est None, envoi d'un résultat vide")
                 self.on_finished({'images': [], 'k': self.auto_research.k})
             else:
                 self.on_finished(result)
@@ -88,6 +87,9 @@ class AsyncEmbeddingManager(QObject):
         # internal cleanup
         self.current_worker.finished.connect(self._handle_finished)
         self.current_worker.error.connect(self._handle_error)
+        self.current_worker.finished.connect(self.current_thread.quit)
+        self.current_worker.error.connect(self.current_thread.quit)
+        self.current_thread.finished.connect(self._cleanup)
 
         self.current_thread.start()
 

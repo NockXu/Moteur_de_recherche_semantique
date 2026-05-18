@@ -1,9 +1,5 @@
-import sys
-import os
 from typing import Dict, List, Optional
 from dataclasses import dataclass
-
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
 from PyQt6.QtCore import pyqtSignal
 
@@ -55,11 +51,10 @@ class MenuModel:
             ],
             "Styles": [
                 MenuAction(
-                    name="Selectionner un style",
-                    shortcut="",
-                    tooltip="Sélectionner un style pour l'application",
+                    name="Sélection du thème",
+                    tooltip="Sélectionner un thème pour l'application",
                     signal=None  # Sera défini par le contrôleur
-                )
+                ),
             ]
         }
     

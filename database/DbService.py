@@ -1,4 +1,5 @@
 from typing import TypeVar
+import threading
 
 from database.sqlite.manager import SqliteManager
 from database.faiss_manager.manager import FaissManager
@@ -17,7 +18,7 @@ class DbService:
     the application.
     """
 
-    _instance: "DbService" = None
+    _thread_local = threading.local()
 
     # Typed attributes
     sqlite: TSqlite
@@ -32,13 +33,19 @@ class DbService:
         Returns:
             The singleton instance.
         """
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
+        # If already created in this thread → reuse
+        if hasattr(cls._thread_local, "instance"):
+            return cls._thread_local.instance
 
-            cls._instance.sqlite = SqliteManager(DATABASE_FILE)
-            cls._instance.faiss = FaissManager(FAISS_INDEX_FILE)
+        # Else create a new instance for this thread
+        instance = super().__new__(cls)
 
-        return cls._instance
+        instance.sqlite = SqliteManager(DATABASE_FILE)
+        instance.faiss = FaissManager(FAISS_INDEX_FILE)
+
+        cls._thread_local.instance = instance
+
+        return cls._thread_local.instance
 
 if __name__ == "__main__":
     db = DbService()

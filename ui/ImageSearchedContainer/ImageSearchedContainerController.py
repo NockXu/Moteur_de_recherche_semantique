@@ -12,6 +12,7 @@ from database.DbService import DbService
 
 from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
 
+from ui import save_in_config, load_from_config
 
 # =========================
 # STATE
@@ -29,10 +30,13 @@ class ImageSearchedContainerController(QObject):
 
     images_loaded = pyqtSignal(int)
 
-    def __init__(self, thumbnail_size: int = 150):
+    def __init__(self, thumbnail_size: int = 150, theme_changed: Optional[pyqtSignal] = None):
         super().__init__()
 
         self.view = ImageSearchedContainerView()
+        if theme_changed:
+            theme_changed.connect(self.view._on_theme_changed)
+
         self.model = ImageSearchedContainerModel()
 
         db = DbService()
@@ -77,7 +81,12 @@ class ImageSearchedContainerController(QObject):
 
         self._loading = True
 
-        print('start')
+        print("Search triggered:", search_text)
+
+        save_in_config("current_search", {
+            "query": search_text,
+            "threshold": self.model.threshold
+        })
 
         self.embedding_manager.start_search(
             query=search_text,
@@ -85,7 +94,6 @@ class ImageSearchedContainerController(QObject):
             cursor=self.state.cursor,
             auto_research=self.research
         )
-        print('end')
 
     # ─────────────────────────────
     # SEARCH CALLBACK
@@ -187,6 +195,12 @@ class ImageSearchedContainerController(QObject):
     def set_max_per_load(self, value: int):
         # Cette méthode n'existe pas dans le modèle, on l'ignore pour l'instant
         pass
+
+    def load(self):
+        search = load_from_config("current_search")
+        if search:
+            self.view.search_controller.set_text(search["query"])
+            self._on_search_triggered(search["query"])
 
 if __name__ == "__main__":
     import sys

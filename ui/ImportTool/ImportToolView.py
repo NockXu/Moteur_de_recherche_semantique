@@ -75,6 +75,7 @@ class ImportToolView(QWidget):
         )
 
         self._setup_ui()
+            
 
     # ─────────────────────────────────────────────
     # UI
@@ -358,7 +359,7 @@ class ImportToolView(QWidget):
         if total == 0:
             self._progress_label.setText("En attente…")
         elif pct == 100:
-            self._progress_label.setText(f"✅ Terminé — {done} traité(s), {error} erreur(s)")
+            self._progress_label.setText(f"Terminé — {done} traité(s), {error} erreur(s)")
         else:
             self._progress_label.setText(f"{pct}% — {done + error} / {total} images")
 
@@ -386,6 +387,32 @@ class ImportToolView(QWidget):
 
     def cleanup(self):
         self._clear()
+
+    # ─────────────────────────────────────────────
+    # Cleanup
+    # ─────────────────────────────────────────────
+
+    def _on_theme_changed(self, theme: str):
+        """Gère le changement de thème"""
+        self.icon_start = colored_icon("./ui/Icon/play_arrow.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
+        self.icon_stop = colored_icon("./ui/Icon/stop.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
+        self.btn_start.setIcon(self.icon_stop if self.is_running else self.icon_start)
+        self.scroll.setStyleSheet(f"background-color: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]};")
+        self.progress.setStyleSheet(f"""
+            QProgressBar {{
+                border: none;
+                border-radius: 5px;
+                background-color: #e9ecef;
+            }}
+            QProgressBar::chunk {{
+                border-radius: 5px;
+                background: qlineargradient(
+                    x1:0, y1:0, x2:1, y2:0,
+                    stop:0 {os.environ["QTMATERIAL_PRIMARYCOLOR"]},
+                    stop:1 {os.environ["QTMATERIAL_PRIMARYLIGHTCOLOR"]}
+                );
+            }}
+        """)
 
 # ─────────────────────────────────────────────
 # Icons

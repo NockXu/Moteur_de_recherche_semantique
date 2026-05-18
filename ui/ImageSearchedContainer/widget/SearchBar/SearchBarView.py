@@ -51,14 +51,10 @@ class SearchBarView(QWidget):
         layout.addWidget(self.search_button)
 
     def _on_search_clicked(self):
-        search_text = self.search_input.text().strip()
-        if search_text:
-            self.search_triggered.emit(search_text)
+        self.search_triggered.emit(self.search_input.text())
     
     def _on_text_changed(self):
-        text = self.search_input.text().strip()
-        if text:
-            self.search_text_changed.emit(text)
+        self.search_text_changed.emit(self.search_input.text())
 
     def get_text(self) -> str:
         return self.search_input.text()

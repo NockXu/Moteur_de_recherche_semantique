@@ -86,7 +86,8 @@ class ImportToolModel:
     def load_db_status(self):
         try:
             # Utiliser la méthode optimisée qui retourne directement les chemins
-            self._db_paths = self._image_repository.get_all_image_paths()
+            repo = ImageRepository(DbService().sqlite, DbService().faiss)
+            self._db_paths = repo.get_all_image_paths()
             print(f"🗄️ {len(self._db_paths)} images en BDD")
 
         except Exception as e:

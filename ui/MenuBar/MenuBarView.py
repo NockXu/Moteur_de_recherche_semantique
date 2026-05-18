@@ -39,8 +39,9 @@ class MenuBarView:
                 if action_config.tooltip:
                     action.setStatusTip(action_config.tooltip)
                 
-                # Connecter le handler ou le signal
-                if action_config.name in handlers:
+                if action_config.handler:
+                    action.triggered.connect(action_config.handler)
+                elif action_config.name in handlers:
                     action.triggered.connect(handlers[action_config.name])
                 elif action_config.signal:
                     action.triggered.connect(action_config.signal)

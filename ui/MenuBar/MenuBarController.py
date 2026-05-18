@@ -2,17 +2,23 @@ import sys
 import os
 from typing import Dict, List, Callable
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
 from PyQt6.QtWidgets import QMenuBar, QMessageBox, QFileDialog
+from PyQt6.QtWidgets import (
+    QDialog,
+    QVBoxLayout,
+    QListWidget,
+    QListWidgetItem,
+)
 from PyQt6.QtCore import QObject, pyqtSignal
-from PyQt6.QtGui import QAction
+from PyQt6.QtGui import QAction, QActionGroup
 
 from .MenuModel import MenuModel, MenuAction
 from .MenuBarView import MenuBarView
 
 from ui.widgets.Export.Export import Export, ExportDialog
 from ui.widgets.Import.AdvancedImportDialog import AdvancedImportDialog
+
+from qt_material import apply_stylesheet, list_themes
 
 
 class MenuBarController(QObject):
@@ -30,6 +36,7 @@ class MenuBarController(QObject):
     file_export_requested = pyqtSignal()
     file_quit_requested = pyqtSignal()
     toggle_import_tool = pyqtSignal()
+    theme_changed = pyqtSignal(str)
     
     def __init__(self, parent=None):
         super().__init__()
@@ -56,9 +63,10 @@ class MenuBarController(QObject):
             "Importer": self.handle_import,
             "Exporter...": self.handle_export,
             "Quitter": lambda: self.file_quit_requested.emit(),
-            "Import Tool": self.handle_toggle_import_tool,
+            "Outil d'importation d'image": self.handle_toggle_import_tool,
+            "Sélection du thème": self.open_style_selector
         }
-    
+        
     def _setup_signals(self):
         """Configure les signaux dans le modèle"""
         # Associer les signaux aux actions du modèle (uniquement pour ceux qui n'ont pas de handler direct)
@@ -83,7 +91,7 @@ class MenuBarController(QObject):
         self.model.add_menu(menu_name, actions)
         self._setup_menu_bar()  # Recréer la barre
     
-    def add_action(self, menu_name: str, action: MenuAction):
+    def addAction(self, menu_name: str, action: MenuAction):
         """Ajoute dynamiquement une action à un menu"""
         self.model.add_action(menu_name, action)
         self._setup_menu_bar()  # Recréer la barre
@@ -113,6 +121,49 @@ class MenuBarController(QObject):
     # ─────────────────────────────────────────────
     # HANDLERS
     # ─────────────────────────────────────────────
+
+    def open_style_selector(self):
+        """Affiche une boîte de dialogue de sélection des thèmes."""
+
+        dialog = QDialog(self.parent)
+        dialog.setWindowTitle("Sélection du thème")
+
+        # taille fixe raisonnable
+        dialog.resize(300, 400)
+
+        layout = QVBoxLayout(dialog)
+
+        theme_list = QListWidget(dialog)
+
+        themes = list_themes()
+
+        for theme in themes:
+            item = QListWidgetItem(theme)
+            theme_list.addItem(item)
+
+        # double clic → appliquer thème
+        theme_list.itemDoubleClicked.connect(
+            lambda item: self.apply_theme(item.text())
+        )
+
+        layout.addWidget(theme_list)
+
+        dialog.exec()
+
+    def apply_theme(self, theme: str):
+        """Applique un thème qt-material."""
+
+        if theme == "default":
+            self.parent.setStyleSheet("")
+            return
+
+        apply_stylesheet(
+            self.parent,
+            theme=theme,
+            invert_secondary=theme.startswith("light"),
+        )
+
+        self.theme_changed.emit(theme)
     
     def handle_import(self):
         """Gère l'import depuis un fichier JSON."""
@@ -128,10 +179,7 @@ class MenuBarController(QObject):
         """Gère l'export avec choix du mode via la boîte de dialogue."""
         # Utiliser la nouvelle boîte de dialogue d'export
         export_dialog = ExportDialog(self.parent)
-        result = export_dialog.exec()
-        
-        # La boîte de dialogue gère tout automatiquement
-        # Plus besoin de code supplémentaire ici
+        export_dialog.exec()
     
     def handle_toggle_import_tool(self):
         """Gère l'affichage/masquage de l'Import Tool."""
@@ -142,7 +190,6 @@ class MenuBarController(QObject):
         if self.import_dialog:
             self.import_dialog.close()
             self.import_dialog = None
-
 
 # ─────────────────────────────────────────────
 # EXEMPLES D'UTILISATION
@@ -182,7 +229,7 @@ def add_preferences_action(controller):
         handler=lambda: print("Ouvrir préférences"),
         separator_before=True
     )
-    controller.add_action("Fichier", prefs_action)
+    controller.addAction("Fichier", prefs_action)
 
 
 def create_menu_bar(parent=None):

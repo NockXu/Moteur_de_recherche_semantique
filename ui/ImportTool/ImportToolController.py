@@ -15,6 +15,8 @@ from common.Image_Classes.ImageRepository import ImageRepository
 from database.DbService import DbService
 from vision.ollama_wrapper import OllamaWrapper
 
+from ui import load_config, load_from_config, save_in_config
+
 # ─────────────────────────────────────────────
 # Thread BDD (non bloquant)
 # ─────────────────────────────────────────────
@@ -41,10 +43,12 @@ class ImportToolController(QObject):
 
     folder_loaded = pyqtSignal(int)
 
-    def __init__(self, ollama_wrapper: OllamaWrapper = None, model_name: str = "qwen2.5vl:7b"):
+    def __init__(self, ollama_wrapper: OllamaWrapper = None, model_name: str = "qwen2.5vl:7b", theme_changed: pyqtSignal = None):
         super().__init__()
 
         self.view = ImportToolView(ollama_base_url=getattr(ollama_wrapper, "base_url", None))
+        if theme_changed:
+            theme_changed.connect(self.view._on_theme_changed)
         
         # Créer et injecter le modèle correctement
         self.model = ImportToolModel()
@@ -66,17 +70,22 @@ class ImportToolController(QObject):
         self._existing_paths: Optional[set[str]] = None
 
         self._connect_signals()
-        self._load_default_dataset_folder()
 
     # ─────────────────────────────────────────────
     # SIGNALS
     # ─────────────────────────────────────────────
     def _connect_signals(self):
-        self.view.folder_selected.connect(self._handle_folder_selection)
+        self.view.folder_selected.connect(self._on_folder_selected)
         self.view.start_processing_requested.connect(self._start_processing)
         self.view.stop_processing_requested.connect(self._stop_processing)
         self.view.image_clicked.connect(self._handle_image_clicked)
         self.view.load_more_requested.connect(self._load_next_page_throttled)
+
+    def _on_folder_selected(self, folder_path: str):
+
+        save_in_config("import_image_folder", folder_path)
+        
+        self._handle_folder_selection(folder_path)
 
     # ─────────────────────────────────────────────
     # FOLDER LOAD
@@ -254,14 +263,9 @@ class ImportToolController(QObject):
     # DEFAULT FOLDER
     # ─────────────────────────────────────────────
     def _load_default_dataset_folder(self):
-        try:
-            project_root = Path(__file__).resolve().parents[3]
-            dataset_path = project_root / "dataset"
-
-            if dataset_path.exists():
-                self._handle_folder_selection(str(dataset_path))
-        except Exception as e:
-            print(f"Erreur auto dataset: {e}")
+        folder = load_from_config("import_image_folder")
+        if folder:
+            self._handle_folder_selection(folder)
 
     # ─────────────────────────────────────────────
     # API
@@ -284,6 +288,9 @@ class ImportToolController(QObject):
             self.processing_manager.stop_current_processing()
 
         self.view.cleanup()
+
+    def load(self):
+        self._load_default_dataset_folder()
 
 if __name__ == "__main__":
     import sys

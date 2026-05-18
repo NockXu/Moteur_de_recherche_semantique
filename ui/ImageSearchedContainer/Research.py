@@ -26,7 +26,7 @@ class Research:
         # -------------------------
         # ALL IMAGES MODE
         # -------------------------
-        if query is None:
+        if not query:
             all_images = self.image_repository.get_k(self.k)
             result = SearchResults(
                 images=all_images if all_images else [],

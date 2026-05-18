@@ -397,6 +397,14 @@ class ImageSearchedContainerView(QWidget):
             "percentage": (self._total_loaded / len(self._cards) * 100) if self._cards else 0
         }
 
+    # ─────────────────────────────────────────────
+    # THEME
+    # ─────────────────────────────────────────────
+    
+    def _on_theme_changed(self):
+        """Appelé quand le thème change"""
+        self._apply_styles()
+
 
 if __name__ == "__main__":
     import sys

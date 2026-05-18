@@ -469,6 +469,38 @@ class ImageRepository:
 
         return self._construct_from_rows(rows)
 
+    def get_image_by_id(self, image_id: int) -> Optional[Image]:
+        """
+        Retrieve an image by its ID.
+
+        Args:
+            image_id (int):
+                ID of the image to retrieve
+
+        Returns:
+            Image with the given ID, or None if not found
+        """
+        
+        query = """
+            SELECT
+                id,
+                path,
+                name,
+                description,
+                keywords,
+                dataset_id,
+                embedding
+            FROM images
+            WHERE id = ?
+        """
+        params = [image_id]
+
+        row = self.db.fetch_one(query, params)
+
+        if row is None:
+            return None
+
+        return self._construct_from_rows([row])[0]
 
     def _construct_from_rows(self, rows) -> List[Image]:
         images = []
