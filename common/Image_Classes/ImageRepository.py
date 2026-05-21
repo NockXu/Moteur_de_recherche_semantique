@@ -502,6 +502,39 @@ class ImageRepository:
 
         return self._construct_from_rows([row])[0]
 
+    def get_image_by_path(self, path: str) -> Optional[Image]:
+        """
+        Retrieve an image by its path.
+
+        Args:
+            path (str):
+                Path of the image to retrieve
+
+        Returns:
+            Image with the given path, or None if not found
+        """
+        
+        query = """
+            SELECT
+                id,
+                path,
+                name,
+                description,
+                keywords,
+                dataset_id,
+                embedding
+            FROM images
+            WHERE path = ?
+        """
+        params = [path]
+
+        row = self.db.fetch_one(query, params)
+
+        if row is None:
+            return None
+
+        return self._construct_from_rows([row])[0]
+
     def _construct_from_rows(self, rows) -> List[Image]:
         images = []
 

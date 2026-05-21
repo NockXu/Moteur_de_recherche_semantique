@@ -8,7 +8,7 @@ load_dotenv()
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QDockWidget
+    QVBoxLayout, QDockWidget, QTabWidget
 )
 from PyQt6.QtCore import Qt, pyqtSignal
 
@@ -19,8 +19,10 @@ from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSear
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.MenuBar import create_menu_bar
 from ui import load_config, save_in_config
+from ui.HistoryTree.HistoryTreeController import HistoryTreeController
 
 from common.Image_Classes.Image import Image
+from common.History_Classes import HistoryRepository, history, app
 
 # Wrapper pour les controllers
 from vision.ollama_wrapper import OllamaWrapper
@@ -84,8 +86,21 @@ class MainWindow(QMainWindow):
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
         
-        # Zone centrale : Conteneur d'images
-        main_layout.addWidget(self.image_container_controller.view, 1)  # Stretch factor 1
+        self.tabs = QTabWidget()
+        self.tabs.setTabPosition(QTabWidget.TabPosition.North)
+        self.tabs.setMovable(True)
+
+        self.tabs.addTab(
+            self.image_container_controller.view,
+            "Search Results"
+        )
+
+        self.tabs.addTab(
+            self.history_tree_controller.view,
+            "History Tree"
+        )
+
+        main_layout.addWidget(self.tabs, 1)
         
         # Remplacer les docks
         self._replace_docks()
@@ -123,18 +138,23 @@ class MainWindow(QMainWindow):
         # Import Tool (dans un dock) avec wrapper et modèle
         self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL, self.theme_changed)
         
-        # Conteneur d'images recherchées
+        # Conteneur d'images recherchées (dans un onglet)
         self.image_container_controller = ImageSearchedContainerController(theme_changed=self.theme_changed)
         
         # Preview d'image (dans un dock)
         self.image_preview_controller = ImagePreviewController(theme_changed=self.theme_changed)
+        
+        # History Tree (dans un onglet)
+        self.history_tree_controller = HistoryTreeController(theme_changed=self.theme_changed)
 
     def _load_all(self):
         """Charge tous les éléments de l'interface"""
+        history.load()
         self.import_tool_controller.load()
         if self.image_preview_controller.load():
             self.preview_dock.show()
         self.image_container_controller.load()
+        self.history_tree_controller.load()
     
     def _connect_signals(self):
         """Connecte les signaux entre les widgets"""
@@ -253,8 +273,6 @@ class MainWindow(QMainWindow):
 
 if __name__ == "__main__":
     import signal
-    
-    app = QApplication(sys.argv)
     
     # Gérer Ctrl+C proprement
     def signal_handler(signum, frame):

@@ -9,6 +9,7 @@ from common.Image_Classes.Image import Image
 from ui.ImageSearchedContainer.widget.ImageThumbnailWidget import ImageThumbnailWidget
 from ui.ImageSearchedContainer.widget.SearchBar.SearchBarController import SearchBarController
 from ui.ImageSearchedContainer.widget.MasonryWidget import MasonryLayout
+from ui.utils.colored_icon import colored_icon
 
 class LazyImageCard:
     """
@@ -45,7 +46,7 @@ class ImageSearchedContainerView(QWidget):
         self._cards: list[LazyImageCard] = []
         self._loading = False
         
-        # ✅ LAZY LOADING CONFIG
+        # LAZY LOADING CONFIG
         self._lazy_enabled = enable_lazy_loading
         self._lazy_render_timer = QTimer()
         self._lazy_render_timer.timeout.connect(self._lazy_render_batch)
@@ -92,10 +93,13 @@ class ImageSearchedContainerView(QWidget):
         self.threshold_layout.addWidget(self.threshold_slider)
         self.threshold_layout.addWidget(self.threshold_value_label)
 
-        self.reload_button = QPushButton("Recharger")
+        self.button_layout = QHBoxLayout()
+        header.addLayout(self.button_layout)
+
+        self.reload_button = QPushButton()
         self.reload_button.clicked.connect(self.reload_requested.emit)
 
-        header.addWidget(self.reload_button)
+        self.button_layout.addWidget(self.reload_button)
         
         # Espace restant pour la recherche (dynamique)
         header.addStretch()
@@ -136,22 +140,13 @@ class ImageSearchedContainerView(QWidget):
         layout.addLayout(footer)
 
     def _apply_styles(self):
+        self.reload_button.setIcon(colored_icon("./ui/Icon/refresh.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"], 64))
         self.setStyleSheet(f"""
             QPushButton {{
                 border: none;
                 padding: 5px 12px;
                 border-radius: 4px;
                 font-weight: bold;
-                background-color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]};
-                color: {os.environ["QTMATERIAL_SECONDARYTEXTCOLOR"]};
-            }}
-
-            QPushButton:hover {{
-                background-color: {os.environ["QTMATERIAL_PRIMARYLIGHTCOLOR"]};
-            }}
-
-            QPushButton:pressed {{
-                background-color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]};
             }}
         """)
 

@@ -1,5 +1,6 @@
-import sys
 import os
+from typing import List, Dict
+from pathlib import Path
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QPushButton,
@@ -7,15 +8,13 @@ from PyQt6.QtWidgets import (
     QGridLayout, QProgressBar, QGraphicsDropShadowEffect,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
-from PyQt6.QtGui import QColor, QResizeEvent, QIcon, QPixmap, QPainter
-from PyQt6.QtSvg import QSvgRenderer
-
-from pathlib import Path
+from PyQt6.QtGui import QColor, QResizeEvent
 
 from common.Image_Classes.Image import Image, ProcessingStatus
 from ui.ImportTool.ImageWidget import ImageWidget
 from ui.ImportTool.widget.ConnectionVerificator import ConnectionVerificatorController
-from typing import List, Dict
+
+from ui.utils.colored_icon import colored_icon
 
 
 # ─────────────────────────────────────────────
@@ -413,21 +412,3 @@ class ImportToolView(QWidget):
                 );
             }}
         """)
-
-# ─────────────────────────────────────────────
-# Icons
-# ─────────────────────────────────────────────
-def colored_icon(path: str, color: str, size: int = 24) -> QIcon:
-    renderer = QSvgRenderer(path)
-
-    pixmap = QPixmap(size, size)
-    pixmap.fill(Qt.GlobalColor.transparent)
-
-    painter = QPainter(pixmap)
-    renderer.render(painter)
-
-    painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-    painter.fillRect(pixmap.rect(), QColor(color))
-    painter.end()
-
-    return QIcon(pixmap)

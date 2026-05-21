@@ -1,0 +1,1 @@
+from .colored_icon import colored_icon

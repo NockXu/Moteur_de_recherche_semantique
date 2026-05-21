@@ -84,9 +84,9 @@ class AsyncEmbeddingManager(QObject):
         # start
         self.current_thread.started.connect(self.current_worker.run)
 
-        # internal cleanup
         self.current_worker.finished.connect(self._handle_finished)
         self.current_worker.error.connect(self._handle_error)
+        # internal cleanup
         self.current_worker.finished.connect(self.current_thread.quit)
         self.current_worker.error.connect(self.current_thread.quit)
         self.current_thread.finished.connect(self._cleanup)
@@ -101,29 +101,35 @@ class AsyncEmbeddingManager(QObject):
     def _handle_finished(self, result):
         try:
             self.result.emit(result)
-        finally:
-            self._cleanup()
+        except Exception as e:
+            print(e)
 
     def _handle_error(self, error):
         try:
             print(f"[EmbeddingWorker ERROR] {error}")
             self.result.emit({})
-        finally:
-            self._cleanup()
+        except Exception as e:
+            print(e)
 
     # -------------------------
     # CLEANUP
     # -------------------------
     def _cleanup(self):
-        if self.current_thread:
-            self.current_thread.quit()
-            self.current_thread.wait()
-            self.current_thread.deleteLater()
-            self.current_thread = None
+        thread = self.current_thread
+        worker = self.current_worker
 
-        if self.current_worker:
-            self.current_worker.deleteLater()
-            self.current_worker = None
+        self.current_thread = None
+        self.current_worker = None
+
+        if thread:
+            try:
+                thread.finished.disconnect(self._cleanup)
+            except RuntimeError:
+                pass
+            thread.deleteLater()
+
+        if worker:
+            worker.deleteLater()
 
     # -------------------------
     # CONTROL
@@ -132,10 +138,11 @@ class AsyncEmbeddingManager(QObject):
         return self.current_thread is not None and self.current_thread.isRunning()
 
     def stop_search(self):
+        if self.current_worker:
+            self.current_worker.blockSignals(True)
         if self.current_thread and self.current_thread.isRunning():
             self.current_thread.quit()
             self.current_thread.wait()
-
         self._cleanup()
 
     # -------------------------

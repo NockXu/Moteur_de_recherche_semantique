@@ -12,6 +12,10 @@ from embedding.embed import inputToEmbedding
 from vision.ollama_wrapper import OllamaWrapper
 from storage.config import FAISS_INDEX_FILE
 
+from common.History_Classes import Tree
+
+import numpy as np
+
 class Research:
     def __init__(self, repository : ImageRepository) -> None:
         self.image_repository = repository
@@ -26,7 +30,7 @@ class Research:
         # -------------------------
         # ALL IMAGES MODE
         # -------------------------
-        if not query:
+        if not query or query == "DEFAULT":
             all_images = self.image_repository.get_k(self.k)
             result = SearchResults(
                 images=all_images if all_images else [],
@@ -61,6 +65,33 @@ class Research:
         )
         
         return result
+    
+    def multi_query_score(
+        self,
+        scores: List[float],
+        weights: Optional[List[float]] = None
+    ) -> float:
+
+        if weights is None:
+            weights = [1.0] * len(scores)
+
+        if len(scores) != len(weights):
+            raise ValueError("scores and weights must have same length")
+
+        weight_sum = np.sum(weights)
+
+        if weight_sum == 0:
+            return 0.0
+
+        return float(np.dot(scores, weights) / weight_sum)
+
+    def get_weights(self, tree : Tree) -> List[float]:
+        weights : List[float] = []
+
+        for i in range(0, tree.get_number_generation(), 1):
+            weights.append(i)
+
+        return weights
 
 if __name__ == "__main__":
     db = DbService()

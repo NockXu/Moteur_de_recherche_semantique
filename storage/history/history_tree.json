@@ -1,0 +1,30 @@
+{
+    "node": {
+        "query": "DEFAULT",
+        "threshold": 0.5
+    },
+    "children": [
+        {
+            "node": {
+                "query": "Un chat",
+                "threshold": 0.7
+            },
+            "children": [
+                {
+                    "node": {
+                        "query": "un robinet",
+                        "threshold": 0.6
+                    },
+                    "children": []
+                },
+                {
+                    "node": {
+                        "query": "noir",
+                        "threshold": 0.6
+                    },
+                    "children": []
+                }
+            ]
+        }
+    ]
+}

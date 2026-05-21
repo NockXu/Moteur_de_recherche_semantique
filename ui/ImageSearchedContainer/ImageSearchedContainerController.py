@@ -12,6 +12,8 @@ from database.DbService import DbService
 
 from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
 
+from common.History_Classes import history, HistoryData, Tree
+
 from ui import save_in_config, load_from_config
 
 # =========================
@@ -66,6 +68,7 @@ class ImageSearchedContainerController(QObject):
         self.view.search_controller.view.search_triggered.connect(self._on_search_triggered)
         self.embedding_manager.result.connect(self._on_search_finished)
         self.view.threshold_changed.connect(self._on_threshold_changed)
+        history.current_search_updated.connect(self.search)
 
     # ─────────────────────────────
     # SEARCH ENTRY POINT
@@ -81,12 +84,30 @@ class ImageSearchedContainerController(QObject):
 
         self._loading = True
 
-        print("Search triggered:", search_text)
+        self.save_search()
 
-        save_in_config("current_search", {
-            "query": search_text,
-            "threshold": self.model.threshold
-        })
+        self.embedding_manager.start_search(
+            query=search_text,
+            threshold=self.model.threshold,
+            cursor=self.state.cursor,
+            auto_research=self.research
+        )
+
+    def search(self):
+        search_text = history.current_search.node.query
+
+        self.view.search_controller.set_text(search_text)
+        self.set_threshold(history.current_search.node.threshold)
+
+        self.state.query = search_text
+        self.state.cursor = None
+        self.state.has_more = False
+
+        self.model.reset()
+        self.view.clear()
+        self._update_view()
+
+        self._loading = True
 
         self.embedding_manager.start_search(
             query=search_text,
@@ -192,15 +213,37 @@ class ImageSearchedContainerController(QObject):
         self.thumbnail_size = size
         self._update_view()
 
-    def set_max_per_load(self, value: int):
-        # Cette méthode n'existe pas dans le modèle, on l'ignore pour l'instant
-        pass
+    def set_threshold(self, value: float):
+        self.model.set_threshold(value)
+        self.view.threshold_slider.setValue(int(value * 100))
+        self.view.threshold_value_label.setText(f"{int(value * 100)}%")
 
     def load(self):
         search = load_from_config("current_search")
         if search:
-            self.view.search_controller.set_text(search["query"])
-            self._on_search_triggered(search["query"])
+            self.view.search_controller.set_text(search.get("query", ""))
+            self.set_threshold(search.get("threshold", 0.5))
+            history.set_current_search(Tree(HistoryData(search.get("query", ""), search.get("threshold", 0.5))))
+
+    def save_search(self):
+        data = HistoryData(self.state.query, self.model.threshold)
+
+        if data:
+            save_in_config("current_search", data.to_dict())
+
+            current_search = Tree(data)
+            history.current_search.add_child(current_search)
+            history.history_changed.emit()
+
+            history.current_search_updated.disconnect(self.search)
+            history.set_current_search(current_search)
+            history.current_search_updated.connect(self.search)
+
+            history.save()
+             
+
+        
+
 
 if __name__ == "__main__":
     import sys
