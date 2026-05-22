@@ -24,6 +24,10 @@ class Tree:
         
         self.node.threshold = child.node.threshold
 
+    def add_brother(self, brother: Tree):
+        if self.parent is not None:
+            self.parent.add_child(brother)
+
     def add_children(self, children: list[Tree]):
         for child in children:
             self.add_child(child)
@@ -45,6 +49,11 @@ class Tree:
                 for child in self.children
             ]
         }
+
+    def get_all_ancestors(self) -> list[Tree]:
+        if self.parent is not None:
+            return self.parent.get_all_ancestors() + [self]
+        return [self]
 
     def get_from_here(self, n: int) -> Tree:
         if n == 0:

@@ -1,26 +1,34 @@
 {
     "node": {
         "query": "DEFAULT",
-        "threshold": 0.5
+        "threshold": 0.5,
+        "w_const": 1.0,
+        "w_expr": "const"
     },
     "children": [
         {
             "node": {
                 "query": "Un chat",
-                "threshold": 0.7
+                "threshold": 0.7,
+                "w_const": 1.0,
+                "w_expr": "const"
             },
             "children": [
                 {
                     "node": {
-                        "query": "un robinet",
-                        "threshold": 0.6
+                        "query": "sur lavabo",
+                        "threshold": 0.6,
+                        "w_const": 1.0,
+                        "w_expr": "prev + sim"
                     },
                     "children": []
                 },
                 {
                     "node": {
                         "query": "noir",
-                        "threshold": 0.6
+                        "threshold": 0.6,
+                        "w_const": 1.0,
+                        "w_expr": "const"
                     },
                     "children": []
                 }

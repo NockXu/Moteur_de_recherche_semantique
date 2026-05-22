@@ -14,9 +14,10 @@ from PyQt6.QtWidgets import (
 )
 
 from common.History_Classes import HistoryData, Tree, history
-from common.weightCalculator import *
-from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
-from matplotlib.figure import Figure
+
+from common.WeightCalculator import weight_functions, get_weight_function_by_expr
+from common.WeightCalculator.weightCalculator import WeightSystem
+from ui.widgets.WeightsCalculator.WeightsCalculatorController import WeightCalculatorController
 
 from ui.utils import colored_icon
 
@@ -40,10 +41,9 @@ class HistoryPreview(QWidget):
 
         self._setup_ui()
 
-        self._apply_stylesheets()
+        self.weight_calculator.data_changed.connect(self._on_weight_calculator_data_changed)
 
-        self.selected_weight_fn = update_sum
-        self._update_preview_plot()
+        self._apply_stylesheets()
 
     # ---------------- UI ----------------
 
@@ -111,80 +111,13 @@ class HistoryPreview(QWidget):
         container_layout.addLayout(buttons_layout)
         container_layout.addStretch()
 
-        # ---------- WEIGHT FUNCTION SELECTOR ----------
+        # ---------- WEIGHT CALCULATOR ----------
 
-        self.weight_selector = QComboBox()
-
-        self.weight_functions = {
-            "Sum": update_sum,
-            "Mult": update_mult,
-            "Mult + 1": update_mult_one,
-            "p + prev * sim": update_mult_with_position,
-            "p + prev + sim": update_add_with_position,
-            "p * prev * sim": update_mult_with_position_mult,
-        }
-
-        self.weight_selector.addItems(self.weight_functions.keys())
-
-        self.weight_selector.currentIndexChanged.connect(self._on_weight_function_changed)
-
-        container_layout.addWidget(QLabel("Fonction de calcul de poids:"))
-        container_layout.addWidget(self.weight_selector)
-
-        self.figure = Figure()
-        self.canvas = FigureCanvas(self.figure)
-
-        container_layout.addWidget(self.canvas)
+        self.weight_calculator = WeightCalculatorController()
+        container_layout.addWidget(self.weight_calculator.view)
 
         # on ajoute le container au widget principal
         root_layout.addWidget(self.container)
-
-    def _update_preview_plot(self):
-
-        N_RUNS = 1000
-        N_VECTS = 10
-        DIM = 768
-
-        self.figure.clear()
-        ax = self.figure.add_subplot(111)
-
-        # accumulateur
-        avg_weights = None
-        avg_rand = None
-
-        for _ in range(N_RUNS):
-
-            vects = generate_clustered_vects(N_VECTS, DIM)
-            vects_rand = generate_random_vects(N_VECTS, DIM)
-
-            w = np.array(weights_from_cosines(vects, self.selected_weight_fn))
-            w2 = np.array(weights_from_cosines(vects_rand, self.selected_weight_fn))
-
-            if avg_weights is None:
-                avg_weights = w
-                avg_rand = w2
-            else:
-                avg_weights += w
-                avg_rand += w2
-
-        avg_weights /= N_RUNS
-        avg_rand /= N_RUNS
-
-        ax.plot(avg_weights, label="Cluster (avg 1000 runs)")
-        ax.plot(avg_rand, label="Random (avg 1000 runs)")
-
-        ax.set_title("Weight function preview (Monte Carlo)")
-        ax.set_xlabel("Depth")
-        ax.set_ylabel("Weight")
-        ax.legend()
-
-        self.canvas.draw()
-
-    def _on_weight_function_changed(self, index: int):
-        name = self.weight_selector.currentText()
-        self.selected_weight_fn = self.weight_functions[name]
-        print("Selected fn:", self.selected_weight_fn)
-        self._update_preview_plot()
 
     def _apply_stylesheets(self) -> None:
         self.close_button.setIcon(colored_icon("./ui/Icon/close.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"]))
@@ -208,6 +141,10 @@ class HistoryPreview(QWidget):
 
         self.threshold_slider.setValue(int(node.node.threshold * 100))
         self.threshold_value_label.setText(f"{int(node.node.threshold * 100)}%")
+
+        weight_functions = get_weight_function_by_expr(node.node.w_expr)
+
+        self.weight_calculator.set_data(node.node.w_const, weight_functions)
 
         if node is None:
             self.query_edit.clear()
@@ -277,3 +214,10 @@ class HistoryPreview(QWidget):
     
     def _on_theme_changed(self) -> None:
         self._apply_stylesheets()
+
+    # ---------- WEIGHT CALCULATOR -------------
+
+    def _on_weight_calculator_data_changed(self, const : float, expr : WeightSystem) -> None:
+        self.current_node.node.w_const = const
+        self.current_node.node.w_expr = expr
+        history.save()

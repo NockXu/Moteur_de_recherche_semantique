@@ -223,7 +223,8 @@ class ImageSearchedContainerController(QObject):
         if search:
             self.view.search_controller.set_text(search.get("query", ""))
             self.set_threshold(search.get("threshold", 0.5))
-            history.set_current_search(Tree(HistoryData(search.get("query", ""), search.get("threshold", 0.5))))
+
+            history.set_current_search(history.current_search)
 
     def save_search(self):
         data = HistoryData(self.state.query, self.model.threshold)
@@ -231,12 +232,12 @@ class ImageSearchedContainerController(QObject):
         if data:
             save_in_config("current_search", data.to_dict())
 
-            current_search = Tree(data)
-            history.current_search.add_child(current_search)
+            new_search = Tree(data)
+            history.current_search.add_brother(new_search)
             history.history_changed.emit()
 
             history.current_search_updated.disconnect(self.search)
-            history.set_current_search(current_search)
+            history.set_current_search(new_search)
             history.current_search_updated.connect(self.search)
 
             history.save()
