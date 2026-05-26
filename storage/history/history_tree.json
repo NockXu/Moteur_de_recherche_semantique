@@ -11,7 +11,7 @@
                 "query": "Un chat",
                 "threshold": 0.6,
                 "w_const": 1.0,
-                "w_expr": "prev + sim"
+                "w_expr": "const"
             },
             "children": [
                 {
