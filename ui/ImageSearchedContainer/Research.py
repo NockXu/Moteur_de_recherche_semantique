@@ -175,7 +175,7 @@ class Research:
         for image, data in images_before.items():
             score = data["score"]
             # Normalisation du score pour pouvoir afficher un pourcentage
-            image.score = score / (len(results) - 1)
+            image.score = score / len(results)
             final_result["images"].append(image)
 
         final_result["images"].sort(
