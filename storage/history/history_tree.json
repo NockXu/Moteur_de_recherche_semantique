@@ -1,25 +1,25 @@
 {
     "node": {
         "query": "DEFAULT",
-        "threshold": 0.5,
-        "w_const": 1.0,
+        "threshold": 0.6,
+        "w_const": 0.0,
         "w_expr": "const"
     },
     "children": [
         {
             "node": {
                 "query": "Un chat",
-                "threshold": 0.7,
+                "threshold": 0.6,
                 "w_const": 1.0,
-                "w_expr": "const"
+                "w_expr": "prev + sim"
             },
             "children": [
                 {
                     "node": {
-                        "query": "sur lavabo",
+                        "query": "un lavabo",
                         "threshold": 0.6,
                         "w_const": 1.0,
-                        "w_expr": "prev + sim"
+                        "w_expr": "prev * sim"
                     },
                     "children": []
                 },
@@ -28,11 +28,38 @@
                         "query": "noir",
                         "threshold": 0.6,
                         "w_const": 1.0,
-                        "w_expr": "const"
+                        "w_expr": "prev * sim"
                     },
                     "children": []
                 }
             ]
+        },
+        {
+            "node": {
+                "query": "Un chat noir",
+                "threshold": 0.6,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "Un chat sur lavabo",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "noir",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
         }
     ]
 }

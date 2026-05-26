@@ -85,8 +85,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             
             # Afficher le score seulement si > 0
             if self._score > 0:
-                score_percentage = int(self._score * 100)
-                score_widget.setText(f"{score_percentage}%")
+                score_widget.setText(f"{self._score:.2f}")
             
             # Ajouter au layout
             title_layout.addWidget(title_widget)

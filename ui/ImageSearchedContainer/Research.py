@@ -72,11 +72,12 @@ class Research:
         self
     ) -> List[Optional[SearchResults]]:
 
-        research_history = history.history_tree.get_all_ancestors()
+        research_history = history.current_search.get_all_ancestors()
+        print(research_history)
         query_embeds = []
         results : List[SearchResults] = []
         weights : List[float] = []
-        images_before : Dict[Image, int] = {}
+        images_before : Dict[Image, Dict[str, int]] = {}
 
 
         # -------------------------
@@ -95,13 +96,17 @@ class Research:
             weight : float = 0
             sim : float = 0
             query = research.node.query
+        
             if not query or query == "DEFAULT":
-                all_images = self.image_repository.get_k(self.k)
-                result = SearchResults(
-                    images=all_images if all_images else [],
-                    k=self.k
-                )
-                return result
+                if len(research_history) <= 1:
+                    all_images = self.image_repository.get_k(self.k)
+                    result = SearchResults(
+                        images=all_images if all_images else [],
+                        k=self.k
+                    )
+                    return result
+                else:
+                    continue
 
             # -------------------------
             # EMBEDDING GENERATION
@@ -151,10 +156,11 @@ class Research:
                 # -------------------------
                 for image in result["images"]:
                     if image not in images_before:
-                        images_before[image] = 1
+                        images_before[image] = {"score": image.score * weight}
                     else:
-                        images_before[image] = images_before[image] + 1
-                    image_scores[image] += image.score * weight
+                        images_before[image]["score"] += image.score * weight
+
+                
 
         if len(results) <= 0:
             return None
@@ -162,39 +168,22 @@ class Research:
         # -------------------------
         # SCORES ADJUSTEMENT PART 2
         # -------------------------
-        final_result = SearchResults()
-        for image, count in images_before.items():
-            image.score = image.score / count
+        final_result: SearchResults = {
+            "images": [],
+            "k": self.k
+        }
+        for image, data in images_before.items():
+            score = data["score"]
+            # Normalisation du score pour pouvoir afficher un pourcentage
+            image.score = score / (len(results) - 1)
             final_result["images"].append(image)
+
+        final_result["images"].sort(
+            key=lambda img: img.score,
+            reverse=True
+        )
         
         return final_result
-    
-    def multi_query_score(
-        self,
-        scores: List[float],
-        weights: Optional[List[float]] = None
-    ) -> float:
-
-        if weights is None:
-            weights = [1.0] * len(scores)
-
-        if len(scores) != len(weights):
-            raise ValueError("scores and weights must have same length")
-
-        weight_sum = np.sum(weights)
-
-        if weight_sum == 0:
-            return 0.0
-
-        return float(np.dot(scores, weights) / weight_sum)
-
-    def get_weights(self, tree : Tree) -> List[float]:
-        weights : List[float] = []
-
-        for i in range(0, tree.get_number_generation(), 1):
-            weights.append(i)
-
-        return weights
 
 if __name__ == "__main__":
     db = DbService()

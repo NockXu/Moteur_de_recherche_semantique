@@ -27,10 +27,7 @@ class EmbeddingWorker(QObject):
 
     def run(self):
         try:
-            result = self.auto_research.find(
-                query=self.query,
-                threshold=self.threshold
-            )
+            result = self.auto_research.multi_find()
             
             if result is None:
                 self.on_finished({'images': [], 'k': self.auto_research.k})
