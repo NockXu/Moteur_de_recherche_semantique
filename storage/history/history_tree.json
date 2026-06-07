@@ -10,7 +10,7 @@
             "node": {
                 "query": "Un chat",
                 "threshold": 0.6,
-                "w_const": 1.0,
+                "w_const": 2.0,
                 "w_expr": "const"
             },
             "children": [
@@ -28,7 +28,7 @@
                         "query": "noir",
                         "threshold": 0.6,
                         "w_const": 1.0,
-                        "w_expr": "prev * sim"
+                        "w_expr": "const"
                     },
                     "children": []
                 }
@@ -56,6 +56,15 @@
             "node": {
                 "query": "noir",
                 "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "tableau",
+                "threshold": 0.6,
                 "w_const": 1.0,
                 "w_expr": "const"
             },

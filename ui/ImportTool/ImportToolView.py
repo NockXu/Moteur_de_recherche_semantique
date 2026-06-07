@@ -385,6 +385,7 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def cleanup(self):
+        self.connection_verificator.cleanup()
         self._clear()
 
     # ─────────────────────────────────────────────

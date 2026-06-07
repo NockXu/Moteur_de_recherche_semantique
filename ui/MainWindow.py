@@ -3,6 +3,8 @@ import os
 from dotenv import load_dotenv
 from numpy import save
 
+from .ImageAnalysator.ImageAnalysator import ImageAnalysator
+
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
@@ -59,7 +61,7 @@ class MainWindow(QMainWindow):
         self.showMaximized()
 
         self._load_all()
-    
+
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
         # Initialise le wrapper avec la configuration
@@ -173,6 +175,11 @@ class MainWindow(QMainWindow):
         self.menu_controller.toggle_import_tool.connect(self._on_toggle_import_tool)
         self.menu_controller.theme_changed.connect(self._on_theme_changed)
 
+        # Connection des signaux de la preview
+        self.image_preview_controller.view.image_analysator.image_view.results_displayed.connect(self.image_container_controller._on_results_displayed)
+        self.image_preview_controller.view.image_analysator.sam3_widget.results_cleared.connect(self.image_container_controller._on_results_cleared)
+        self.image_preview_controller.view.image_analysator.sam3_widget.multi_prompts_send.connect(self.image_container_controller._on_multi_send)
+
     def _on_theme_changed(self, theme: str):
         """Gère le changement de thème"""
         print(f"Changement de thème: {theme}")
@@ -192,8 +199,6 @@ class MainWindow(QMainWindow):
         # Afficher le dock de preview s'il est caché
         if self.preview_dock.isHidden():
             self.preview_dock.show()
-        
-        print(f"Image sélectionnée: {os.path.basename(img.path)}")
     
     def _on_connection_status_changed(self, state, version: str, error_message: str):
         """Gère les changements de statut de connexion Ollama"""
@@ -235,6 +240,10 @@ class MainWindow(QMainWindow):
             if hasattr(self, 'import_tool_controller'):
                 print("Arrêt de ImportTool...")
                 self.import_tool_controller.cleanup()
+
+            if hasattr(self, 'image_container_controller'):
+                print("Arret de ImageSearchedContainer...")
+                self.image_container_controller.cleanup()
                 
                 # Attendre que tous les threads se terminent
                 import time

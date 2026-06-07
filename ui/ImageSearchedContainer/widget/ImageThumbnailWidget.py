@@ -1,174 +1,138 @@
 import os
+from typing import Optional
+
+from PyQt6.QtCore import Qt, pyqtSignal, pyqtSlot, QTimer
+from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont
+from PyQt6.QtWidgets import QLabel, QHBoxLayout, QSizePolicy
 
 from ui.widgets.ImageThumbnailWidget import ImageThumbnailWidget as BaseImageThumbnailWidget
-from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont
-from PyQt6.QtCore import Qt, pyqtSignal
-from PyQt6.QtWidgets import QLabel, QHBoxLayout, QVBoxLayout, QSizePolicy
+from common.Image_Classes.Image import Image
 
 
 class ImageThumbnailWidget(BaseImageThumbnailWidget):
-    """
-    Miniature d'image avec titre, hauteur dynamique (style Pinterest).
-    Avec support lazy loading
-    """
-    
-    # Signal émis quand l'image est chargée et la taille change
+
     image_loaded = pyqtSignal()
 
     def __init__(
-        self, 
-        image_path: str, 
-        title: str = "", 
+        self,
+        image: Optional[Image],
         col_width: int = 200,
         lazy: bool = False,
-        score: float = 0.0
     ):
-        # État lazy loading AVANT super().__init__
         self._lazy_mode = lazy
-        self._is_loaded = not lazy  # Si pas lazy, considérer comme chargé
-        self._original_image_path = image_path
-        self._score = score
-        self._title = title
-        
-        # Passer le titre sans score au parent (on va gérer le score nous-mêmes)
+        self._is_loaded = not lazy
+        self._pixmap_ready = False
+        self._image: Image = image
+        self._pending_results = None
+
+        super().__init__(
+            image_path=str(self._image.path),
+            title=self._image.name,
+            status=None,
+            col_width=col_width,
+            show_status_badge=False,
+            show_title=False,
+        )
+
         if lazy:
-            placeholder_path = self._create_placeholder()
-            super().__init__(
-                image_path=placeholder_path,
-                title=title,  # Titre seul
-                status=None,
-                col_width=col_width,
-                show_status_badge=False,
-            )
-        else:
-            # Mode normal : chargement immédiat
-            super().__init__(
-                image_path=image_path,
-                title=title,  # Titre seul
-                status=None,
-                col_width=col_width,
-                show_status_badge=False,
-            )
-        
-        # Personnaliser l'affichage du titre et du score
+            self.cancel_load()
+
+        self.image_label.set_image(image)
         self._customize_title_layout()
-    
-    def _create_placeholder(self) -> str:
-        """
-        Crée un placeholder gris et retourne son chemin
-        (ou None si le widget parent gère déjà les pixmaps vides)
-        """
-        # Si BaseImageThumbnailWidget gère bien les chemins invalides,
-        # on peut juste retourner un chemin vide
-        return ""
-    
-    def _customize_title_layout(self):
-        """Personnaliser l'affichage du titre et du score"""
-        if hasattr(self, 'title_label'):
-            # Créer un layout horizontal pour titre + score
-            title_layout = QHBoxLayout()
-            title_layout.setContentsMargins(8, 4, 8, 8)
-            title_layout.setSpacing(4)
-            
-            # Titre à gauche
-            title_widget = QLabel(self._title)
-            title_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
-            title_widget.setWordWrap(True)
-            title_widget.setFont(QFont("Segoe UI", 9))
-            title_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
-            
-            # Score à droite en pourcentage
-            score_widget = QLabel("")
-            score_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
-            score_widget.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
-            score_widget.setStyleSheet(f"color: {os.environ["QTMATERIAL_PRIMARYTEXTCOLOR"]}; margin-left: 8px;")
-            
-            # Afficher le score seulement si > 0
-            if self._score > 0:
-                score_widget.setText(f"{self._score:.2f}")
-            
-            # Ajouter au layout
-            title_layout.addWidget(title_widget)
-            title_layout.addWidget(score_widget)
-            
-            # Remplacer le layout existant
-            if hasattr(self.title_label, 'parent') and self.title_label.parent():
-                # Retirer l'ancien label et ajouter le nouveau layout
-                parent_layout = self.title_label.parent().layout()
-                if parent_layout:
-                    parent_layout.removeWidget(self.title_label)
-                    self.title_label.deleteLater()
-                    parent_layout.addLayout(title_layout)
-    
-    def load_image(self):
-        """
-        ✅ Méthode appelée par le lazy loader pour charger l'image réelle
-        """
-        if self._is_loaded or not self._lazy_mode:
-            return
-        
-        try:
-            # Charger l'image depuis le chemin original
-            pixmap = QPixmap(self._original_image_path)
-            
-            if not pixmap.isNull():
-                # Redimensionner pour optimisation RAM
-                scaled = pixmap.scaled(
-                    self.col_width * 2,  # 2x pour retina
-                    4000,  # Hauteur max
-                    Qt.AspectRatioMode.KeepAspectRatio,
-                    Qt.TransformationMode.SmoothTransformation
-                )
-                
-                # Mettre à jour le pixmap dans le widget parent
-                # (selon l'implémentation de BaseImageThumbnailWidget)
-                if hasattr(self, 'image_label'):
-                    self.image_label.setPixmap(scaled)
-                elif hasattr(self, 'set_image'):
-                    self.set_image(scaled)
-                
-                self._is_loaded = True
-                
-                # Notifier que l'image a changé de taille
-                self.image_loaded.emit()
-                
-        except Exception as e:
-            print(f"[LAZY] Failed to load {self._original_image_path}: {e}")
-            self._show_error()
-    
-    def _show_error(self):
-        """Affiche un indicateur d'erreur"""
-        if hasattr(self, 'image_label'):
-            error_pixmap = QPixmap(200, 200)
-            error_pixmap.fill(QColor(255, 200, 200))
-            
-            painter = QPainter(error_pixmap)
-            painter.setPen(QColor(200, 0, 0))
-            painter.drawText(
-                error_pixmap.rect(), 
-                Qt.AlignmentFlag.AlignCenter, 
-                "❌ Erreur"
-            )
-            painter.end()
-            
-            self.image_label.setPixmap(error_pixmap)
-    
-    def unload_image(self):
-        """
-        ✅ Décharge l'image pour libérer RAM (optionnel)
-        Utile pour très grandes collections
-        """
-        if self._is_loaded and self._lazy_mode:
-            # Remettre le placeholder
-            placeholder_pixmap = QPixmap(self.col_width, self.col_width)
-            placeholder_pixmap.fill(QColor(240, 240, 240))
-            
-            if hasattr(self, 'image_label'):
-                self.image_label.setPixmap(placeholder_pixmap)
-            
-            self._is_loaded = False
-    
+
+    @property
+    def aspect_ratio(self):
+        return self._image.aspect_ratio
+
     @property
     def is_loaded(self):
-        """Pour que le lazy loader puisse vérifier l'état"""
         return self._is_loaded
+
+    def load_image(self):
+        if self._is_loaded or not self._lazy_mode:
+            return
+        self._start_async_load()
+
+    @pyqtSlot(QPixmap)
+    def _on_pixmap_loaded(self, thumb: QPixmap):
+        super()._on_pixmap_loaded(thumb)
+        self._pixmap_ready = True
+        self._is_loaded = True
+
+        if self._pending_results is not None:
+            # Attendre que le layout soit stabilisé avant de dessiner
+            QTimer.singleShot(0, self._apply_pending_results)
+
+        self.image_loaded.emit()
+
+    def _apply_pending_results(self):
+        if self._pending_results is not None:
+            self.image_label.set_results(self._pending_results)
+            self.image_label.update()
+
+    def set_result(self, result):
+        if not result:
+            return
+
+        print("set_result called", self._image.name, result)
+        
+        self._pending_results = result
+
+        if self._pixmap_ready:
+            # Même chose ici : laisser le layout se stabiliser
+            QTimer.singleShot(0, self._apply_pending_results)
+
+    def unload_image(self):
+        if self._is_loaded and self._lazy_mode:
+            self.image_label.set_source_pixmap(QPixmap())
+            self._is_loaded = False
+            self._pixmap_ready = False
+
+    @pyqtSlot()
+    def _show_error(self):
+        error_pixmap = QPixmap(200, 200)
+        error_pixmap.fill(QColor(255, 200, 200))
+        painter = QPainter(error_pixmap)
+        painter.setPen(QColor(200, 0, 0))
+        painter.drawText(error_pixmap.rect(), Qt.AlignmentFlag.AlignCenter, "❌")
+        painter.end()
+        self.image_label.set_source_pixmap(error_pixmap)
+        self._pixmap_ready = True
+        self._is_loaded = True
+        self.image_loaded.emit()
+
+    def _customize_title_layout(self):
+        if not hasattr(self, 'title_label'):
+            return
+
+        title_layout = QHBoxLayout()
+        title_layout.setContentsMargins(8, 4, 8, 8)
+        title_layout.setSpacing(4)
+
+        title_widget = QLabel(self._image.name)
+        title_widget.setAlignment(Qt.AlignmentFlag.AlignLeft)
+        title_widget.setWordWrap(True)
+        title_widget.setFont(QFont("Segoe UI", 9))
+        title_widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Preferred)
+
+        score_widget = QLabel("")
+        score_widget.setAlignment(Qt.AlignmentFlag.AlignRight | Qt.AlignmentFlag.AlignVCenter)
+        score_widget.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        score_widget.setStyleSheet(
+            f"color: {os.environ['QTMATERIAL_PRIMARYTEXTCOLOR']}; margin-left: 8px;"
+        )
+        if self._image.score > 0:
+            score_widget.setText(f"{self._image.score:.2f}")
+
+        title_layout.addWidget(title_widget)
+        title_layout.addWidget(score_widget)
+
+        parent_layout = self.title_label.parent().layout() if self.title_label.parent() else None
+        if parent_layout:
+            parent_layout.removeWidget(self.title_label)
+            self.title_label.deleteLater()
+            parent_layout.addLayout(title_layout)
+
+    def clear_results(self):
+        self.image_label.clear_results()
+        self._pending_results = None

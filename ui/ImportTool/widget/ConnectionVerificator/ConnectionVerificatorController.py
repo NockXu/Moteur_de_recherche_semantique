@@ -80,7 +80,7 @@ class ConnectionVerificatorController(QObject):
     
     def check_connection(self):
         """Démarre une vérification de connexion"""
-        if self.is_checking:
+        if self.is_checking or (self.worker and self.worker.isRunning()):
             # Si déjà en cours, ignorer la demande
             return
         
@@ -96,14 +96,15 @@ class ConnectionVerificatorController(QObject):
         self.worker = ConnectionWorker(self.model)
         self.worker.check_completed.connect(self._on_check_completed)
         self.worker.check_error.connect(self._on_check_error)
+        self.worker.finished.connect(lambda worker=self.worker: self._on_worker_finished(worker))
         self.worker.start()
     
     def _stop_checking(self):
         """Arrête le processus de vérification"""
         if self.worker:
             self.worker.stop()
-            self.worker.wait(1000)  # Attendre max 1 seconde
-            self.worker = None
+            if self.worker.isRunning():
+                self.worker.wait()
         
         self.is_checking = False
         self.view.set_checking(False)
@@ -111,7 +112,6 @@ class ConnectionVerificatorController(QObject):
     def _on_check_completed(self, state: State, version: str, error_message: str):
         """Gère la fin de la vérification"""
         self.is_checking = False
-        self.worker = None
         
         # Mettre à jour la vue
         self.view.update_status(state, version, error_message)
@@ -126,7 +126,6 @@ class ConnectionVerificatorController(QObject):
     def _on_check_error(self, error_message: str):
         """Gère les erreurs de vérification"""
         self.is_checking = False
-        self.worker = None
         
         # Mettre à jour la vue avec l'erreur
         self.view.update_status(State.ERROR, "", error_message)
@@ -153,6 +152,12 @@ class ConnectionVerificatorController(QObject):
     def get_view(self) -> QWidget:
         """Retourne la vue"""
         return self.view
+
+    def _on_worker_finished(self, worker: ConnectionWorker):
+        """Libere la reference seulement quand le QThread est termine."""
+        if self.worker is worker:
+            self.worker = None
+        worker.deleteLater()
     
     def cleanup(self):
         """Nettoie les ressources"""

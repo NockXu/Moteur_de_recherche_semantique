@@ -9,10 +9,11 @@ from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QPixmap
 
 from common.Image_Classes.Image import Image
+from common.Dataset_Classes.Dataset import Dataset
 
 from ui.utils.FlowLayout import FlowLayout
 from ui.utils.ResponsiveImageLabel import ResponsiveImageLabel
-
+from ui.ImageAnalysator.ImageAnalysator import ImageAnalysator
 
 class ImagePreviewView(QWidget):
     """
@@ -66,15 +67,13 @@ class ImagePreviewView(QWidget):
         image_layout.setSpacing(12)
 
         # Image display
-        self.image_label = ResponsiveImageLabel()
-        self.image_label.setSizePolicy(
+        self.image_analysator = ImageAnalysator()
+        self.image_analysator.show_loader_bar = False
+        self.image_analysator.setSizePolicy(
             QSizePolicy.Policy.Expanding,
             QSizePolicy.Policy.Expanding
         )
-        self.image_label.setMinimumSize(1, 1)
-        self.image_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.image_label.setStyleSheet("QLabel { background: transparent; }")
-        image_layout.addWidget(self.image_label)
+        image_layout.addWidget(self.image_analysator)
 
         # Nom de l'image (sous l'image, style caption)
         self.title = QLabel()
@@ -195,10 +194,8 @@ class ImagePreviewView(QWidget):
 
     def display_image(self, image: Image | None):
         self._current_image = image
-        print("Displaying image:", image)
-        if not image:
-            self._clear()
-            return
+
+        self._clear()
 
         # Masquer l'empty state
         self.empty.hide()
@@ -207,22 +204,13 @@ class ImagePreviewView(QWidget):
         self.path_group.show()
         self.desc_group.show()
         self.tags_group.show()
+        
 
         # ═══════════════════════════════════════════════════════════
         # IMAGE
         # ═══════════════════════════════════════════════════════════
         
-        try:
-            pixmap = QPixmap(str(image.path))
-            if not pixmap.isNull():
-                self.image_label.setPixmap(pixmap)
-            else:
-                self.image_label.setText("⚠\nImage non chargeable")
-                self.image_label.setFixedSize(200, 200)
-        except Exception as e:
-            print(f"[PREVIEW] Erreur chargement image: {e}")
-            self.image_label.setText("⚠\nErreur de chargement")
-            self.image_label.setFixedSize(200, 200)
+        self.image_analysator.set_image(image)
 
         # ═══════════════════════════════════════════════════════════
         # TITRE
@@ -292,9 +280,7 @@ class ImagePreviewView(QWidget):
         self.tags_group.hide()
 
         # Réinitialiser l'image
-        self.image_label.clear()
-        self.image_label.setText("")
-        self.image_label.setFixedSize(0, 0)
+        self.image_analysator.clear()
         
         # Réinitialiser le titre
         self.title.setText("")

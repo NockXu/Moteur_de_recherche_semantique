@@ -6,6 +6,39 @@ Ce projet est un moteur de recherche sémantique d’images basé sur des embedd
 
 Il permet d’indexer, analyser et retrouver des images en fonction de leur contenu sémantique plutôt que de simples correspondances de mots-clés.
 
+## Prérequis
+
+- Python 3.12 minimum
+- une carte graphique compatible CUDA (pour l'utilisation de GPU)
+
+## Installation
+
+1. Installer les dépandances pip
+```bash
+pip install -r requirements.txt
+```
+
+2. Installer PyTorch qui prend en charge CUDA
+```bash
+pip install torch==2.10.0 torchvision --index-url https://download.pytorch.org/whl/cu128
+```
+
+3. Cloner le dépôt git de sam3 et installer les dépendances
+```bash
+cd vision
+git clone https://github.com/facebookresearch/sam3.git
+cd sam3
+pip install -e .
+cd ../..
+```
+
+4. Installer les dépendances manquantes
+```bash
+pip install -r requirementsv2.txt
+```
+
+[Voir plus sur l'installation de sam3](https://github.com/facebookresearch/sam3)
+
 ## Sommaire
 
 ### Vision

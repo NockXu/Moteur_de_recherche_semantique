@@ -285,7 +285,7 @@ class ImportToolController(QObject):
             self._db_loader.wait()
 
         if self.is_processing():
-            self.processing_manager.stop_current_processing()
+            self.processing_manager.stop_current_processing(wait=True)
 
         self.view.cleanup()
 

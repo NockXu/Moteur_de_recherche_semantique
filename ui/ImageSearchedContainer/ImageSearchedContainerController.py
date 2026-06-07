@@ -11,8 +11,10 @@ from common.Image_Classes.ImageRepository import ImageRepository, SearchResults
 from database.DbService import DbService
 
 from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
+from vision.SAM3AsyncManager import get_sam3_manager
 
 from common.History_Classes import history, HistoryData, Tree
+from common.Image_Classes.Image import Image
 
 from ui import save_in_config, load_from_config
 
@@ -47,6 +49,8 @@ class ImageSearchedContainerController(QObject):
 
         # async engine
         self.embedding_manager = AsyncEmbeddingManager()
+        self.sam3_manager = get_sam3_manager()
+        self._sam3_jobs: dict[str, Image] = {}
 
         # state
         self.state = SearchState()
@@ -67,13 +71,67 @@ class ImageSearchedContainerController(QObject):
         self.view.reload_requested.connect(self.reload_images)
         self.view.search_controller.view.search_triggered.connect(self._on_search_triggered)
         self.embedding_manager.result.connect(self._on_search_finished)
+        self.sam3_manager.result.connect(self._on_sam3_image_finished)
+        self.sam3_manager.error.connect(self._on_sam3_image_error)
         self.view.threshold_changed.connect(self._on_threshold_changed)
         history.current_search_updated.connect(self.search)
+
+    def _on_results_displayed(self, results: dict[str, list[dict]]):
+        """
+        Slot connecté à Image Preview
+
+        Reçoit la liste de dicts :
+            [{"type":"result", "prompt":str, "index":int,
+              "score":float, "box":[x1,y1,x2,y2],
+              "color": QColor, ...}, ...]
+
+        Quand la liste contient tous les résultats (aucune sélection),
+        ResultsTable les émet tous — on les affiche tous normalement.
+        """
+        self.view.update_images(results)
+
+    def _on_results_cleared(self, image_paths: list[str]):
+        """
+        Slot connecté à Image Preview
+
+        Quand les résultats sont effacés, on met à jour la vue.
+        """
+        self.view.clear_results(image_paths)
+
+    def _on_multi_send(self, prompts: list[dict]):
+        """
+        Slot connecté à SAM3Widget
+
+        Reçoit la liste de prompts et les envoie à l'embedding manager.
+        """
+        if not prompts:
+            return
+
+        for image in self.model.get_visible_images():
+            job_id = self.sam3_manager.process_image(str(image.path), prompts)
+            self._sam3_jobs[job_id] = image
+
+    def _on_sam3_image_finished(self, job_id: str, image_path: str, results):
+        image = self._sam3_jobs.pop(job_id, None)
+        if image is None:
+            return
+
+        image.set_SAM3_results(results)
+        print(results)
+        self.view.update_images({str(image.path): results})
+
+    def _on_sam3_image_error(self, job_id: str, error: str):
+        if not job_id or job_id not in self._sam3_jobs:
+            return
+
+        image = self._sam3_jobs.pop(job_id)
+        print(f"[SAM3 multi-image ERROR] {image.path}: {error}")
 
     # ─────────────────────────────
     # SEARCH ENTRY POINT
     # ─────────────────────────────
     def _on_search_triggered(self, search_text: str):
+        self._sam3_jobs.clear()
         self.state.query = search_text
         self.state.cursor = None
         self.state.has_more = False
@@ -94,6 +152,7 @@ class ImageSearchedContainerController(QObject):
         )
 
     def search(self):
+        self._sam3_jobs.clear()
         search_text = history.current_search.node.query
 
         self.view.search_controller.set_text(search_text)
@@ -179,11 +238,9 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # CLICK
     # ─────────────────────────────
-    def _on_image_clicked(self, image_path: str):
-        image_info = self.model.get_image_by_path(image_path)
-
-        if self.image_click_callback and image_info:
-            self.image_click_callback(image_info)
+    def _on_image_clicked(self, image: Optional[Image]) -> None:
+        if self.image_click_callback and image:
+            self.image_click_callback(image)
 
     # ─────────────────────────────
     # PUBLIC API
@@ -195,11 +252,13 @@ class ImageSearchedContainerController(QObject):
         self.image_click_callback = callback
 
     def clear_images(self):
+        self._sam3_jobs.clear()
         self.model.reset()
         self.state = SearchState()
         self._update_view()
 
     def reload_images(self):
+        self._sam3_jobs.clear()
         self.model.reset()
         self.view.clear()
         search_results = self.research.find()
@@ -225,6 +284,9 @@ class ImageSearchedContainerController(QObject):
             self.set_threshold(search.get("threshold", 0.5))
 
             history.set_current_search(history.current_search)
+
+    def cleanup(self):
+        self.embedding_manager.stop_search()
 
     def save_search(self):
         data = HistoryData(self.state.query, self.model.threshold)

@@ -206,12 +206,22 @@ class BatchProcessingManager:
         if on_stopped:
             self.current_worker.processing_stopped.connect(on_stopped)
 
+        self.current_worker.finished.connect(
+            lambda worker=self.current_worker: self._clear_worker(worker)
+        )
         self.current_worker.start()
         return self.current_worker
 
-    def stop_current_processing(self):
+    def _clear_worker(self, worker: ProcessingWorker):
+        if self.current_worker is worker:
+            self.current_worker = None
+        worker.deleteLater()
+
+    def stop_current_processing(self, wait: bool = False):
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.stop()
+            if wait:
+                self.current_worker.wait()
 
     def is_processing(self) -> bool:
         return self.current_worker is not None and self.current_worker.isRunning()

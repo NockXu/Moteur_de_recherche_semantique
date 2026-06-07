@@ -7,6 +7,7 @@ from enum import Enum
 import os
 import sys
 import hashlib
+from PIL import Image as PILImage
 
 from common.Dataset_Classes.Dataset import Dataset
 
@@ -101,6 +102,7 @@ class Image:
 
         # File metadata
         self.name = name or self.path.name
+        self.title = self.name
         self.stem = self.path.stem
         self.suffix = self.path.suffix.lower()
 
@@ -108,6 +110,26 @@ class Image:
             self.size = self.path.stat().st_size
         except Exception:
             self.size = 0
+
+        self._sam3_results = None
+        # Image dimensions (for layout system)
+        self.width = 0
+        self.height = 0
+        self.aspect_ratio = 1.0
+
+        self._load_image_metadata()
+
+    def _load_image_metadata(self):
+        try:
+            with PILImage.open(self.path) as img:
+                self.width, self.height = img.size
+                self.aspect_ratio = (
+                    self.width / self.height if self.height else 1.0
+                )
+        except Exception as e:
+            self.width = 0
+            self.height = 0
+            self.aspect_ratio = 1.0
 
     # =========================
     # SERIALIZATION
@@ -253,3 +275,21 @@ class Image:
             Hash value of the image ID.
         """
         return hash(self.id)
+
+    def set_SAM3_results(self, results : Optional[List[Dict[str, Any]]]):
+        """
+        Set the SAM3 results for the image.
+        
+        Args:
+            results: The SAM3 results to set.
+        """
+        self._sam3_results = results
+
+    def get_SAM3_results(self) -> Optional[List[Dict[str, Any]]]:
+        """
+        Get the SAM3 results for the image.
+        
+        Returns:
+            The SAM3 results.
+        """
+        return self._sam3_results
