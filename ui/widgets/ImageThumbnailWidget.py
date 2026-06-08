@@ -205,9 +205,8 @@ class _ClickableLabel(QLabel):
         self._original_size = QImageReader(str(image.path)).size()
 
     def set_results(self, results):
-        if results not in [None, []]:
-            self._results = results
-        self.update()
+        self._results = results if results else None
+        self.repaint()
 
     def clear_results(self):
         self._results = None
@@ -250,21 +249,16 @@ class _ClickableLabel(QLabel):
         if not current or current.isNull():
             return
 
-        sx = current.width() / self._original_size.width()
-        sy = current.height() / self._original_size.height()
-
-        scaled_results = []
-        for entry in self._results:
-            box = entry.get("box")
-            if box:
-                x1, y1, x2, y2 = box
-                entry = dict(entry)
-                entry["box"] = [x1 * sx, y1 * sy, x2 * sx, y2 * sy]
-            scaled_results.append(entry)
-
         painter = QPainter(self)
         label_rect = QRect(0, 0, self.width(), self.height())
-        draw_results(painter, scaled_results, label_rect, current.size())
+        
+        draw_results(
+            painter,
+            self._results,
+            label_rect,
+            current.size()
+        )
+        
         painter.end()
 
 

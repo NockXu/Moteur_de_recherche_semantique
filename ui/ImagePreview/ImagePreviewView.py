@@ -195,8 +195,6 @@ class ImagePreviewView(QWidget):
     def display_image(self, image: Image | None):
         self._current_image = image
 
-        self._clear()
-
         # Masquer l'empty state
         self.empty.hide()
         

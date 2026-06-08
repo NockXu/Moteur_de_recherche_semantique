@@ -31,6 +31,7 @@ class ImageAnalysator(QWidget):
 
     def set_image(self, image: Image):
         self.image_path = image.path
+        self.clear()
         self.image_view.setImage(image.path)
         self.image_view.updateScaledPixmap()
         self.sam3_widget.set_image(image)
@@ -85,7 +86,6 @@ class ImageAnalysator(QWidget):
 
     def clear(self):
         self.image_view.clear_results()
-        self.image_view.set_active_results([{}])
         self.sam3_widget._clear_local_results()
 
 if __name__ == "__main__":

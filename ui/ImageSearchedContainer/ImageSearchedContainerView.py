@@ -1,9 +1,10 @@
 import sys
 import os
+from typing import List, Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea,
-    QPushButton, QHBoxLayout, QSlider
+    QPushButton, QHBoxLayout, QSlider, QComboBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -48,6 +49,7 @@ class ImageSearchedContainerView(QWidget):
         super().__init__(parent)
 
         self._cards: list[LazyImageCard] = []
+        self._active_widgets: set[ImageThumbnailWidget] = set()
         self._loading = False
 
         # lazy config
@@ -62,6 +64,8 @@ class ImageSearchedContainerView(QWidget):
         self._total_loaded = 0
 
         self.search_controller = SearchBarController()
+
+        self._filter_mode = "none"
 
         self._setup_ui()
         self._apply_styles()
@@ -83,8 +87,25 @@ class ImageSearchedContainerView(QWidget):
         header.addWidget(self.reload_button)
         header.addStretch()
 
+        self.right_layout = QHBoxLayout()
+        self.filter_combo = QComboBox()
+        self.filter_combo.addItem("Aucun filtre", "none")
+        self.filter_combo.addItem("Score décroissant", "score_desc")
+        self.filter_combo.addItem("Score croissant", "score_asc")
+        self.filter_combo.addItem("Nombre de résultats", "count_desc")
+
+        self.filter_combo.currentTextChanged.connect(self._on_filter_changed)
+
+        self.filter_combo.hide()
+
         self.search_controller.view.setMinimumWidth(300)
-        header.addWidget(self.search_controller.view)
+
+        self.right_layout.addWidget(self.filter_combo)
+        self.right_layout.addWidget(self.search_controller.view)
+
+        self.right_layout.setSpacing(8)
+
+        header.addLayout(self.right_layout)
 
         layout.addLayout(header)
 
@@ -239,6 +260,8 @@ class ImageSearchedContainerView(QWidget):
         if self._lazy_enabled:
             QTimer.singleShot(100, self._check_visible_cards)
 
+        self._update_filter_ui_visibility()
+
     def _on_image_loaded(self, card: LazyImageCard):
         """
         Appelé quand le widget a vraiment fini de charger sa pixmap.
@@ -261,6 +284,8 @@ class ImageSearchedContainerView(QWidget):
             if w:
                 w.set_result(results)
 
+        self._update_filter_ui_visibility()
+
     def clear_results(self, images_paths: list[str]):
         widgets = {
             str(c.image.path): c.widget
@@ -273,6 +298,47 @@ class ImageSearchedContainerView(QWidget):
             if w:
                 w.clear_results()
 
+        self._update_filter_ui_visibility()
+    
+    def get_widgets(self, sam3_result: bool = False) -> Optional[List[ImageThumbnailWidget]]:
+        if sam3_result:
+            return [
+                c.widget
+                for c in self._cards
+                if c.widget and c.widget.image_label._results
+            ]
+
+        return [
+            c.widget
+            for c in self._cards
+            if c.widget
+        ]
+
+    def show_only(self, widgets: List[ImageThumbnailWidget]) -> None:
+        widgets_set = set(widgets)
+
+        for card in self._cards:
+            if card.widget:
+                try:
+                    card.widget.setVisible(card.widget in widgets_set)
+                except RuntimeError:
+                    continue
+
+        self.gallery_layout.invalidate()
+        QTimer.singleShot(0, self.gallery_layout.update)
+
+    def _gallery_apply_visibility(self):
+        for card in self._cards:
+            if not card.widget:
+                continue
+
+            visible = card.widget in self._active_widgets or not self._active_widgets
+
+            card.widget.setVisible(visible)
+
+        self.gallery_layout.invalidate()
+        self.gallery_layout.update()
+    
     # ─────────────────────────────────────────────
     # CLEAR
     # ─────────────────────────────────────────────
@@ -281,6 +347,7 @@ class ImageSearchedContainerView(QWidget):
         self._cards.clear()
         self._render_queue.clear()
         self._lazy_timer.stop()
+        self.clear_filters()
 
         while self.gallery_layout.count():
             item = self.gallery_layout.takeAt(0)
@@ -290,6 +357,19 @@ class ImageSearchedContainerView(QWidget):
         self.number_img_label.setText("0 image")
         self._total_loaded = 0
         self._loading = False
+
+    def clear_filters(self):
+        self._active_widgets.clear()
+
+        for card in self._cards:
+            if card.widget:
+                card.widget.setVisible(True)
+
+        # reset layout order
+        self.gallery_layout.set_visible_items(self.gallery_layout._item_list)
+
+        self.gallery_layout.invalidate()
+        self.gallery_layout.update()
 
     # ─────────────────────────────────────────────
     # CONFIG
@@ -314,6 +394,98 @@ class ImageSearchedContainerView(QWidget):
 
     def _on_theme_changed(self):
         self._apply_styles()
+
+    # ─────────────────────────────────────────────
+    # FILTER
+    # ─────────────────────────────────────────────
+
+    def _on_filter_changed(self, _=None):
+        mode = self.filter_combo.currentData()
+
+        if mode is None:
+            mode = self.filter_combo.itemData(self.filter_combo.currentIndex())
+
+        self._filter_mode = mode
+        print("FILTER CHANGED:", self._filter_mode)
+        self.apply_sam3_filter()
+
+    def _update_filter_ui_visibility(self):
+        has_results = any(
+            c.widget and c.widget.image_label._results
+            for c in self._cards
+        )
+
+        self.filter_combo.setVisible(has_results)
+
+    def set_filter_mode(self, mode: str):
+        self._filter_mode = mode
+        self.apply_sam3_filter()
+
+    def apply_sam3_filter(self, min_score: float = 0.0):
+        if self._filter_mode == "none":
+            for card in self._cards:
+                if card.widget:
+                    card.widget.setVisible(True)
+
+            self.gallery_layout.set_visible_items(None)
+
+
+            self.gallery_layout.invalidate()
+            self.masonry.adjustSize()
+            return
+        
+        items = []
+
+        for card in self._cards:
+            if not card.widget:
+                continue
+            
+            results = card.widget.image_label._results
+            if not results:
+                continue
+
+            scores = [r.get("score", 0) for r in results]
+            best_score = max(scores)
+            count = len(results)
+
+            if best_score < min_score:
+                continue
+
+            items.append((card.widget, best_score, count))
+
+        if self._filter_mode == "score_desc":
+            items.sort(key=lambda x: x[1], reverse=True)
+
+        elif self._filter_mode == "score_asc":
+            items.sort(key=lambda x: x[1])
+
+        elif self._filter_mode == "count_desc":
+            items.sort(key=lambda x: x[2], reverse=True)
+
+        ordered_widgets = [w for w, _, _ in items]
+
+        widget_to_item = {
+            item.widget(): item
+            for item in self.gallery_layout._item_list
+            if item.widget()
+        }
+
+        # widgets à afficher
+        widgets_set = set(ordered_widgets)
+
+        # 1. VISIBILITÉ (important)
+        for card in self._cards:
+            if card.widget:
+                card.widget.setVisible(card.widget in widgets_set)
+
+        # 2. ORDRE layout (tri réel)
+        layout_items = [
+            widget_to_item[w]
+            for w in ordered_widgets
+            if w in widget_to_item
+        ]
+
+        self.gallery_layout.set_visible_items(layout_items)
 
 
 if __name__ == "__main__":

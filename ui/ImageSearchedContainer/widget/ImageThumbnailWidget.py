@@ -68,7 +68,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
     def _apply_pending_results(self):
         if self._pending_results is not None:
             self.image_label.set_results(self._pending_results)
-            self.image_label.update()
+            self.image_label.repaint()
 
     def set_result(self, result):
         if not result:

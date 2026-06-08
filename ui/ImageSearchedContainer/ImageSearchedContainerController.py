@@ -17,6 +17,7 @@ from common.History_Classes import history, HistoryData, Tree
 from common.Image_Classes.Image import Image
 
 from ui import save_in_config, load_from_config
+from ui.ImageSearchedContainer.SAM3ProgressWindow import SAM3ProgressWindow
 
 # =========================
 # STATE
@@ -51,6 +52,9 @@ class ImageSearchedContainerController(QObject):
         self.embedding_manager = AsyncEmbeddingManager()
         self.sam3_manager = get_sam3_manager()
         self._sam3_jobs: dict[str, Image] = {}
+        self._sam3_progress_window = SAM3ProgressWindow()
+        self._sam3_progress_window.cancelled.connect(self._on_sam3_cancelled)
+        self._sam3_done = 0
 
         # state
         self.state = SearchState()
@@ -107,7 +111,16 @@ class ImageSearchedContainerController(QObject):
         if not prompts:
             return
 
-        for image in self.model.get_visible_images():
+        # Annuler les jobs en cours et réinitialiser
+        if self._sam3_jobs:
+            self.sam3_manager.cancel_all()
+            self._sam3_jobs.clear()
+
+        images = self.model.get_visible_images()
+        self._sam3_done = 0
+        self._sam3_progress_window.start(len(images))
+
+        for image in images:
             job_id = self.sam3_manager.process_image(str(image.path), prompts)
             self._sam3_jobs[job_id] = image
 
@@ -117,21 +130,83 @@ class ImageSearchedContainerController(QObject):
             return
 
         image.set_SAM3_results(results)
-        print(results)
-        self.view.update_images({str(image.path): results})
+
+        # Convertir le format brut SAM3 → format draw_results
+        display_results = self._convert_sam3_results(results)
+        if display_results:
+            self.view.update_images({str(image.path): display_results})
+
+        self._sam3_done += 1
+        from pathlib import Path
+        self._sam3_progress_window.update_progress(self._sam3_done, Path(image_path).name)
+
+        if not self._sam3_jobs:
+            self._sam3_progress_window.finish()
 
     def _on_sam3_image_error(self, job_id: str, error: str):
         if not job_id or job_id not in self._sam3_jobs:
             return
 
-        image = self._sam3_jobs.pop(job_id)
-        print(f"[SAM3 multi-image ERROR] {image.path}: {error}")
+        image = self._sam3_jobs.pop(job_id, None)
+        if image:
+            print(f"[SAM3 multi-image ERROR] {image.path}: {error}")
+
+        if not self._sam3_jobs:
+            self._sam3_progress_window.finish()
+
+    def _convert_sam3_results(self, results: list[dict]) -> list[dict]:
+        """Convertit le format brut SAM3 en format attendu par draw_results."""
+        from PyQt6.QtGui import QColor
+        import torch
+
+        COLORS = [
+            QColor(80, 160, 255),
+            QColor(255, 100, 100),
+            QColor(100, 255, 100),
+            QColor(255, 200, 50),
+            QColor(200, 100, 255),
+        ]
+
+        display = []
+        for i, entry in enumerate(results):
+            boxes = entry.get("boxes")
+            masks = entry.get("masks")
+            scores = entry.get("scores")
+
+            if boxes is None or masks is None:
+                continue
+
+            # boxes shape: (N, 4), masks shape: (N, 1, H, W)
+            n = boxes.shape[0] if hasattr(boxes, "shape") else len(boxes)
+            for j in range(n):
+                box = boxes[j].tolist() if hasattr(boxes[j], "tolist") else boxes[j]
+                mask = masks[j] if hasattr(masks, "__getitem__") else None
+                score = scores[j].item() if scores is not None else 0.0
+
+                display.append({
+                    "box": box,
+                    "mask": mask,
+                    "color": COLORS[i % len(COLORS)],
+                    "score": score,
+                    "prompt": entry.get("prompt", ""),
+                    "type": "result",
+                })
+
+        return display
+
+    def _on_sam3_cancelled(self):
+        self.sam3_manager.cancel_all()
+        self._sam3_jobs.clear()
+        self._sam3_progress_window.reset()
 
     # ─────────────────────────────
     # SEARCH ENTRY POINT
     # ─────────────────────────────
     def _on_search_triggered(self, search_text: str):
-        self._sam3_jobs.clear()
+        if self._sam3_jobs:
+            self.sam3_manager.cancel_all()
+            self._sam3_jobs.clear()
+        self._sam3_progress_window.reset()
         self.state.query = search_text
         self.state.cursor = None
         self.state.has_more = False
@@ -152,7 +227,10 @@ class ImageSearchedContainerController(QObject):
         )
 
     def search(self):
-        self._sam3_jobs.clear()
+        if self._sam3_jobs:
+            self.sam3_manager.cancel_all()
+            self._sam3_jobs.clear()
+        self._sam3_progress_window.reset()
         search_text = history.current_search.node.query
 
         self.view.search_controller.set_text(search_text)
@@ -303,10 +381,6 @@ class ImageSearchedContainerController(QObject):
             history.current_search_updated.connect(self.search)
 
             history.save()
-             
-
-        
-
 
 if __name__ == "__main__":
     import sys

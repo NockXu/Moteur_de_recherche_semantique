@@ -62,6 +62,22 @@ class SharedSAM3Manager(QObject):
         })
         return job_id
 
+    def cancel_all(self):
+        """Annule tous les jobs en cours en killant et relançant le process."""
+        jobs = list(self._pending_jobs.keys())
+        self._pending_jobs.clear()
+        self._is_ready = False
+
+        if self._process.state() != QProcess.ProcessState.NotRunning:
+            self._process.kill()
+            self._process.waitForFinished(500)
+
+        for job_id in jobs:
+            self.error.emit(job_id, "Annulé")
+
+        self._out_buffer.clear()
+        self._start_process()
+
     def shutdown(self):
         if self._process.state() == QProcess.ProcessState.NotRunning:
             return
