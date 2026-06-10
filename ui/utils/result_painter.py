@@ -51,14 +51,17 @@ def draw_results(painter: QPainter, results: list[dict], display_rect: QRect, pi
         if box:
             x1, y1, x2, y2 = box
 
+            scale_x = pixmap_size.width() / mask.shape[-1]
+            scale_y = pixmap_size.height() / mask.shape[-2]
+
+            x1 *= scale_x
+            x2 *= scale_x
+            y1 *= scale_y
+            y2 *= scale_y
+
             painter.drawRect(
                 int(display_rect.x() + x1),
                 int(display_rect.y() + y1),
                 int(x2 - x1),
                 int(y2 - y1)
             )
-
-        print(
-            "box =", box,
-            "mask shape =", mask.shape if mask is not None else None
-        )

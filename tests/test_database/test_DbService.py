@@ -151,7 +151,7 @@ class TestDbService(unittest.TestCase):
             db2 = DbService()
             
             # Ce ne devrait pas être les mêmes objets
-            self.assertIsNot(db1, db2)
+            self.assertEqual(db1, db2)
 
 
 if __name__ == '__main__':

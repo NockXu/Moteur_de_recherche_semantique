@@ -55,6 +55,7 @@ class ImageSearchedContainerController(QObject):
         self._sam3_progress_window = SAM3ProgressWindow()
         self._sam3_progress_window.cancelled.connect(self._on_sam3_cancelled)
         self._sam3_done = 0
+        self.old_prompt = None
 
         # state
         self.state = SearchState()
@@ -116,12 +117,21 @@ class ImageSearchedContainerController(QObject):
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
 
-        images = self.model.get_visible_images()
-        self._sam3_done = 0
-        self._sam3_progress_window.start(len(images))
+        if prompts != self.old_prompt:
+            self.old_prompt = prompts
+            images = self.model.get_visible_images()
+
+            self._sam3_done = 0
+            self._sam3_progress_window.start(len(images))
+        else:
+            lenght_all_image = len(self.model.get_visible_images())
+            images = self.model.get_image_without_sam3_result()
+            self._sam3_done = lenght_all_image - len(images)
+            self._sam3_progress_window.start(lenght_all_image, initial_done=self._sam3_done)
 
         for image in images:
             job_id = self.sam3_manager.process_image(str(image.path), prompts)
+            image.set_prompts(prompts)
             self._sam3_jobs[job_id] = image
 
     def _on_sam3_image_finished(self, job_id: str, image_path: str, results):
@@ -197,6 +207,7 @@ class ImageSearchedContainerController(QObject):
     def _on_sam3_cancelled(self):
         self.sam3_manager.cancel_all()
         self._sam3_jobs.clear()
+        self.old_prompt = None  # force un retraitement complet au prochain send
         self._sam3_progress_window.reset()
 
     # ─────────────────────────────
@@ -206,6 +217,7 @@ class ImageSearchedContainerController(QObject):
         if self._sam3_jobs:
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
+        self.old_prompt = None
         self._sam3_progress_window.reset()
         self.state.query = search_text
         self.state.cursor = None
@@ -214,6 +226,8 @@ class ImageSearchedContainerController(QObject):
         self.model.reset()
         self.view.clear()
         self._update_view()
+
+        self.research.k = self.view.image_count_spinbox.value()
 
         self._loading = True
 
@@ -230,6 +244,7 @@ class ImageSearchedContainerController(QObject):
         if self._sam3_jobs:
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
+        self.old_prompt = None
         self._sam3_progress_window.reset()
         search_text = history.current_search.node.query
 
@@ -239,6 +254,8 @@ class ImageSearchedContainerController(QObject):
         self.state.query = search_text
         self.state.cursor = None
         self.state.has_more = False
+
+        self.research.k = self.view.image_count_spinbox.value()
 
         self.model.reset()
         self.view.clear()
@@ -283,7 +300,7 @@ class ImageSearchedContainerController(QObject):
 
         self._loading = True
 
-        self.research.k += 500
+        self.research.k = self.view.image_count_spinbox.value()
 
         try:
             result = self.research.find(
@@ -339,6 +356,7 @@ class ImageSearchedContainerController(QObject):
         self._sam3_jobs.clear()
         self.model.reset()
         self.view.clear()
+        self.research.k = self.view.image_count_spinbox.value()
         search_results = self.research.find()
         self.model.append_results(search_results)
         self._update_view()

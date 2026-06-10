@@ -1,8 +1,11 @@
 import os
 import pickle
+import queue
 import struct
 import sys
+import threading
 import traceback
+from collections import deque
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -11,26 +14,33 @@ sys.path.insert(0, str(ROOT_DIR))
 from common.SAM3BatchProcessor import SAM3BatchProcessor
 
 
-
 def _write_message(message: dict):
     payload = pickle.dumps(message, protocol=pickle.HIGHEST_PROTOCOL)
     os.write(1, struct.pack(">I", len(payload)) + payload)
 
 
-def _read_exact(size: int) -> bytes:
+def _read_exact(fd, size: int) -> bytes:
     data = bytearray()
     while len(data) < size:
-        chunk = sys.stdin.buffer.read(size - len(data))
+        chunk = fd.read(size - len(data))
         if not chunk:
             raise EOFError
         data.extend(chunk)
     return bytes(data)
 
 
-def _read_message() -> dict:
-    header = _read_exact(4)
-    size = struct.unpack(">I", header)[0]
-    return pickle.loads(_read_exact(size))
+def _reader_thread(fd, msg_queue: queue.Queue):
+    """Thread dédié à la lecture de stdin — compatible Windows et Unix."""
+    try:
+        while True:
+            header = _read_exact(fd, 4)
+            size = struct.unpack(">I", header)[0]
+            payload = _read_exact(fd, size)
+            msg_queue.put(pickle.loads(payload))
+    except EOFError:
+        msg_queue.put(None)  # sentinelle de fin
+    except Exception as exc:
+        msg_queue.put({"type": "error", "_reader": str(exc)})
 
 
 def _to_cpu(value):
@@ -59,6 +69,12 @@ def main():
     # dependencies is redirected to stderr so it cannot corrupt frames.
     sys.stdout = sys.stderr
 
+    # Sur Windows, stdin/stdout doivent être en mode binaire
+    if sys.platform == "win32":
+        import msvcrt
+        msvcrt.setmode(sys.stdin.fileno(), os.O_BINARY)
+        msvcrt.setmode(1, os.O_BINARY)  # stdout fd
+
     sam3_root = sys.argv[1]
     confidence = float(sys.argv[2])
     device = sys.argv[3]
@@ -73,36 +89,107 @@ def main():
         })
         return
 
+    stdin_fd = sys.stdin.buffer
+    msg_queue: queue.Queue = queue.Queue()
+    t = threading.Thread(target=_reader_thread, args=(stdin_fd, msg_queue), daemon=True)
+    t.start()
+
+    job_queue: deque[dict] = deque()
+    cancelled: set[str] = set()
+
+    def drain_msg_queue():
+        """Vide la queue de messages sans bloquer."""
+        while True:
+            try:
+                msg = msg_queue.get_nowait()
+            except queue.Empty:
+                break
+            if msg is None:
+                return False  # EOF
+            yield msg
+        return True
+
     while True:
-        try:
-            message = _read_message()
-        except EOFError:
-            return
+        # ── Attendre au moins un message ────────────────────────────────────
+        if not job_queue:
+            # Pas de travail : attente bloquante
+            msg = msg_queue.get()
+            if msg is None:
+                return  # EOF
+            incoming = [msg]
+        else:
+            incoming = []
 
-        if message.get("type") == "shutdown":
-            return
+        # Drainer tout ce qui est déjà disponible
+        while True:
+            try:
+                msg = msg_queue.get_nowait()
+            except queue.Empty:
+                break
+            if msg is None:
+                return  # EOF
+            incoming.append(msg)
 
-        if message.get("type") != "process":
-            continue
+        for msg in incoming:
+            t_msg = msg.get("type")
+            if t_msg == "shutdown":
+                return
+            elif t_msg == "cancel_all":
+                for queued_msg in job_queue:
+                    cancelled.add(queued_msg["job_id"])
+                job_queue.clear()
+                _write_message({"type": "cancelled"})
+            elif t_msg == "process":
+                job_queue.append(msg)
 
-        job_id = message["job_id"]
-        image_path = message["image_path"]
-        prompts = message["prompts"]
+        # ── Traiter le prochain job non-annulé ───────────────────────────────
+        while job_queue:
+            job = job_queue.popleft()
+            job_id = job["job_id"]
 
-        try:
-            results = processor.process_prompt_dataset(image_path, prompts)
-            _write_message({
-                "type": "result",
-                "job_id": job_id,
-                "image_path": image_path,
-                "results": _to_cpu(results),
-            })
-        except Exception as exc:
-            _write_message({
-                "type": "error",
-                "job_id": job_id,
-                "error": f"{exc}\n{traceback.format_exc()}",
-            })
+            if job_id in cancelled:
+                cancelled.discard(job_id)
+                continue
+
+            image_path = job["image_path"]
+            prompts = job["prompts"]
+
+            try:
+                results = processor.process_prompt_dataset(image_path, prompts)
+                _write_message({
+                    "type": "result",
+                    "job_id": job_id,
+                    "image_path": image_path,
+                    "results": _to_cpu(results),
+                })
+            except Exception as exc:
+                _write_message({
+                    "type": "error",
+                    "job_id": job_id,
+                    "error": f"{exc}\n{traceback.format_exc()}",
+                })
+
+            # Après chaque image, drainer les messages entrants
+            # (notamment un cancel_all arrivé pendant l'inférence)
+            while True:
+                try:
+                    msg = msg_queue.get_nowait()
+                except queue.Empty:
+                    break
+                if msg is None:
+                    return
+                t_msg = msg.get("type")
+                if t_msg == "shutdown":
+                    return
+                elif t_msg == "cancel_all":
+                    for queued_msg in job_queue:
+                        cancelled.add(queued_msg["job_id"])
+                    job_queue.clear()
+                    _write_message({"type": "cancelled"})
+                elif t_msg == "process":
+                    job_queue.append(msg)
+
+            break  # Retour à la boucle principale
 
 
 if __name__ == "__main__":

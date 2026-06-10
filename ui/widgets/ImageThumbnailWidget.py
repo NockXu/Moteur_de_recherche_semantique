@@ -250,7 +250,7 @@ class _ClickableLabel(QLabel):
             return
 
         painter = QPainter(self)
-        label_rect = QRect(0, 0, self.width(), self.height())
+        label_rect = QRect(0, 0, current.width(), current.height())
         
         draw_results(
             painter,

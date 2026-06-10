@@ -85,13 +85,13 @@ mot1, mot2, mot3, mot4"""
 
     def test_ImageToData(self):
         # Test avec description et keywords
-        self.ollama.add_response(self.prompt, OllamaGenerateResult(
+        self.ollama.add_response(self.prompt,
                 response="""DESCRIPTION:
                 test_response
 
                 KEYWORDS:
                 mot1, mot2, mot3, mot4""",
-                            ))
+                            )
         self.processor.ImageToData(self.image_test)
         self.assertEqual(self.image_test.description, "test_response")
 
@@ -99,9 +99,7 @@ mot1, mot2, mot3, mot4"""
         self.ollama.responses = {}
 
         # Test avec seulement la description
-        self.ollama.add_response(self.prompt, OllamaGenerateResult(
-                response="test_response",
-                            ))
+        self.ollama.add_response(self.prompt, response="test_response")
         self.processor.ImageToData(self.image_test)
         self.assertEqual(self.image_test.description, "test_response")
         self.assertEqual(self.image_test.keywords, [])

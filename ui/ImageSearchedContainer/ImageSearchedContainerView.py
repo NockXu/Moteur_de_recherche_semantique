@@ -4,7 +4,8 @@ from typing import List, Optional
 
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QLabel, QScrollArea,
-    QPushButton, QHBoxLayout, QSlider, QComboBox
+    QPushButton, QHBoxLayout, QSlider, QComboBox,
+    QSpinBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont
@@ -113,7 +114,7 @@ class ImageSearchedContainerView(QWidget):
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
+        self.scroll_area.setVerticalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAsNeeded)
         self.scroll_area.verticalScrollBar().valueChanged.connect(self._on_scroll)
 
         self.masonry = QWidget()
@@ -126,9 +127,13 @@ class ImageSearchedContainerView(QWidget):
         # FOOTER
         footer = QHBoxLayout()
 
-        self.number_img_label = QLabel("0 image")
-        self.number_img_label.setFont(QFont("Segoe UI", 10))
+        self.image_count_label = QLabel("Images :")
 
+        self.image_count_spinbox = QSpinBox()
+        self.image_count_spinbox.setMinimum(1)
+        self.image_count_spinbox.setMaximum(2147483647)
+        self.image_count_spinbox.setValue(200)
+        
         self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.threshold_slider.setRange(0, 100)
         self.threshold_slider.setValue(50)
@@ -139,13 +144,17 @@ class ImageSearchedContainerView(QWidget):
         footer.addWidget(self.threshold_slider)
         footer.addWidget(self.threshold_value_label)
         footer.addStretch()
-        footer.addWidget(self.number_img_label)
+        footer.addWidget(self.image_count_label)
+        footer.addWidget(self.image_count_spinbox)
 
         layout.addLayout(footer)
 
     # ─────────────────────────────────────────────
     # SCROLL / LOAD MORE
     # ─────────────────────────────────────────────
+    
+    def set_image_count(self, count: int):
+        self.image_count_spinbox.setValue(count)
 
     def _on_scroll(self, value: int):
         if self._lazy_enabled:
@@ -234,7 +243,7 @@ class ImageSearchedContainerView(QWidget):
     # ─────────────────────────────────────────────
 
     def display_images(self, image_data: list[Image], total_count: int):
-        self.number_img_label.setText(f"{total_count} image(s)")
+        self.image_count_spinbox.setValue(total_count)
 
         for image in image_data:
             lazy_card = LazyImageCard(image)
@@ -305,7 +314,7 @@ class ImageSearchedContainerView(QWidget):
             return [
                 c.widget
                 for c in self._cards
-                if c.widget and c.widget.image_label._results
+                if c.widget and (c.widget.image_label._results or c.widget._pending_results)
             ]
 
         return [
@@ -354,7 +363,6 @@ class ImageSearchedContainerView(QWidget):
             if item and item.widget():
                 item.widget().setParent(None)
 
-        self.number_img_label.setText("0 image")
         self._total_loaded = 0
         self._loading = False
 
@@ -406,12 +414,11 @@ class ImageSearchedContainerView(QWidget):
             mode = self.filter_combo.itemData(self.filter_combo.currentIndex())
 
         self._filter_mode = mode
-        print("FILTER CHANGED:", self._filter_mode)
         self.apply_sam3_filter()
 
     def _update_filter_ui_visibility(self):
         has_results = any(
-            c.widget and c.widget.image_label._results
+            c.widget and (c.widget.image_label._results or c.widget._pending_results)
             for c in self._cards
         )
 
@@ -429,18 +436,24 @@ class ImageSearchedContainerView(QWidget):
 
             self.gallery_layout.set_visible_items(None)
 
-
             self.gallery_layout.invalidate()
             self.masonry.adjustSize()
             return
-        
+
+        # Forcer le chargement des widgets qui ont des résultats SAM3
+        # mais n'ont pas encore été scrollés (lazy non chargés)
+        for card in self._cards:
+            if card.widget and not card.is_loaded and (card.widget.image_label._results or card.widget._pending_results):
+                self._load_thumbnail(card)
+
         items = []
 
         for card in self._cards:
             if not card.widget:
                 continue
-            
-            results = card.widget.image_label._results
+
+            # Si le widget est chargé, on lit _results ; sinon _pending_results
+            results = card.widget.image_label._results or card.widget._pending_results
             if not results:
                 continue
 

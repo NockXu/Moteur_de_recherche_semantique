@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import List, Optional, Union
+from typing import Dict, List, Optional, Union
 from datetime import datetime
 from enum import Enum
 import os
@@ -112,6 +112,7 @@ class Image:
             self.size = 0
 
         self._sam3_results = None
+        self.prompts : Dict[str, float] = {}
         # Image dimensions (for layout system)
         self.width = 0
         self.height = 0
@@ -293,3 +294,26 @@ class Image:
             The SAM3 results.
         """
         return self._sam3_results
+
+    def set_prompts(self, prompts: List[dict]):
+        """
+        Set the prompts for the image.
+        
+        Args:
+            prompts: The prompts to set.
+        """
+        for prompt in prompts:
+            text = prompt.get("prompt", None)
+            if not text:
+                continue
+            threshold = prompt.get("threshold", 0.5)
+            self.prompts.update({text: threshold})
+
+    def get_prompts(self) -> List[dict]:
+        """
+        Get the prompts for the image.
+        
+        Returns:
+            The prompts.
+        """
+        return [{"prompt": prompt, "threshold": threshold} for prompt, threshold in self.prompts.items()]

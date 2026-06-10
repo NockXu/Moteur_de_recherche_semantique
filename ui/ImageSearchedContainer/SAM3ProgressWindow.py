@@ -1,5 +1,5 @@
 from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QProgressBar
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 
 
@@ -47,11 +47,12 @@ class SAM3ProgressWindow(QWidget):
 
         layout.addLayout(footer)
 
-    def start(self, total: int):
+    def start(self, total: int, initial_done: int = 0):
         self._total = total
-        self._done = 0
-        self.progress_bar.setValue(0)
-        self.count_label.setText(f"0 / {total}")
+        self._done = initial_done
+        pct = int(initial_done / total * 100) if total > 0 else 0
+        self.progress_bar.setValue(pct)
+        self.count_label.setText(f"{initial_done} / {total}")
         self.status_label.setText(f"Traitement de {total} image(s)...")
         self.cancel_btn.setEnabled(True)
         self.show()
@@ -70,6 +71,7 @@ class SAM3ProgressWindow(QWidget):
         self.count_label.setText(f"{self._total} / {self._total}")
         self.status_label.setText("Traitement terminé.")
         self.cancel_btn.setEnabled(False)
+        QTimer.singleShot(1500, self.hide)
 
     def _on_cancel(self):
         self.cancel_btn.setEnabled(False)

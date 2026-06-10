@@ -44,16 +44,15 @@ class SharedSAM3Manager(QObject):
 
     def process_image(self, image_path: str, prompts: list[dict]) -> str:
         job_id = uuid4().hex
-        self._pending_jobs[job_id] = str(image_path)
 
         if self._process.state() == QProcess.ProcessState.NotRunning:
             self._start_process()
 
         if not self._is_ready:
             self.error.emit(job_id, "Le modèle SAM3 n'est pas encore prêt.")
-            self._pending_jobs.pop(job_id, None)
             return job_id
 
+        self._pending_jobs[job_id] = str(image_path)
         self._write_message({
             "type": "process",
             "job_id": job_id,
@@ -63,20 +62,15 @@ class SharedSAM3Manager(QObject):
         return job_id
 
     def cancel_all(self):
-        """Annule tous les jobs en cours en killant et relançant le process."""
+        """Annule tous les jobs sans tuer le process (le modèle reste chargé)."""
         jobs = list(self._pending_jobs.keys())
         self._pending_jobs.clear()
-        self._is_ready = False
 
-        if self._process.state() != QProcess.ProcessState.NotRunning:
-            self._process.kill()
-            self._process.waitForFinished(500)
+        if self._process.state() != QProcess.ProcessState.NotRunning and self._is_ready:
+            self._write_message({"type": "cancel_all"})
 
         for job_id in jobs:
             self.error.emit(job_id, "Annulé")
-
-        self._out_buffer.clear()
-        self._start_process()
 
     def shutdown(self):
         if self._process.state() == QProcess.ProcessState.NotRunning:
@@ -131,6 +125,10 @@ class SharedSAM3Manager(QObject):
         if message_type == "ready":
             self._is_ready = True
             self.ready.emit()
+            return
+
+        if message_type == "cancelled":
+            # Accusé de réception du cancel_all côté worker — rien à faire
             return
 
         if message_type == "load_error":

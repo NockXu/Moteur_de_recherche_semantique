@@ -341,6 +341,8 @@ class Sam3Widget(QWidget):
         if not prompts:
             return
 
+        self.image.set_prompts(self.get_prompts_for_all())
+
         self.send_btn.setEnabled(False)
         self.send_btn.setText("Recherche...")
         self._current_job_id = self._sam3_manager.process_image(
@@ -368,6 +370,9 @@ class Sam3Widget(QWidget):
         QMessageBox.warning(self, "Erreur SAM3", error)
 
     def _send_to_all(self):
+        self.multi_prompts_send.emit(self.get_prompts_for_all())
+
+    def get_prompts_for_all(self):
         prompts: list[dict] = []
 
         for prompt in self.get_prompts():
@@ -375,8 +380,8 @@ class Sam3Widget(QWidget):
             threshold = prompt.get("threshold", 0.5)
 
             prompts.append({"prompt": text, "threshold": threshold})
-
-        self.multi_prompts_send.emit(prompts)
+        
+        return prompts
 
     def _deselect_all_results(self):
         self.results_widget.clear_selection()
@@ -418,18 +423,14 @@ class Sam3Widget(QWidget):
         self._reset_prompts()
 
         for result in results:
-            scores: torch.Tensor = result.get("scores")
-
-            import math
-
-            threshold = math.floor(scores.min().item() * 100) / 100 if scores is not None else 0.5
+            text = result.get("prompt", "")
 
             prompt_data = {
-                "prompt": result.get("prompt", ""),
+                "prompt": text,
                 "boxes": [],
                 "labels": [],
                 "colors": [],
-                "threshold": threshold,
+                "threshold": self.image.prompts.get(text, 0.5),
             }
 
             self._add_prompt(prompt_data)

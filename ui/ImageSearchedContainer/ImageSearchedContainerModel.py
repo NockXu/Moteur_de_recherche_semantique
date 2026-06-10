@@ -88,6 +88,17 @@ class ImageSearchedContainerModel:
         filtered = self.apply_filters()
         return self.apply_sorting(filtered)
 
+    def get_image_without_sam3_result(self) -> List[Image]:
+        filtered = self.apply_filters()
+
+        images : List[Image] = []
+
+        for image in filtered:
+            if image._sam3_results is None:
+                images.append(image)
+
+        return images
+
     # ─────────────────────────────────────────────
     # SINGLE IMAGE ACCESS
     # ─────────────────────────────────────────────
