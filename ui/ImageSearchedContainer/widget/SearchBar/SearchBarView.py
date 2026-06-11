@@ -10,6 +10,7 @@ class SearchBarView(QWidget):
 
     def __init__(self, parent=None, placeholder_text: str = "Rechercher une image..."):
         super().__init__(parent)
+        
         self.setMinimumHeight(48)
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._setup_ui(placeholder_text)

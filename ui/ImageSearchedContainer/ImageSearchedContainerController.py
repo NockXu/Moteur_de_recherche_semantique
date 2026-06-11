@@ -120,6 +120,8 @@ class ImageSearchedContainerController(QObject):
         if prompts != self.old_prompt:
             self.old_prompt = prompts
             images = self.model.get_visible_images()
+            self.view.clear_results([str(image.path) for image in images])
+            self.view.filter_combo.setCurrentIndex(0)  # reset filter
 
             self._sam3_done = 0
             self._sam3_progress_window.start(len(images))

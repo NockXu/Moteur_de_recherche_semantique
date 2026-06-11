@@ -11,6 +11,7 @@ from vision.ollama_wrapper import OllamaWrapper
 class SearchBarController(QObject):
     def __init__(self, ollama_wrapper: OllamaWrapper = None):
         super().__init__()
+        
         self.view = SearchBarView()
         self.model = SearchBarModel()
         

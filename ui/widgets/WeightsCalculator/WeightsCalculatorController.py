@@ -1,7 +1,7 @@
 from typing import Tuple
 
 from PyQt6.QtWidgets import QWidget
-from PyQt6.QtCore import pyqtSignal
+from PyQt6.QtCore import pyqtSignal, QTimer
 
 from common.WeightCalculator.weightCalculator import WeightFunction, WeightSystem
 from .WeightsCalculatorView import WeightCalculatorView
@@ -30,12 +30,10 @@ class WeightCalculatorController(QWidget):
 
     def update_weight_fn(self, index: int):
         weight_fn = self.view.weight_selector.itemData(index)
-
         self.model.weight_fonction = weight_fn
 
         if weight_fn is not None:
             self.view.weight_selector.setToolTip(weight_fn.description)
-
         self.update_view()
 
     def on_const_changed(self, const):
@@ -60,9 +58,9 @@ class WeightCalculatorController(QWidget):
         self.update_view()
 
     def update_view(self):
-        self.view._update_preview_plot(self.model.weight_fonction, self.model.n_runs, self.model.get_vects(), self.model.get_vects_rand(), self.model.const)
+        QTimer.singleShot(0, lambda: self.view._update_preview_plot(self.model.weight_fonction, self.model.n_runs, self.model.get_vects(), self.model.get_vects_rand(), self.model.const))
         self.data_changed.emit(self.model.const, self.model.weight_fonction.weight_fn)
-
+        
     def init_funcs(self) -> None:
         self.view.set_weight_functions(self.model.get_funcs())
 

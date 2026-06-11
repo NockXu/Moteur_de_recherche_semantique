@@ -5,8 +5,9 @@ from PyQt6.QtWidgets import (
     QGridLayout, QWidget, QVBoxLayout, QLabel, QScrollArea,
     QFrame, QHBoxLayout, QSizePolicy, QLayout
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QFont, QPixmap
+from matplotlib import container
 
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
@@ -25,6 +26,7 @@ class ImagePreviewView(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        
         self._setup_ui()
 
     # ─────────────────────────────
@@ -32,8 +34,10 @@ class ImagePreviewView(QWidget):
     # ─────────────────────────────
 
     def _setup_ui(self):
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
+        self.setMinimumWidth(450)
 
         # SCROLL AREA GLOBALE
         self.scroll = QScrollArea()
@@ -47,20 +51,22 @@ class ImagePreviewView(QWidget):
             QSizePolicy.Policy.Ignored,
             QSizePolicy.Policy.Ignored
         )
+
         main_layout = QVBoxLayout(container)
         main_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         main_layout.setContentsMargins(20, 20, 20, 20)
         main_layout.setSpacing(0)
 
-        # ═══════════════════════════════════════════════════════════
+        # ═════════════════════════════════════
         # SECTION IMAGE
-        # ═══════════════════════════════════════════════════════════
-        
+        # ═════════════════════════════════════
+
         image_section = QWidget()
         image_section.setSizePolicy(
             QSizePolicy.Policy.Preferred,
             QSizePolicy.Policy.Expanding
         )
+
         image_layout = QVBoxLayout(image_section)
         image_layout.setContentsMargins(0, 0, 0, 0)
         image_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter)
@@ -75,7 +81,7 @@ class ImagePreviewView(QWidget):
         )
         image_layout.addWidget(self.image_analysator)
 
-        # Nom de l'image (sous l'image, style caption)
+        # Title
         self.title = QLabel()
         self.title.setAlignment(Qt.AlignmentFlag.AlignHCenter)
         self.title.setFont(QFont("Segoe UI", 10, QFont.Weight.Bold))
@@ -84,27 +90,32 @@ class ImagePreviewView(QWidget):
         image_layout.addWidget(self.title)
 
         main_layout.addWidget(image_section)
-        
-        # Séparateur visuel
+
+        # Separator
         self.separator1 = QFrame()
         self.separator1.setFrameShape(QFrame.Shape.HLine)
         self.separator1.setFixedHeight(1)
-        self.separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
+        self.separator1.setStyleSheet(
+            f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ['QTMATERIAL_SECONDARYLIGHTCOLOR']}; }}"
+        )
         main_layout.addSpacing(12)
         main_layout.addWidget(self.separator1)
         main_layout.addSpacing(12)
 
-        # ═══════════════════════════════════════════════════════════
+        # ═════════════════════════════════════
         # SECTION INFORMATIONS
-        # ═══════════════════════════════════════════════════════════
-        
+        # ═════════════════════════════════════
+
         self.info_section = QWidget()
-        self.info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
+        self.info_section.setStyleSheet(
+            f"QWidget {{ background: {os.environ['QTMATERIAL_SECONDARYLIGHTCOLOR']}; padding: 10px; }}"
+        )
+
         info_layout = QVBoxLayout(self.info_section)
         info_layout.setContentsMargins(0, 0, 0, 0)
         info_layout.setSpacing(20)
 
-        # Chemin
+        # Path
         self.path_group, self.path_title = self._create_info_group("Emplacement")
         self.path_label = QLabel()
         self.path_label.setFont(QFont("Segoe UI", 9))
@@ -126,51 +137,42 @@ class ImagePreviewView(QWidget):
         # Tags
         self.tags_group, self.tags_title = self._create_info_group("Mots-clés")
         self.tags_group.layout().setContentsMargins(0, 0, 0, 10)
+
         self.tags_container = QWidget()
         self.tags_layout = FlowLayout(self.tags_container)
         self.tags_layout.setContentsMargins(0, 0, 0, 0)
         self.tags_layout.setSpacing(8)
         self.tags_layout.setAlignment(Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+
         self.tags_group.layout().addWidget(self.tags_container)
         info_layout.addWidget(self.tags_group)
 
         main_layout.addWidget(self.info_section)
 
-        # ═══════════════════════════════════════════════════════════
         # EMPTY STATE
-        # ═══════════════════════════════════════════════════════════
-        
-        self.empty = QLabel("Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails")
+        self.empty = QLabel(
+            "Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails"
+        )
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty.setFont(QFont("Segoe UI", 10))
         self.empty.setStyleSheet("QLabel { background: transparent; color: rgba(0,0,0,0.4); }")
+
         main_layout.addWidget(self.empty)
 
-        self.scroll.setWidget(container)
+        # FINALIZE
         root.addWidget(self.scroll)
-
-        # ═══════════════════════════════════════════════════════════
-        # REDUCTION CORRECTION
-        # ═══════════════════════════════════════════════════════════
+        QTimer.singleShot(0, lambda: self._attach_scroll(container))
 
         container.setMinimumWidth(0)
 
-        self.path_label.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred
-        )
-
-        self.desc_label.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred
-        )
-
-        self.title.setSizePolicy(
-            QSizePolicy.Policy.Ignored,
-            QSizePolicy.Policy.Preferred
-        )
+        self.path_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.desc_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self.title.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
 
         main_layout.addStretch()
+        
+    def _attach_scroll(self, container):
+        self.scroll.setWidget(container)
 
     def _create_info_group(self, title: str) -> tuple[QWidget, QLabel]:
         """Crée un groupe d'informations avec un titre."""

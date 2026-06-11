@@ -17,7 +17,6 @@ from ui.ImageSearchedContainer.widget.SearchBar.SearchBarController import Searc
 from ui.utils.colored_icon import colored_icon
 from ui.utils.JustifiedGalleryLayout import JustifiedGalleryLayout
 
-
 # ─────────────────────────────────────────────
 # Lazy wrapper
 # ─────────────────────────────────────────────

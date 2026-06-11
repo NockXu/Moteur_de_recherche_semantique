@@ -7,6 +7,7 @@ from common.History_Classes import history
 
 from PyQt6.QtWidgets import QApplication
 
+
 class HistoryTreeController():
     def __init__(self, theme_changed : pyqtSignal) -> None:
         self.model = HistoryTreeModel()

@@ -73,8 +73,6 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
     def set_result(self, result):
         if not result:
             return
-
-        print("set_result called", self._image.name, result)
         
         self._pending_results = result
 

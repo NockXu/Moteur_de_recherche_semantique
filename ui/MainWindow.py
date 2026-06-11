@@ -12,7 +12,7 @@ from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QVBoxLayout, QDockWidget, QTabWidget
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 
 from qt_material import apply_stylesheet
 # Import des widgets (chemins relatifs à ui/)
@@ -20,8 +20,10 @@ from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.MenuBar import create_menu_bar
-from ui import load_config, save_in_config
 from ui.HistoryTree.HistoryTreeController import HistoryTreeController
+
+from ui import load_config, save_in_config
+from ui.utils.Timer import Timer
 
 from common.Image_Classes.Image import Image
 from common.History_Classes import HistoryRepository, history, app
@@ -51,16 +53,13 @@ class MainWindow(QMainWindow):
         self.current_theme = self.config.get("theme", "dark_teal.xml")
 
         apply_stylesheet(app, theme=self.current_theme)
-
+        
+        self.showMaximized()
+        
         # Initialiser les composants lourds en arrière-plan
         self._initialize_heavy_components()
-        
-        # Connecter les signaux
-        self._connect_signals()
 
-        self.showMaximized()
-
-        self._load_all()
+        QTimer.singleShot(0, self._load_all)
 
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
@@ -68,14 +67,10 @@ class MainWindow(QMainWindow):
         self.wrapper = OllamaWrapper(base_url=self.OLLAMA_BASE_URL, timeout_s=500)
         
         # Créer les contrôleurs
-        self._setup_controllers()
-        
-        # Créer la barre de menu
-        self.menu_controller = create_menu_bar(self)
-        self.setMenuBar(self.menu_controller.get_menu_bar())
+        QTimer.singleShot(0, self._setup_controllers)
         
         # Remplacer l'interface de base par l'interface complète
-        self._setup_complete_ui()
+        QTimer.singleShot(0, self._setup_complete_ui)
     
     def _setup_complete_ui(self):
         """Remplace l'interface de base par l'interface complète"""
@@ -148,14 +143,24 @@ class MainWindow(QMainWindow):
         
         # History Tree (dans un onglet)
         self.history_tree_controller = HistoryTreeController(theme_changed=self.theme_changed)
+        
+         # Créer la barre de menu
+        self.menu_controller = create_menu_bar(self)
+        self.setMenuBar(self.menu_controller.get_menu_bar())
+
+        self._connect_signals()
 
     def _load_all(self):
         """Charge tous les éléments de l'interface"""
         history.load()
+        
         self.import_tool_controller.load()
+        
         if self.image_preview_controller.load():
             self.preview_dock.show()
+            
         self.image_container_controller.load()
+        
         self.history_tree_controller.load()
     
     def _connect_signals(self):
@@ -273,7 +278,7 @@ class MainWindow(QMainWindow):
     def closeEvent(self, event):
         """Gère la fermeture de la fenêtre"""
         try:
-            self.cleanup()
+            QTimer.singleShot(0, self.cleanup)
             event.accept()
         except Exception as e:
             print(f"Erreur lors de la fermeture: {e}")
@@ -288,7 +293,7 @@ if __name__ == "__main__":
         print("\nInterruption détectée, fermeture propre...")
         if 'window' in locals():
             # D'abord nettoyer, puis fermer
-            window.cleanup()
+            QTimer.singleShot(0, window.cleanup)
             window.close()
         else:
             # Si la fenêtre n'existe pas encore, juste quitter
