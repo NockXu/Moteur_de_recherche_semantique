@@ -10,9 +10,11 @@ load_dotenv()
 
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QVBoxLayout, QDockWidget, QTabWidget
+    QVBoxLayout, QDockWidget, QTabWidget,
+    QSplashScreen
 )
 from PyQt6.QtCore import QTimer, Qt, pyqtSignal
+from PyQt6.QtGui import QPixmap
 
 from qt_material import apply_stylesheet
 # Import des widgets (chemins relatifs à ui/)
@@ -56,6 +58,8 @@ class MainWindow(QMainWindow):
         
         self.showMaximized()
         
+        self._show_loading_screen()
+        
         # Initialiser les composants lourds en arrière-plan
         self._initialize_heavy_components()
 
@@ -71,6 +75,22 @@ class MainWindow(QMainWindow):
         
         # Remplacer l'interface de base par l'interface complète
         QTimer.singleShot(0, self._setup_complete_ui)
+        
+    def _show_loading_screen(self):
+        pixmap = QPixmap(500, 300)
+        pixmap.fill(Qt.GlobalColor.white)
+
+        self.splash = QSplashScreen(pixmap)
+        self.splash.showMessage(
+            "Chargement des composants...",
+            Qt.AlignmentFlag.AlignCenter,
+            Qt.GlobalColor.black
+        )
+
+        self.splash.show()
+
+        # Force l'affichage immédiat
+        QApplication.processEvents()
     
     def _setup_complete_ui(self):
         """Remplace l'interface de base par l'interface complète"""
@@ -149,6 +169,8 @@ class MainWindow(QMainWindow):
         self.setMenuBar(self.menu_controller.get_menu_bar())
 
         self._connect_signals()
+        
+        self.splash.finish(self)
 
     def _load_all(self):
         """Charge tous les éléments de l'interface"""
