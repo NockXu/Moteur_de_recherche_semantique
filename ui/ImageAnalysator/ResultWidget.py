@@ -122,7 +122,7 @@ class ResultsTable(QWidget):
 
     def load_results(self, processed_results: List[Dict[str, Any]]):
         from collections import defaultdict
-        import torch
+        import torch # type: ignore
 
         merged = {}
 
