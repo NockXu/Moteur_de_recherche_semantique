@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from PyQt6.QtCore import pyqtSignal
 
+from ui.utils.i18n import tr
 
 @dataclass
 class MenuAction:
@@ -21,38 +22,38 @@ class MenuModel:
     
     def __init__(self):
         self.menus: Dict[str, List[MenuAction]] = {
-            "Fichier": [
+            tr("Fichier"): [
                 MenuAction(
-                    name="Importer",
+                    name=tr("Importer"),
                     shortcut="Ctrl+I",
-                    tooltip="Importer des images dans la base",
+                    tooltip=tr("Importer des images dans la base"),
                     signal=None  # Sera défini par le contrôleur
                 ),
                 MenuAction(
-                    name="Exporter...",
+                    name=f"{tr("Exporter")}...",
                     shortcut="Ctrl+E",
-                    tooltip="Exporter les données de la base",
+                    tooltip=tr("Exporter les données de la base"),
                     signal=None  # Sera défini par le contrôleur
                 ),
                 MenuAction(
-                    name="Quitter",
+                    name=tr("Quitter"),
                     shortcut="Ctrl+Q",
-                    tooltip="Quitter l'application",
+                    tooltip=tr("Quitter l'application"),
                     signal=None  # Sera défini par le contrôleur
                 ),
             ],
-            "Outils": [
+            tr("Outils"): [
                 MenuAction(
-                    name="Outil d'importation d'image",
+                    name=tr("Outil d'importation d'image"),
                     shortcut="Ctrl+T",
-                    tooltip="Afficher/Masquer le panneau d'import d'images",
+                    tooltip=tr("Afficher/Masquer le panneau d'import d'images"),
                     signal=None  # Sera défini par le contrôleur
                 ),
             ],
-            "Styles": [
+            tr("Styles"): [
                 MenuAction(
-                    name="Sélection du thème",
-                    tooltip="Sélectionner un thème pour l'application",
+                    name=tr("Sélection du thème"),
+                    tooltip=tr("Sélectionner un thème pour l'application"),
                     signal=None  # Sera défini par le contrôleur
                 ),
             ]

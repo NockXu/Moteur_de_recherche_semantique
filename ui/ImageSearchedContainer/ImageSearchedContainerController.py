@@ -11,6 +11,7 @@ from common.Image_Classes.ImageRepository import ImageRepository, SearchResults
 from database.DbService import DbService
 
 from ui.ImageSearchedContainer.widget.SearchBar.EmbeddingWorker import AsyncEmbeddingManager
+from ui.utils.i18n import tr
 from vision.SAM3AsyncManager import get_sam3_manager
 
 from common.History_Classes import history, HistoryData, Tree
@@ -161,7 +162,7 @@ class ImageSearchedContainerController(QObject):
 
         image = self._sam3_jobs.pop(job_id, None)
         if image:
-            print(f"[SAM3 multi-image ERROR] {image.path}: {error}")
+            print(f"{tr('[SAM3 multi-image ERROR]')} {image.path}: {error}")
 
         if not self._sam3_jobs:
             self._sam3_progress_window.finish()
@@ -169,7 +170,6 @@ class ImageSearchedContainerController(QObject):
     def _convert_sam3_results(self, results: list[dict]) -> list[dict]:
         """Convertit le format brut SAM3 en format attendu par draw_results."""
         from PyQt6.QtGui import QColor
-        import torch
 
         COLORS = [
             QColor(80, 160, 255),
@@ -287,7 +287,7 @@ class ImageSearchedContainerController(QObject):
 
     def _on_search_error(self, error: str):
         self._loading = False
-        print(f"[Search ERROR] {error}")
+        print(f"{tr('[Search ERROR]')} {error}")
 
     def _on_threshold_changed(self, threshold: float):
         """Appelé quand le threshold change depuis la vue"""
@@ -318,7 +318,7 @@ class ImageSearchedContainerController(QObject):
             )
 
         except Exception as e:
-            print(f"Load more error: {e}")
+            print(f"{tr('[Load more ERROR]')} {e}")
 
         finally:
             self._loading = False

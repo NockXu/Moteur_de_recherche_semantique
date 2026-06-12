@@ -24,7 +24,7 @@ from ui.ImagePreview.ImagePreviewController import ImagePreviewController
 from ui.MenuBar import create_menu_bar
 from ui.HistoryTree.HistoryTreeController import HistoryTreeController
 
-from ui import load_config, save_in_config
+from ui import load_config, load_from_config, save_in_config
 from ui.utils.Timer import Timer
 
 from common.Image_Classes.Image import Image
@@ -35,6 +35,10 @@ from vision.ollama_wrapper import OllamaWrapper
 # Base de données
 from database.DbService import DbService
 
+from ui.utils.i18n import tr, extract_translations, init_translations
+
+from typing import Dict, Optional
+
 os.environ['QT_LOGGING_RULES'] = 'qt.gui.icc=false'
 
 class MainWindow(QMainWindow):
@@ -44,7 +48,10 @@ class MainWindow(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Moteur de Recherche Sémantique")
+        
+        self._setup_language()
+        
+        self.setWindowTitle(tr("Moteur de Recherche Sémantique"))
         self.setMinimumSize(1200, 800)
         
         # Appliquer le thème d'abord
@@ -64,6 +71,49 @@ class MainWindow(QMainWindow):
         self._initialize_heavy_components()
 
         QTimer.singleShot(0, self._load_all)
+        
+        extract_translations(project_root=".", language_list=["fr", "en"])
+
+    def _setup_language(self):
+        """Initialise les traductions"""
+
+        translations_config : Dict[str, str] = load_from_config("translations")
+        if not translations_config:
+            current_language : Optional[str] = None
+            return
+        
+        current_language : str = translations_config.get("current_language", "fr")
+
+        init_translations(current_language)
+        
+        # 1. fenêtre principale
+        self.setWindowTitle(tr("Moteur de Recherche Sémantique"))
+
+        # 2. tabs
+        if hasattr(self, "tabs"):
+            self.tabs.setTabText(0, tr("Search Results"))
+            self.tabs.setTabText(1, tr("History Tree"))
+
+        # 3. docks
+        if hasattr(self, "import_dock"):
+            self.import_dock.setWindowTitle(tr("Import d'images"))
+
+        if hasattr(self, "preview_dock"):
+            self.preview_dock.setWindowTitle(tr("Aperçu"))
+        
+        # 4. widgets
+        if hasattr(self, 'image_preview_controller'):
+            self.image_preview_controller.view._on_language_changed()
+        if hasattr(self, 'history_tree_controller'):
+            self.history_tree_controller.view._on_language_changed()
+        if hasattr(self, 'image_container_controller'):
+            self.image_container_controller.view._on_language_changed()
+            self.image_container_controller._sam3_progress_window._on_language_changed()
+        if hasattr(self, 'import_tool_controller'):
+            self.import_tool_controller.view._on_language_changed()
+            self.import_tool_controller.view.connection_verificator.view._on_language_changed()
+        if hasattr(self, 'menu_controller'):
+            self.menu_controller._on_language_changed()
 
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
@@ -82,7 +132,7 @@ class MainWindow(QMainWindow):
 
         self.splash = QSplashScreen(pixmap)
         self.splash.showMessage(
-            "Chargement des composants...",
+            tr("Chargement des composants..."),
             Qt.AlignmentFlag.AlignCenter,
             Qt.GlobalColor.black
         )
@@ -109,12 +159,12 @@ class MainWindow(QMainWindow):
 
         self.tabs.addTab(
             self.image_container_controller.view,
-            "Search Results"
+            tr("Search Results")
         )
 
         self.tabs.addTab(
             self.history_tree_controller.view,
-            "History Tree"
+            tr("History Tree")
         )
 
         main_layout.addWidget(self.tabs, 1)
@@ -128,7 +178,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'import_dock'):
             self.removeDockWidget(self.import_dock)
         
-        import_dock = QDockWidget("Import d'images")
+        import_dock = QDockWidget(tr("Import d'images"))
         import_dock.setWidget(self.import_tool_controller.get_view())
         import_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         import_dock.setFixedWidth(280)
@@ -142,7 +192,7 @@ class MainWindow(QMainWindow):
         if hasattr(self, 'preview_dock'):
             self.removeDockWidget(self.preview_dock)
         
-        preview_dock = QDockWidget("Aperçu")
+        preview_dock = QDockWidget(tr("Aperçu"))
         preview_dock.setWidget(self.image_preview_controller.view)
         preview_dock.setAllowedAreas(Qt.DockWidgetArea.LeftDockWidgetArea | Qt.DockWidgetArea.RightDockWidgetArea)
         preview_dock.hide()
@@ -201,6 +251,7 @@ class MainWindow(QMainWindow):
         self.menu_controller.file_export_requested.connect(self._on_menu_export)
         self.menu_controller.toggle_import_tool.connect(self._on_toggle_import_tool)
         self.menu_controller.theme_changed.connect(self._on_theme_changed)
+        self.menu_controller.language_changed.connect(self._setup_language)
 
         # Connection des signaux de la preview
         self.image_preview_controller.view.image_analysator.image_view.results_displayed.connect(self.image_container_controller._on_results_displayed)
@@ -209,8 +260,6 @@ class MainWindow(QMainWindow):
 
     def _on_theme_changed(self, theme: str):
         """Gère le changement de thème"""
-        print(f"Changement de thème: {theme}")
-
         # Émettre le signal de changement de thème
         self.theme_changed.emit(theme)
 
@@ -232,12 +281,11 @@ class MainWindow(QMainWindow):
         from ui.ImportTool.widget.ConnectionVerificator.ConnectionVerificatorModel import State
         
         if state == State.CONNECTED:
-            print(f"Ollama connecté - Version: {version}")
+            print(f"{tr('Ollama connecté - Version')}: {version}")
         elif state == State.ERROR:
-            print(f"Erreur Ollama: {error_message}")
+            print(f"{tr('Erreur Ollama')}: {error_message}")
         else:
-            print(f"Ollama: Non connecté")
-    
+            print(f"{tr('Ollama')}: {tr('Non connecté')}")
     def _on_menu_import(self):
         """Gère l'import depuis le menu"""
         # Le menu gère déjà l'import via handle_import()
@@ -261,26 +309,13 @@ class MainWindow(QMainWindow):
     def cleanup(self):
         """Nettoie les ressources avant la fermeture"""
         try:
-            print("Nettoyage de MainWindow...")
-            
             # Arrêter proprement tous les contrôleurs avec threads
             if hasattr(self, 'import_tool_controller'):
-                print("Arrêt de ImportTool...")
                 self.import_tool_controller.cleanup()
 
             if hasattr(self, 'image_container_controller'):
-                print("Arret de ImageSearchedContainer...")
                 self.image_container_controller.cleanup()
-                
-                # Attendre que tous les threads se terminent
-                import time
-                time.sleep(1)  # Donner du temps aux threads de se terminer
-            
-            # Arrêter le wrapper Ollama
-            if hasattr(self, 'wrapper'):
-                print("Fermeture du wrapper Ollama...")
-                # Le wrapper n'a pas de méthode cleanup, mais on peut s'assurer qu'il est bien libéré
-            
+
             # Forcer la fermeture de tous les threads PyQt6
             from PyQt6.QtCore import QThreadPool
             pool = QThreadPool.globalInstance()
@@ -290,10 +325,8 @@ class MainWindow(QMainWindow):
 
             DbService().faiss.reset()
             
-            print("Nettoyage de MainWindow terminé")
-            
         except Exception as e:
-            print(f"Erreur lors du nettoyage de MainWindow: {e}")
+            print(f"{tr('Erreur lors du nettoyage de MainWindow')}: {e}")
             import traceback
             traceback.print_exc()
     
@@ -303,7 +336,7 @@ class MainWindow(QMainWindow):
             QTimer.singleShot(0, self.cleanup)
             event.accept()
         except Exception as e:
-            print(f"Erreur lors de la fermeture: {e}")
+            print(f"{tr('Erreur lors de la fermeture')}: {e}")
             event.accept()  # Forcer la fermeture même en cas d'erreur
 
 
@@ -312,7 +345,7 @@ if __name__ == "__main__":
     
     # Gérer Ctrl+C proprement
     def signal_handler(signum, frame):
-        print("\nInterruption détectée, fermeture propre...")
+        print(f"\n{tr('Interruption détectée, fermeture propre')}...")
         if 'window' in locals():
             # D'abord nettoyer, puis fermer
             QTimer.singleShot(0, window.cleanup)
@@ -326,10 +359,10 @@ if __name__ == "__main__":
     # Créer et afficher la fenêtre principale
     window = MainWindow()
     
-    print("Application démarrée")
-    print("Utilisez Ctrl+C pour fermer proprement")
+    print(f"{tr('Application démarrée')}")
+    print(f"{tr('Utilisez Ctrl+C pour fermer proprement')}")
     
     try:
         sys.exit(app.exec())
     except KeyboardInterrupt:
-        print("\nAu revoir !")
+        print(f"\n{tr('Au revoir')} !")

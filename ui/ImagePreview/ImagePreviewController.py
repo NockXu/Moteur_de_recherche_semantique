@@ -85,6 +85,5 @@ class ImagePreviewController(QObject):
             repo = ImageRepository(DbService().sqlite, DbService().faiss)
             image = repo.get_image_by_id(current_image_id)
             if image:
-                print("ImagePreviewController: Loading image:", image.id)
                 return self.set_image(image)
         return False

@@ -2,6 +2,8 @@ from PyQt6.QtWidgets import QWidget, QHBoxLayout, QPushButton, QLabel, QLineEdit
 from PyQt6.QtCore import Qt, pyqtSignal
 from PyQt6.QtGui import QFont
 
+from ui.utils.i18n import tr
+
 
 class PaginationWidget(QWidget):
     """Barre de pagination : précédent / page X / total / suivant."""
@@ -23,7 +25,7 @@ class PaginationWidget(QWidget):
 
         font = QFont("Segoe UI", 10)
 
-        self.prev_button = QPushButton("← Précédent")
+        self.prev_button = QPushButton(tr("← Précédent"))
         self.prev_button.setFont(font)
         self.prev_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.prev_button.clicked.connect(self._go_previous)
@@ -37,14 +39,14 @@ class PaginationWidget(QWidget):
         self.total_label = QLabel(f"/ {self.total_pages}")
         self.total_label.setFont(font)
 
-        self.next_button = QPushButton("Suivant →")
+        self.next_button = QPushButton(tr("Suivant →"))
         self.next_button.setFont(font)
         self.next_button.setCursor(Qt.CursorShape.PointingHandCursor)
         self.next_button.clicked.connect(self._go_next)
 
         layout.addWidget(self.prev_button)
         layout.addStretch()
-        layout.addWidget(QLabel("Page"))
+        layout.addWidget(QLabel(tr("Page")))
         layout.addWidget(self.page_input)
         layout.addWidget(self.total_label)
         layout.addStretch()

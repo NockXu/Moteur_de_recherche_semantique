@@ -12,6 +12,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QAction, QActionGroup
 
+from ui import load_from_config, save_in_config
+
+from ui.utils.i18n import tr
+
 from .MenuModel import MenuModel, MenuAction
 from .MenuBarView import MenuBarView
 
@@ -37,6 +41,7 @@ class MenuBarController(QObject):
     file_quit_requested = pyqtSignal()
     toggle_import_tool = pyqtSignal()
     theme_changed = pyqtSignal(str)
+    language_changed = pyqtSignal()
     
     def __init__(self, parent=None):
         super().__init__()
@@ -56,15 +61,20 @@ class MenuBarController(QObject):
         
         # Création de la barre de menu
         self._setup_menu_bar()
+        
+        self.translations_config = load_from_config("translations") or {}
+        self.current_language = self.translations_config.get("current_language", "fr")
+        
+        self._setup_language_menu()
     
     def _setup_handlers(self):
         """Configure les handlers pour les actions"""
         self.handlers = {
-            "Importer": self.handle_import,
-            "Exporter...": self.handle_export,
-            "Quitter": lambda: self.file_quit_requested.emit(),
-            "Outil d'importation d'image": self.handle_toggle_import_tool,
-            "Sélection du thème": self.open_style_selector
+            tr("Importer"): self.handle_import,
+            f"{tr("Exporter")}...": self.handle_export,
+            tr("Quitter"): lambda: self.file_quit_requested.emit(),
+            tr("Outil d'importation d'image"): self.handle_toggle_import_tool,
+            tr("Sélection du thème"): self.open_style_selector
         }
         
     def _setup_signals(self):
@@ -72,14 +82,15 @@ class MenuBarController(QObject):
         # Associer les signaux aux actions du modèle (uniquement pour ceux qui n'ont pas de handler direct)
         for menu_name, actions in self.model.menus.items():
             for action in actions:
-                if action.name == "Quitter":
+                if action.name == tr("Quitter"):
                     action.signal = self.file_quit_requested
-                elif action.name == "Outil d'importation d'image":
+                elif action.name == tr("Outil d'importation d'image"):
                     action.signal = self.toggle_import_tool
                 # Importer et Exporter utilisent les handlers directs, pas besoin de signal
     
     def _setup_menu_bar(self):
         """Crée la barre de menu avec le système MVC"""
+        
         self.menu_bar = self.view.create_menu_bar(self.model.menus, self.handlers)
     
     # ─────────────────────────────────────────────
@@ -126,7 +137,7 @@ class MenuBarController(QObject):
         """Affiche une boîte de dialogue de sélection des thèmes."""
 
         dialog = QDialog(self.parent)
-        dialog.setWindowTitle("Sélection du thème")
+        dialog.setWindowTitle(tr("Sélection du thème"))
 
         # taille fixe raisonnable
         dialog.resize(300, 400)
@@ -190,36 +201,85 @@ class MenuBarController(QObject):
         if self.import_dialog:
             self.import_dialog.close()
             self.import_dialog = None
+            
+    # ─────────────────────────────────────────────
+    # LANGUAGE MENU
+    # ─────────────────────────────────────────────
+    
+    def open_language_dialog(self):
+        """Affiche une fenêtre pour choisir la langue"""
 
+        dialog = QDialog(self.parent)
+        dialog.setWindowTitle("Sélection de la langue")
+        dialog.resize(300, 400)
+
+        layout = QVBoxLayout(dialog)
+
+        list_widget = QListWidget(dialog)
+
+        languages = self.translations_config.get("available_languages", [])
+        current = self.current_language
+
+        # remplir la liste
+        for lang in languages:
+            item = QListWidgetItem(lang)
+            item.setData(0, lang)
+
+            # marquer la langue actuelle
+            if lang == current:
+                item.setSelected(True)
+
+            list_widget.addItem(item)
+
+        layout.addWidget(list_widget)
+
+        # double clic = validation
+        def on_select(item):
+            lang_code = item.text()
+            self.set_language(lang_code)
+            dialog.accept()
+
+        list_widget.itemDoubleClicked.connect(on_select)
+
+        dialog.exec()
+
+    def _setup_language_menu(self):
+        """Ajoute une entrée de menu pour ouvrir le sélecteur de langue"""
+
+        if not self.translations_config:
+            return
+
+        self.add_menu(tr("Langue"), [
+            MenuAction(
+                name=f"{tr('Changer la langue')}...",
+                tooltip=f"{tr('Ouvrir le sélecteur de langue')}",
+                handler=self.open_language_dialog
+            )
+        ])
+        
+    def set_language(self, lang_code: str):
+        """Change la langue active de l'application"""
+
+        if lang_code not in self.translations_config.get("available_languages", []):
+            return
+
+        self.current_language = lang_code
+        self.translations_config["current_language"] = lang_code
+
+        save_in_config("translations", self.translations_config)
+
+        self.language_changed.emit()
+        
+    def _on_language_changed(self):
+        self._setup_handlers()   # ← recréer les clés avec les nouveaux tr()
+        self.model = MenuModel() # ← recréer le modèle avec les nouveaux tr()
+        self._setup_signals()
+        self._setup_menu_bar()
+        self._setup_language_menu()
+        
 # ─────────────────────────────────────────────
 # EXEMPLES D'UTILISATION
 # ─────────────────────────────────────────────
-
-def add_edit_menu(controller):
-    """Exemple d'ajout d'un menu Édition"""
-    edit_actions = [
-        MenuAction(
-            name="Copier",
-            shortcut="Ctrl+C",
-            tooltip="Copier l'élément sélectionné",
-            handler=lambda: print("Copier")
-        ),
-        MenuAction(
-            name="Coller",
-            shortcut="Ctrl+V", 
-            tooltip="Coller depuis le presse-papiers",
-            handler=lambda: print("Coller"),
-            separator_before=True
-        ),
-        MenuAction(
-            name="Supprimer",
-            shortcut="Suppr",
-            tooltip="Supprimer l'élément sélectionné",
-            handler=lambda: print("Supprimer"),
-            separator_before=True
-        )
-    ]
-    controller.add_menu("Édition", edit_actions)
 
 def add_preferences_action(controller):
     """Exemple d'ajout d'une action Préférences"""

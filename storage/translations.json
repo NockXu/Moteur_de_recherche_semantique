@@ -1,0 +1,682 @@
+{
+    "Moteur de Recherche Sémantique": {
+        "fr": "Moteur de Recherche Sémantique",
+        "en": "Semantic Search Engine"
+    },
+    "Chargement des composants...": {
+        "fr": "Chargement des composants...",
+        "en": "Component Loading..."
+    },
+    "Import d'images": {
+        "fr": "Import d'images",
+        "en": "Image Import"
+    },
+    "Aperçu": {
+        "fr": "Aperçu",
+        "en": "Preview"
+    },
+    "Entrer la requête ici": {
+        "fr": "Entrer la requête ici",
+        "en": "Enter your query here"
+    },
+    "Supprimer Nœud": {
+        "fr": "Supprimer Nœud",
+        "en": "Delete Node"
+    },
+    "Supprimer ce nœud ? (Cette action suprimera tout les nœuds sous celui détruit)": {
+        "fr": "Supprimer ce nœud ? (Cette action suprimera tout les nœuds sous celui détruit)",
+        "en": "Delete this node? (This action will remove all nodes under the deleted one)"
+    },
+    "Seuil": {
+        "fr": "Seuil",
+        "en": "Threshold"
+    },
+    "Choisir une image": {
+        "fr": "Choisir une image",
+        "en": "Choose an image"
+    },
+    "Afficher SAM3": {
+        "fr": "Afficher SAM3",
+        "en": "Show SAM3"
+    },
+    "Masquer SAM3": {
+        "fr": "Masquer SAM3",
+        "en": "Hide SAM3"
+    },
+    "Créer un prompt SAM3": {
+        "fr": "Créer un prompt SAM3",
+        "en": "Create a SAM3 Prompt"
+    },
+    "Prompt": {
+        "fr": "Prompt",
+        "en": "Prompt"
+    },
+    "Décrivez ce que SAM doit segmenter...": {
+        "fr": "Décrivez ce que SAM doit segmenter...",
+        "en": "Describe what SAM should segment..."
+    },
+    "Boîtes de sélection": {
+        "fr": "Boîtes de sélection",
+        "en": "Selection Boxes"
+    },
+    "Dessinez une zone sur l'image.": {
+        "fr": "Dessinez une zone sur l'image.",
+        "en": "Draw an area on the image."
+    },
+    "OK": {
+        "fr": "OK",
+        "en": "OK"
+    },
+    "Annuler": {
+        "fr": "Annuler",
+        "en": "Cancel"
+    },
+    "Tout effacer": {
+        "fr": "Tout effacer",
+        "en": "Clear All"
+    },
+    "Ouvrir une image": {
+        "fr": "Ouvrir une image",
+        "en": "Open an Image"
+    },
+    "Résultat": {
+        "fr": "Résultat",
+        "en": "Result"
+    },
+    "Score": {
+        "fr": "Score",
+        "en": "Score"
+    },
+    "Boxe": {
+        "fr": "Boxe",
+        "en": "Bounding Box"
+    },
+    "Color": {
+        "fr": "Color",
+        "en": "Color"
+    },
+    "Emplacement": {
+        "fr": "Emplacement",
+        "en": "Location"
+    },
+    "Description": {
+        "fr": "Description",
+        "en": "Description"
+    },
+    "Mots-clés": {
+        "fr": "Mots-clés",
+        "en": "Keywords"
+    },
+    "Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails": {
+        "fr": "Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails",
+        "en": "No image selected\n\nSelect an image from the gallery\nto view its details"
+    },
+    "Aucune description": {
+        "fr": "Aucune description",
+        "en": "No description"
+    },
+    "Aucun mot-clé": {
+        "fr": "Aucun mot-clé",
+        "en": "No keywords"
+    },
+    "[Search ERROR]": {
+        "fr": "[Search ERROR]",
+        "en": "[Search ERROR]"
+    },
+    "[SAM3 multi-image ERROR]": {
+        "fr": "[SAM3 multi-image ERROR]",
+        "en": "[SAM3 Multi-Image ERROR]"
+    },
+    "[Load more ERROR]": {
+        "fr": "[Load more ERROR]",
+        "en": "[Load More ERROR]"
+    },
+    "Aucun filtre": {
+        "fr": "Aucun filtre",
+        "en": "No Filter"
+    },
+    "Score décroissant": {
+        "fr": "Score décroissant",
+        "en": "Highest Score First"
+    },
+    "Score croissant": {
+        "fr": "Score croissant",
+        "en": "Lowest Score First"
+    },
+    "Nombre de résultats": {
+        "fr": "Nombre de résultats",
+        "en": "Number of Results"
+    },
+    "Images": {
+        "fr": "Images",
+        "en": "Images"
+    },
+    "[LAZY] error": {
+        "fr": "[LAZY] error",
+        "en": "[LAZY] ERROR"
+    },
+    "Traitement SAM3": {
+        "fr": "Traitement SAM3",
+        "en": "SAM3 Processing"
+    },
+    "Initialisation": {
+        "fr": "Initialisation",
+        "en": "Initialization"
+    },
+    "Traitement de": {
+        "fr": "Traitement de",
+        "en": "Processing"
+    },
+    "image(s)": {
+        "fr": "image(s)",
+        "en": "image(s)"
+    },
+    "Traitement terminé": {
+        "fr": "Traitement terminé",
+        "en": "Processing Complete"
+    },
+    "Annulation en cours": {
+        "fr": "Annulation en cours",
+        "en": "Cancelling..."
+    },
+    "← Précédent": {
+        "fr": "← Précédent",
+        "en": "← Previous"
+    },
+    "Suivant →": {
+        "fr": "Suivant →",
+        "en": "Next →"
+    },
+    "Page": {
+        "fr": "Page",
+        "en": "Page"
+    },
+    "[EmbeddingWorker ERROR]": {
+        "fr": "[EmbeddingWorker ERROR]",
+        "en": "[EmbeddingWorker ERROR]"
+    },
+    "Rechercher une image...": {
+        "fr": "Rechercher une image...",
+        "en": "Search for an image..."
+    },
+    "Aucun dossier": {
+        "fr": "Aucun dossier",
+        "en": "No Folder"
+    },
+    "Dossier": {
+        "fr": "Dossier",
+        "en": "Folder"
+    },
+    "En attente…": {
+        "fr": "En attente…",
+        "en": "Pending..."
+    },
+    "Erreur": {
+        "fr": "Erreur",
+        "en": "Error"
+    },
+    "Terminé": {
+        "fr": "Terminé",
+        "en": "Completed"
+    },
+    "traité(s)": {
+        "fr": "traité(s)",
+        "en": "processed"
+    },
+    "erreur(s)": {
+        "fr": "erreur(s)",
+        "en": "error(s)"
+    },
+    "images": {
+        "fr": "images",
+        "en": "images"
+    },
+    "ProcessingWorker terminé": {
+        "fr": "ProcessingWorker terminé",
+        "en": "ProcessingWorker completed"
+    },
+    "ImageProcessor non initialisé": {
+        "fr": "ImageProcessor non initialisé",
+        "en": "ImageProcessor not initialized"
+    },
+    "Description vide": {
+        "fr": "Description vide",
+        "en": "Empty description"
+    },
+    "Embedding vide": {
+        "fr": "Embedding vide",
+        "en": "Empty embedding"
+    },
+    "Traitement déjà en cours": {
+        "fr": "Traitement déjà en cours",
+        "en": "Processing already in progress"
+    },
+    "Stop demandé ProcessingWorker": {
+        "fr": "Stop demandé ProcessingWorker",
+        "en": "ProcessingWorker stop requested"
+    },
+    "Erreur DB": {
+        "fr": "Erreur DB",
+        "en": "Database error"
+    },
+    "Erreur image": {
+        "fr": "Erreur image",
+        "en": "Image error"
+    },
+    "Serveur Ollama non démarré ou inaccessible": {
+        "fr": "Serveur Ollama non démarré ou inaccessible",
+        "en": "Ollama server is not running or is unreachable"
+    },
+    "Erreur de connexion": {
+        "fr": "Erreur de connexion",
+        "en": "Connection error"
+    },
+    "Réponse invalide du serveur": {
+        "fr": "Réponse invalide du serveur",
+        "en": "Invalid server response"
+    },
+    "Erreur inattendue": {
+        "fr": "Erreur inattendue",
+        "en": "Unexpected error"
+    },
+    "Non connecté": {
+        "fr": "Non connecté",
+        "en": "Disconnected"
+    },
+    "Connecté": {
+        "fr": "Connecté",
+        "en": "Connected"
+    },
+    "Vérification": {
+        "fr": "Vérification",
+        "en": "Checking"
+    },
+    "Search Results": {
+        "fr": "Search Results",
+        "en": "Search Results"
+    },
+    "History Tree": {
+        "fr": "History Tree",
+        "en": "History Tree"
+    },
+    "Application démarrée": {
+        "fr": "Application démarrée",
+        "en": "Application started"
+    },
+    "Utilisez Ctrl+C pour fermer proprement": {
+        "fr": "Utilisez Ctrl+C pour fermer proprement",
+        "en": "Use Ctrl+C to shut down gracefully"
+    },
+    "Interruption détectée, fermeture propre": {
+        "fr": "Interruption détectée, fermeture propre",
+        "en": "Interrupt detected, shutting down gracefully"
+    },
+    "Ollama connecté - Version": {
+        "fr": "Ollama connecté - Version",
+        "en": "Ollama connected - Version"
+    },
+    "Au revoir": {
+        "fr": "Au revoir",
+        "en": "Goodbye"
+    },
+    "Erreur Ollama": {
+        "fr": "Erreur Ollama",
+        "en": "Ollama Error"
+    },
+    "Ollama": {
+        "fr": "Ollama",
+        "en": "Ollama"
+    },
+    "Erreur lors du nettoyage de MainWindow": {
+        "fr": "Erreur lors du nettoyage de MainWindow",
+        "en": "Error while cleaning up MainWindow"
+    },
+    "Erreur lors de la fermeture": {
+        "fr": "Erreur lors de la fermeture",
+        "en": "Error while closing"
+    },
+    "Importer": {
+        "fr": "Importer",
+        "en": "Import"
+    },
+    "Quitter": {
+        "fr": "Quitter",
+        "en": "Exit"
+    },
+    "Outil d'importation d'image": {
+        "fr": "Outil d'importation d'image",
+        "en": "Image Import Tool"
+    },
+    "Sélection du thème": {
+        "fr": "Sélection du thème",
+        "en": "Theme Selection"
+    },
+    "Exporter": {
+        "fr": "Exporter",
+        "en": "Export"
+    },
+    "Importer des images dans la base": {
+        "fr": "Importer des images dans la base",
+        "en": "Import Images into the Database"
+    },
+    "Exporter les données de la base": {
+        "fr": "Exporter les données de la base",
+        "en": "Export Database Data"
+    },
+    "Quitter l'application": {
+        "fr": "Quitter l'application",
+        "en": "Exit the Application"
+    },
+    "Afficher/Masquer le panneau d'import d'images": {
+        "fr": "Afficher/Masquer le panneau d'import d'images",
+        "en": "Show/Hide the Image Import Panel"
+    },
+    "Sélectionner un thème pour l'application": {
+        "fr": "Sélectionner un thème pour l'application",
+        "en": "Select an Application Theme"
+    },
+    "Choisir le mode d'export": {
+        "fr": "Choisir le mode d'export",
+        "en": "Choose Export Mode"
+    },
+    "Mode d'export": {
+        "fr": "Mode d'export",
+        "en": "Export Mode"
+    },
+    "Export simple (images uniquement)": {
+        "fr": "Export simple (images uniquement)",
+        "en": "Simple Export (Images Only)"
+    },
+    "Exporte uniquement les images avec leurs métadonnées": {
+        "fr": "Exporte uniquement les images avec leurs métadonnées",
+        "en": "Export Only Images with Their Metadata"
+    },
+    "Export intégral (datasets + images)": {
+        "fr": "Export intégral (datasets + images)",
+        "en": "Full Export (Datasets + Images)"
+    },
+    "Exporte les datasets et les images dans un fichier complet": {
+        "fr": "Exporte les datasets et les images dans un fichier complet",
+        "en": "Export Datasets and Images into a Complete File"
+    },
+    "Export réussi": {
+        "fr": "Export réussi",
+        "en": "Export Successful"
+    },
+    "Les données ont été exportées avec succès dans": {
+        "fr": "Les données ont été exportées avec succès dans",
+        "en": "The data was successfully exported to"
+    },
+    "Erreur d'export": {
+        "fr": "Erreur d'export",
+        "en": "Export Error"
+    },
+    "Une erreur est survenue lors de l'export": {
+        "fr": "Une erreur est survenue lors de l'export",
+        "en": "An error occurred during export"
+    },
+    "Erreur lors de l'export": {
+        "fr": "Erreur lors de l'export",
+        "en": "Error during export"
+    },
+    "datasets": {
+        "fr": "datasets",
+        "en": "datasets"
+    },
+    "images exportés": {
+        "fr": "images exportés",
+        "en": "images exported"
+    },
+    "Export JSON string généré avec succès": {
+        "fr": "Export JSON string généré avec succès",
+        "en": "JSON export string generated successfully"
+    },
+    "Données exportées avec succès dans": {
+        "fr": "Données exportées avec succès dans",
+        "en": "Data successfully exported to"
+    },
+    "Erreur lors de la récupération des images": {
+        "fr": "Erreur lors de la récupération des images",
+        "en": "Error while retrieving images"
+    },
+    "Erreur lors de l'écriture du fichier": {
+        "fr": "Erreur lors de l'écriture du fichier",
+        "en": "Error while writing the file"
+    },
+    "Erreur lors de l'export en string": {
+        "fr": "Erreur lors de l'export en string",
+        "en": "Error while exporting to string"
+    },
+    "images exportées": {
+        "fr": "images exportées",
+        "en": "images exported"
+    },
+    "Images exportées avec succès dans": {
+        "fr": "Images exportées avec succès dans",
+        "en": "Images successfully exported to"
+    },
+    "Importation Avancée": {
+        "fr": "Importation Avancée",
+        "en": "Advanced Import"
+    },
+    "1. Fichier JSON": {
+        "fr": "1. Fichier JSON",
+        "en": "1. JSON File"
+    },
+    "Aucun fichier sélectionné": {
+        "fr": "Aucun fichier sélectionné",
+        "en": "No file selected"
+    },
+    "Parcourir...": {
+        "fr": "Parcourir...",
+        "en": "Browse..."
+    },
+    "2. Mode": {
+        "fr": "2. Mode",
+        "en": "2. Mode"
+    },
+    "Avec dataset": {
+        "fr": "Avec dataset",
+        "en": "With dataset"
+    },
+    "Sans dataset": {
+        "fr": "Sans dataset",
+        "en": "Without dataset"
+    },
+    "3. Configuration": {
+        "fr": "3. Configuration",
+        "en": "3. Configuration"
+    },
+    "4. Log": {
+        "fr": "4. Log",
+        "en": "4. Log"
+    },
+    "Sélectionner un fichier JSON": {
+        "fr": "Sélectionner un fichier JSON",
+        "en": "Select a JSON file"
+    },
+    "Configuration invalide": {
+        "fr": "Configuration invalide",
+        "en": "Invalid configuration"
+    },
+    "annulé": {
+        "fr": "annulé",
+        "en": "cancelled"
+    },
+    "Datasets détectés": {
+        "fr": "Datasets détectés",
+        "en": "Detected datasets"
+    },
+    "Sans dataset détecté": {
+        "fr": "Sans dataset détecté",
+        "en": "No dataset detected"
+    },
+    "Erreur analyse": {
+        "fr": "Erreur analyse",
+        "en": "Analysis error"
+    },
+    "Import already running": {
+        "fr": "Import already running",
+        "en": "Import already running"
+    },
+    "Start import": {
+        "fr": "Start import",
+        "en": "Start import"
+    },
+    "Import cancelled": {
+        "fr": "Import cancelled",
+        "en": "Import cancelled"
+    },
+    "Traitement fini": {
+        "fr": "Traitement fini",
+        "en": "Processing completed"
+    },
+    "passage à la sauvegarde en bdd": {
+        "fr": "passage à la sauvegarde en bdd",
+        "en": "Switching to database saving"
+    },
+    "Skip": {
+        "fr": "Skip",
+        "en": "Skip"
+    },
+    "Evolution du Poid selon la génération": {
+        "fr": "Evolution du Poid selon la génération",
+        "en": "Weight Evolution Across Generations"
+    },
+    "Génération": {
+        "fr": "Génération",
+        "en": "Generation"
+    },
+    "Poid": {
+        "fr": "Poid",
+        "en": "Weight"
+    },
+    "Methode de calcul de poids": {
+        "fr": "Methode de calcul de poids",
+        "en": "Weight Calculation Method"
+    },
+    "RECHERCHER": {
+        "fr": "RECHERCHER",
+        "en": "SEARCH"
+    },
+    "Détails à analyser :": {
+        "fr": "Détails à analyser :",
+        "en": "Details to analyze:"
+    },
+    "Ajouter": {
+        "fr": "Ajouter",
+        "en": "Add"
+    },
+    "Réinitialiser": {
+        "fr": "Réinitialiser",
+        "en": "Reset"
+    },
+    "Seul": {
+        "fr": "Seul",
+        "en": "Only"
+    },
+    "Tous": {
+        "fr": "Tous",
+        "en": "All"
+    },
+    "Résultats fusionnés :": {
+        "fr": "Résultats fusionnés :",
+        "en": "Merged Results:"
+    },
+    "Effacer tout": {
+        "fr": "Effacer tout",
+        "en": "Clear All"
+    },
+    "Désélectionner": {
+        "fr": "Désélectionner",
+        "en": "Deselect"
+    },
+    "Modifier": {
+        "fr": "Modifier",
+        "en": "Edit"
+    },
+    "Supprimer": {
+        "fr": "Supprimer",
+        "en": "Delete"
+    },
+    "Erreur SAM3": {
+        "fr": "Erreur SAM3",
+        "en": "SAM3 Error"
+    },
+    "Veuillez d'abord sélectionner une image.": {
+        "fr": "Veuillez d'abord sélectionner une image.",
+        "en": "Please select an image first."
+    },
+    "Scan initialisé": {
+        "fr": "Scan initialisé",
+        "en": "Scan initialized"
+    },
+    "Erreur set_folder": {
+        "fr": "Erreur set_folder",
+        "en": "set_folder error"
+    },
+    "Erreur load_db_status": {
+        "fr": "Erreur load_db_status",
+        "en": "load_db_status error"
+    },
+    "Seuil de confiance :": {
+        "fr": "Seuil de confiance :",
+        "en": "Confidence Threshold:"
+    },
+    "Switch to": {
+        "fr": "Echangez pour",
+        "en": "Switch to"
+    },
+    "Recharger": {
+        "fr": "Recharger",
+        "en": "Reload"
+    },
+    "Démarrer": {
+        "fr": "Démarrer",
+        "en": "Start"
+    },
+    "Arrêter": {
+        "fr": "Arrêter",
+        "en": "Stop"
+    },
+    "Langue": {
+        "fr": "Langue",
+        "en": "Language"
+    },
+    "Changer la langue": {
+        "fr": "Changer la langue",
+        "en": "Change Language"
+    },
+    "Ouvrir le sélecteur de langue": {
+        "fr": "Ouvrir le sélecteur de langue",
+        "en": "Open Language Selector"
+    },
+    "Fichier": {
+        "fr": "Fichiers",
+        "en": "Files"
+    },
+    "Outils": {
+        "fr": "Outils",
+        "en": "Tools"
+    },
+    "Styles": {
+        "fr": "Styles",
+        "en": "Styles"
+    },
+    "Cluster": {
+        "fr": "Cluster",
+        "en": "Cluster"
+    },
+    "Random": {
+        "fr": "Aléatoire",
+        "en": "Random"
+    },
+    "Log en cours...": {
+        "fr": "Log en cours...",
+        "en": "Logging in progress..."
+    },
+    "Exporter les données": {
+        "fr": "Exporter les données",
+        "en": "Export Data"
+    }
+}

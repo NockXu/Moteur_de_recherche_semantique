@@ -1,6 +1,8 @@
 from PIL import Image
 from PyQt6.QtWidgets import QWidget, QToolButton, QSizePolicy ,QHBoxLayout, QVBoxLayout, QPushButton, QFileDialog
 from PyQt6.QtCore import QPropertyAnimation, Qt
+
+from ui.utils.i18n import tr
 from .Sam3Widget import Sam3Widget
 from .ImageView import ImageView
 
@@ -47,7 +49,7 @@ class ImageAnalysator(QWidget):
         self.layout.setAlignment(Qt.AlignmentFlag.AlignTop)
 
         # bouton toggle
-        self.sam3_btn = QPushButton("Afficher SAM3 ▼")
+        self.sam3_btn = QPushButton(f"{tr('Afficher SAM3')} ▼")
         self.sam3_btn.setCheckable(True)
         self.sam3_btn.clicked.connect(self.toggle_sam3)
         self.layout.addWidget(self.sam3_btn)
@@ -59,18 +61,18 @@ class ImageAnalysator(QWidget):
     def toggle_sam3(self):
         if not self.sam3_visible:
             self.layout.addWidget(self.sam3_widget, stretch=1)
-            self.sam3_btn.setText("Masquer SAM3 ▲")
+            self.sam3_btn.setText(f"{tr('Masquer SAM3')} ▲")
             self.sam3_visible = True
         else:
             self.layout.removeWidget(self.sam3_widget)
             self.sam3_widget.setParent(None)
-            self.sam3_btn.setText("Afficher SAM3 ▼")
+            self.sam3_btn.setText(f"{tr('Afficher SAM3')} ▼")
             self.sam3_visible = False
 
     def load_image(self):
         path, _ = QFileDialog.getOpenFileName(
             self,
-            "Choisir une image",
+            tr("Choisir une image"),
             "",
             "Images (*.png *.jpg *.jpeg *.webp)"
         )
@@ -87,7 +89,11 @@ class ImageAnalysator(QWidget):
     def clear(self):
         self.image_view.clear_results()
         self.sam3_widget._clear_local_results()
-
+        
+    def _on_language_changed(self) -> None:
+        self.sam3_btn.setText(f"{tr('Afficher SAM3')} ▼" if not self.sam3_visible else f"{tr('Masquer SAM3')} ▲")
+        self.sam3_widget._on_language_changed()
+        
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
     import sys

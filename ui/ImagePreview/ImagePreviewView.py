@@ -15,6 +15,7 @@ from common.Dataset_Classes.Dataset import Dataset
 from ui.utils.FlowLayout import FlowLayout
 from ui.utils.ResponsiveImageLabel import ResponsiveImageLabel
 from ui.ImageAnalysator.ImageAnalysator import ImageAnalysator
+from ui.utils.i18n import tr
 
 class ImagePreviewView(QWidget):
     """
@@ -116,7 +117,7 @@ class ImagePreviewView(QWidget):
         info_layout.setSpacing(20)
 
         # Path
-        self.path_group, self.path_title = self._create_info_group("Emplacement")
+        self.path_group, self.path_title = self._create_info_group(tr("Emplacement"))
         self.path_label = QLabel()
         self.path_label.setFont(QFont("Segoe UI", 9))
         self.path_label.setWordWrap(True)
@@ -125,7 +126,7 @@ class ImagePreviewView(QWidget):
         info_layout.addWidget(self.path_group)
 
         # Description
-        self.desc_group, self.desc_title = self._create_info_group("Description")
+        self.desc_group, self.desc_title = self._create_info_group(tr("Description"))
         self.desc_label = QLabel()
         self.desc_label.setFont(QFont("Segoe UI", 9))
         self.desc_label.setWordWrap(True)
@@ -135,7 +136,7 @@ class ImagePreviewView(QWidget):
         info_layout.addWidget(self.desc_group)
 
         # Tags
-        self.tags_group, self.tags_title = self._create_info_group("Mots-clés")
+        self.tags_group, self.tags_title = self._create_info_group(tr("Mots-clés"))
         self.tags_group.layout().setContentsMargins(0, 0, 0, 10)
 
         self.tags_container = QWidget()
@@ -151,7 +152,7 @@ class ImagePreviewView(QWidget):
 
         # EMPTY STATE
         self.empty = QLabel(
-            "Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails"
+            tr("Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails")
         )
         self.empty.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.empty.setFont(QFont("Segoe UI", 10))
@@ -232,7 +233,7 @@ class ImagePreviewView(QWidget):
             self.desc_label.setText(image.description)
             self.desc_group.show()
         else:
-            self.desc_label.setText("Aucune description")
+            self.desc_label.setText(tr("Aucune description"))
             self.desc_label.setStyleSheet("QLabel { background: transparent; padding: 8px; color: rgba(0,0,0,0.4); font-style: italic; }")
 
         # ═══════════════════════════════════════════════════════════
@@ -265,7 +266,7 @@ class ImagePreviewView(QWidget):
             # Spacer pour pousser à gauche
             self.tags_group.show()
         else:
-            no_tags = QLabel("Aucun mot-clé")
+            no_tags = QLabel(tr("Aucun mot-clé"))
             no_tags.setFont(QFont("Segoe UI", 9))
             no_tags.setStyleSheet("QLabel { background: transparent; color: rgba(0,0,0,0.4); font-style: italic; }")
             self.tags_layout.addWidget(no_tags)
@@ -297,3 +298,64 @@ class ImagePreviewView(QWidget):
         self.tags_title.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
         if hasattr(self, '_current_image'):
             self.display_image(self._current_image)
+            
+    # ═══════════════════════════════════════════════════════════
+    # LANGUAGE
+    # ═══════════════════════════════════════════════════════════
+
+    def _on_language_changed(self, lang_code: str = None):
+        """Refresh complet de l'UI lors du changement de langue"""
+
+        # -----------------------------
+        # Labels statiques (UI fixe)
+        # -----------------------------
+        self.path_title.setText(tr("Emplacement"))
+        self.desc_title.setText(tr("Description"))
+        self.tags_title.setText(tr("Mots-clés"))
+
+        self.empty.setText(
+            tr("Aucune image sélectionnée\n\nSélectionne une image dans la galerie\npour voir ses détails")
+        )
+
+        # -----------------------------
+        # Bouton / titres dynamiques
+        # -----------------------------
+        if hasattr(self, "_current_image") and self._current_image:
+            self._refresh_image_texts()
+
+        # -----------------------------
+        # Force repaint propre
+        # -----------------------------
+        self.update()
+        
+    def _refresh_image_texts(self):
+        """Met à jour uniquement les textes dépendants de l'image"""
+
+        image = self._current_image
+        
+        # Image analysator
+        self.image_analysator._on_language_changed()
+
+        # titre
+        self.title.setText(image.name)
+
+        # path
+        self.path_label.setText(str(image.path).replace("\\", "/"))
+
+        # description
+        if image.description:
+            self.desc_label.setText(image.description)
+            self.desc_label.setStyleSheet("QLabel { background: transparent; }")
+        else:
+            self.desc_label.setText(tr("Aucune description"))
+            self.desc_label.setStyleSheet(
+                "QLabel { background: transparent; color: rgba(0,0,0,0.4); font-style: italic; }"
+            )
+
+        # tags texte conditionnel
+        if not image.keywords:
+            # on ne touche pas aux widgets, juste texte "aucun mot-clé"
+            if self.tags_layout.count() == 1:
+                w = self.tags_layout.itemAt(0).widget()
+                if isinstance(w, QLabel):
+                    w.setText(tr("Aucun mot-clé"))

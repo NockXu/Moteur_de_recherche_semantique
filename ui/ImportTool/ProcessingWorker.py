@@ -11,6 +11,8 @@ from common.Image_Classes.Image import ProcessingStatus, Image
 from common.Image_Classes.ImageRepository import ImageRepository
 from database.DbService import DbService
 
+from ui.utils.i18n import tr
+
 
 class ProcessingWorker(QThread):
     """Worker thread SAFE pour traitement d'images"""
@@ -69,14 +71,14 @@ class ProcessingWorker(QThread):
                 try:
                     self._process_single_image(image)
                 except Exception as e:
-                    print(f"❌ Erreur image {image.path.name}: {e}")
+                    print(f"{tr('Erreur image')} {image.path.name}: {e}")
                     # Mettre à jour l'état de l'image en cas d'erreur
                     image.status = ProcessingStatus.ERROR
                     self.progress_updated.emit(str(image.path), ProcessingStatus.ERROR)
 
         finally:
             self._is_running = False
-            print("🏁 ProcessingWorker terminé")
+            print(tr("ProcessingWorker terminé"))
 
             # IMPORTANT: un seul chemin de sortie
             if stopped_manually:
@@ -101,7 +103,7 @@ class ProcessingWorker(QThread):
         self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
 
         if not self.image_processor:
-            raise RuntimeError("ImageProcessor non initialisé")
+            raise RuntimeError(tr("ImageProcessor non initialisé"))
 
         # ───── STEP 1 : description
         self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
@@ -110,7 +112,7 @@ class ProcessingWorker(QThread):
             return
 
         if not image.description:
-            raise RuntimeError("Description vide")
+            raise RuntimeError(tr("Description vide"))
 
         # ───── STEP 2 : embedding
         self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
@@ -119,7 +121,7 @@ class ProcessingWorker(QThread):
             return
 
         if not image.embedding:
-            raise RuntimeError("Embedding vide")
+            raise RuntimeError(tr("Embedding vide"))
 
         # ───── STEP 3 : dataset
         image.dataset_name = os.path.basename(os.path.dirname(image.path))
@@ -129,7 +131,7 @@ class ProcessingWorker(QThread):
             self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
             self._image_repository.save_image(image)
         except Exception as e:
-            print(f"❌ DB error: {e}")
+            print(f"{tr('Erreur DB')}: {e}")
 
         # ───── SUCCESS
         self.progress_updated.emit(str(image.path), ProcessingStatus.COMPLETED)
@@ -144,7 +146,7 @@ class ProcessingWorker(QThread):
     # ─────────────────────────────
     def stop(self):
         """Arrêt propre (SAFE)"""
-        print("🛑 Stop demandé ProcessingWorker")
+        print(f"{tr('Stop demandé ProcessingWorker')}")
         self._is_running = False   # plus de terminate()
 
     # ─────────────────────────────
@@ -186,7 +188,7 @@ class BatchProcessingManager:
     ) -> ProcessingWorker:
 
         if self.current_worker and self.current_worker.isRunning():
-            raise RuntimeError("Traitement déjà en cours")
+            raise RuntimeError(tr("Traitement déjà en cours"))
 
         self.current_worker = ProcessingWorker(images, model)
 

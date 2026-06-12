@@ -4,6 +4,8 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
+from ui.utils.i18n import tr
+
 # Ajouter la racine du projet au sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
@@ -53,7 +55,7 @@ class ExportSimple:
             return images
             
         except Exception as e:
-            print(f"Erreur lors de l'export: {e}")
+            print(f"{tr("Erreur lors de l'export")}: {e}")
             raise
 
     def _get_all_images(self) -> Dict[str, Any]:
@@ -78,7 +80,7 @@ class ExportSimple:
             return images_dict
             
         except Exception as e:
-            print(f"Erreur lors de la récupération des images: {e}")
+            print(f"{tr("Erreur lors de la récupération des images")}: {e}")
             return {}
 
     def _write_json_file(self, file_path: str, data: Dict[str, Any]) -> None:
@@ -91,10 +93,10 @@ class ExportSimple:
             with open(file_path, 'w', encoding='utf-8') as f:
                 json.dump(data, f, indent=2, ensure_ascii=False)
                 
-            print(f"Images exportées avec succès dans: {file_path}")
+            print(f"{tr("Images exportées avec succès dans")}: {file_path}")
             
         except Exception as e:
-            print(f"Erreur lors de l'écriture du fichier: {e}")
+            print(f"{tr("Erreur lors de l'écriture du fichier")}: {e}")
             raise
 
     def export_to_string(self) -> str:
@@ -112,7 +114,7 @@ class ExportSimple:
             return json.dumps(images, indent=2, ensure_ascii=False)
             
         except Exception as e:
-            print(f"Erreur lors de l'export en string: {e}")
+            print(f"{tr("Erreur lors de l'export en string")}: {e}")
             raise
 
 
@@ -153,14 +155,14 @@ if __name__ == "__main__":
     # Exemple 1: Exporter dans un fichier
     try:
         data = export_images_file("export_images.json")
-        print(f"Export réussi! {len(data)} images exportées.")
+        print(f"{tr("Export réussi")}: {len(data)} {tr("images exportées")}.")
     except Exception as e:
-        print(f"Erreur: {e}")
+        print(f"{tr("Erreur")}: {e}")
     
     # Exemple 2: Exporter en string
     try:
         json_string = export_images_string()
-        print("Export JSON string généré avec succès!")
+        print(f"{tr("Export JSON string généré avec succès")}")
         # print(json_string)  # Décommenter pour voir le JSON
     except Exception as e:
-        print(f"Erreur: {e}")
+        print(f"{tr("Erreur")}: {e}")

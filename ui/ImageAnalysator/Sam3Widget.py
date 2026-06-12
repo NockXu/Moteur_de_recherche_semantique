@@ -13,6 +13,8 @@ from .ResultWidget import ResultsTable
 
 from common.Image_Classes.Image import Image
 
+from ui.utils.i18n import tr
+
 # ------------------------------------------------------------------ #
 #  Helpers                                                           #
 # ------------------------------------------------------------------ #
@@ -74,9 +76,6 @@ class Sam3Widget(QWidget):
         self._current_job_id: Optional[str] = None
         self.prompt_list: list[tuple[dict, QWidget]] = []
 
-        # Référence à la ResultRow actuellement sélectionnée
-        self._selected_result_row: Optional[ResultRow] = None
-
         self._init_ui()
         self._connect_signals()
         self._connect_sam3_manager()
@@ -95,7 +94,7 @@ class Sam3Widget(QWidget):
 
     def _on_model_ready(self):
         self.send_btn.setEnabled(True)
-        self.send_btn.setText("RECHERCHER")
+        self.send_btn.setText(tr("RECHERCHER"))
 
     # ------------------------------------------------------------------ #
     #  UI                                                                 #
@@ -120,12 +119,12 @@ class Sam3Widget(QWidget):
         self.prompt_layout = QVBoxLayout()
         self.main_layout.addLayout(self.prompt_layout)
 
-        self.prompt_label = QLabel("Détails à analyser :")
+        self.prompt_label = QLabel(tr("Détails à analyser :"))
         self.prompt_layout.addWidget(self.prompt_label)
 
         self.prompt_button_layout = QHBoxLayout()
-        self.add_btn   = QPushButton("Ajouter")
-        self.reset_btn = QPushButton("Réinitialiser")
+        self.add_btn   = QPushButton(tr("Ajouter"))
+        self.reset_btn = QPushButton(tr("Réinitialiser"))
         self.prompt_button_layout.addWidget(self.add_btn)
         self.prompt_button_layout.addWidget(self.reset_btn)
         self.prompt_layout.addLayout(self.prompt_button_layout)
@@ -148,13 +147,13 @@ class Sam3Widget(QWidget):
         self.footer_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.main_layout.addLayout(self.footer_layout)
 
-        self.send_btn = QPushButton("RECHERCHER")
+        self.send_btn = QPushButton(tr("RECHERCHER"))
         self.send_btn.setEnabled(False)
 
         menu = QMenu(self)
 
-        action_signal1 = menu.addAction("Seul")
-        action_signal2 = menu.addAction("Tous")
+        action_signal1 = menu.addAction(tr("Seul"))
+        action_signal2 = menu.addAction(tr("Tous"))
 
         action_signal1.triggered.connect(self._send_prompts)
         action_signal2.triggered.connect(self._send_to_all)
@@ -165,22 +164,22 @@ class Sam3Widget(QWidget):
 
         # --- En-tête résultats ---
         results_header = QHBoxLayout()
-        self.results_label = QLabel("Résultats fusionnés :")
+        self.results_label = QLabel(tr("Résultats fusionnés :"))
         self.results_label.setStyleSheet("font-weight: bold;")
         results_header.addWidget(self.results_label)
         results_header.addStretch()
 
-        clear_result_btn = QPushButton("Effacer tout")
-        clear_result_btn.setFixedHeight(22)
-        clear_result_btn.setStyleSheet("font-size: 11px; padding: 0 6px;")
-        clear_result_btn.clicked.connect(self.clear_results)
-        results_header.addWidget(clear_result_btn)
+        self.clear_result_btn = QPushButton(tr("Effacer tout"))
+        self.clear_result_btn.setFixedHeight(22)
+        self.clear_result_btn.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        self.clear_result_btn.clicked.connect(self.clear_results)
+        results_header.addWidget(self.clear_result_btn)
 
-        clear_sel_btn = QPushButton("Désélectionner")
-        clear_sel_btn.setFixedHeight(22)
-        clear_sel_btn.setStyleSheet("font-size: 11px; padding: 0 6px;")
-        clear_sel_btn.clicked.connect(self._deselect_all_results)
-        results_header.addWidget(clear_sel_btn)
+        self.clear_sel_btn = QPushButton(tr("Désélectionner"))
+        self.clear_sel_btn.setFixedHeight(22)
+        self.clear_sel_btn.setStyleSheet("font-size: 11px; padding: 0 6px;")
+        self.clear_sel_btn.clicked.connect(self._deselect_all_results)
+        results_header.addWidget(self.clear_sel_btn)
 
         self.footer_layout.addLayout(results_header)
 
@@ -229,8 +228,8 @@ class Sam3Widget(QWidget):
         row_layout.setContentsMargins(2, 2, 2, 2)
 
         label    = AutoElideLabel()
-        edit_btn = QPushButton("Modifier")
-        del_btn  = QPushButton("Supprimer")
+        edit_btn = QPushButton(tr("Modifier"))
+        del_btn  = QPushButton(tr("Supprimer"))
 
         row_layout.addWidget(label, stretch=1)
         row_layout.addWidget(edit_btn)
@@ -334,7 +333,7 @@ class Sam3Widget(QWidget):
             return
 
         if not self.image_path:
-            QMessageBox.warning(self, "Erreur", "Veuillez d'abord sélectionner une image.")
+            QMessageBox.warning(self, tr("Erreur"), tr("Veuillez d'abord sélectionner une image."))
             return
 
         prompts = self.get_prompts()
@@ -355,7 +354,7 @@ class Sam3Widget(QWidget):
 
         self._current_job_id = None
         self.send_btn.setEnabled(True)
-        self.send_btn.setText("RECHERCHER")
+        self.send_btn.setText(tr("RECHERCHER"))
         self.results_widget.load_results(results)
 
         self.image.set_SAM3_results(self.results_widget.get_results())
@@ -366,8 +365,8 @@ class Sam3Widget(QWidget):
 
         self._current_job_id = None
         self.send_btn.setEnabled(self._sam3_manager.is_ready)
-        self.send_btn.setText("RECHERCHER")
-        QMessageBox.warning(self, "Erreur SAM3", error)
+        self.send_btn.setText(tr("RECHERCHER"))
+        QMessageBox.warning(self, tr("Erreur SAM3"), error)
 
     def _send_to_all(self):
         self.multi_prompts_send.emit(self.get_prompts_for_all())
@@ -410,8 +409,6 @@ class Sam3Widget(QWidget):
         """
         results = résultat de image.get_SAM3_results()
         """
-        import torch
-        
         if not results:
             self._clear_local_results()
             return
@@ -435,23 +432,51 @@ class Sam3Widget(QWidget):
 
             self._add_prompt(prompt_data)
 
-    def get_selected_result(self) -> Optional[tuple[int, QColor]]:
-        """
-        Retourne (index, couleur) du résultat sélectionné, ou None.
-        """
-        if self._selected_result_row is None:
-            return None
-        return (
-            self._selected_result_row.index,
-            self._selected_result_row.get_color(),
-        )
-
     def clear_results(self):
         self._clear_local_results()
         self.results_cleared.emit([str(self.image_path)])
 
     def _clear_local_results(self):
         self.results_widget.clear()
+        
+    def _on_language_changed(self, lang_code: str = None) -> None:
+        """Met à jour toute l'UI quand la langue change"""
+
+        # ----------------------------
+        # Labels principaux UI
+        # ----------------------------
+        self.prompt_label.setText(tr("Détails à analyser :"))
+        self.add_btn.setText(tr("Ajouter"))
+        self.reset_btn.setText(tr("Réinitialiser"))
+        self.results_label.setText(tr("Résultats fusionnés :"))
+
+        # bouton principal (attention: il a un menu, donc on update aussi ses actions)
+        self.send_btn.setText(tr("RECHERCHER"))
+
+        # ----------------------------
+        # Menu du bouton send_btn
+        # ----------------------------
+        menu = self.send_btn.menu()
+        if menu:
+            actions = menu.actions()
+            if len(actions) >= 2:
+                actions[0].setText(tr("Seul"))
+                actions[1].setText(tr("Tous"))
+
+        # ----------------------------
+        # Refresh prompts affichés
+        # ----------------------------
+        for data, widget in self.prompt_list:
+            label = widget.layout().itemAt(0).widget()
+            self._refresh_label(label, data)
+
+        # ----------------------------
+        # Refresh résultats (si besoin de labels traduits)
+        # ----------------------------
+        self.results_widget.refresh_ui_language()
+        
+        self.clear_result_btn.setText(tr("Effacer tout"))
+        self.clear_sel_btn.setText(tr("Désélectionner"))
 
 if __name__ == "__main__":
     import sys

@@ -3,12 +3,14 @@ from PyQt6.QtCore import QSize, Qt, pyqtSignal
 from PyQt6.QtGui import QFont, QIcon
 from pathlib import Path
 
+from ui.utils.i18n import tr
+
 
 class SearchBarView(QWidget):
     search_triggered = pyqtSignal(str)
     search_text_changed = pyqtSignal(str)
 
-    def __init__(self, parent=None, placeholder_text: str = "Rechercher une image..."):
+    def __init__(self, parent=None, placeholder_text: str = tr("Rechercher une image...")):
         super().__init__(parent)
         
         self.setMinimumHeight(48)

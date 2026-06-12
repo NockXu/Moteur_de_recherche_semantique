@@ -4,6 +4,7 @@ from PyQt6.QtCore import QObject, QThread, pyqtSignal
 from ui.ImageSearchedContainer.Research import Research
 from common.Image_Classes.ImageRepository import ImageRepository
 from database.DbService import DbService
+from ui.utils.i18n import tr
 
 
 # =========================
@@ -103,7 +104,7 @@ class AsyncEmbeddingManager(QObject):
 
     def _handle_error(self, error):
         try:
-            print(f"[EmbeddingWorker ERROR] {error}")
+            print(f"{tr('[EmbeddingWorker ERROR]')} {error}")
             self.result.emit({})
         except Exception as e:
             print(e)

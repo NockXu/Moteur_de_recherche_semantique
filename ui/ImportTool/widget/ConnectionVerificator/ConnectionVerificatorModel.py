@@ -15,6 +15,7 @@ load_dotenv(dotenv_path)
 from enum import Enum
 from vision.ollama_wrapper import OllamaWrapper, OllamaConnectionError, OllamaResponseError
 
+from ui.utils.i18n import tr
 
 class State(Enum):
     """États de connexion possibles"""
@@ -69,22 +70,22 @@ class ConnectionVerificatorModel:
                 self._error_message = ""
             else:
                 self._state = State.DISCONNECTED
-                self._error_message = "Serveur Ollama non démarré ou inaccessible"
+                self._error_message = tr("Serveur Ollama non démarré ou inaccessible")
                 self._version = ""
                 
         except OllamaConnectionError as e:
             self._state = State.ERROR
-            self._error_message = f"Erreur de connexion: {str(e)}"
+            self._error_message = f"{tr('Erreur de connexion')}: {str(e)}"
             self._version = ""
             
         except OllamaResponseError as e:
             self._state = State.ERROR
-            self._error_message = f"Réponse invalide du serveur: {str(e)}"
+            self._error_message = f"{tr('Réponse invalide du serveur')}: {str(e)}"
             self._version = ""
             
         except Exception as e:
             self._state = State.ERROR
-            self._error_message = f"Erreur inattendue: {str(e)}"
+            self._error_message = f"{tr('Erreur inattendue')}: {str(e)}"
             self._version = ""
         
         return self._state

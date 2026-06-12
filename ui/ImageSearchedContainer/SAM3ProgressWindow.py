@@ -2,6 +2,8 @@ from PyQt6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButt
 from PyQt6.QtCore import Qt, QTimer, pyqtSignal
 from PyQt6.QtGui import QFont
 
+from ui.utils.i18n import tr
+
 
 class SAM3ProgressWindow(QWidget):
     """
@@ -12,7 +14,7 @@ class SAM3ProgressWindow(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent, Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
-        self.setWindowTitle("Traitement SAM3")
+        self.setWindowTitle(f"{tr('Traitement SAM3')}")
         self.setMinimumWidth(350)
         self.setFixedHeight(120)
         self._total = 0
@@ -24,7 +26,7 @@ class SAM3ProgressWindow(QWidget):
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
 
-        self.status_label = QLabel("Initialisation...")
+        self.status_label = QLabel(f"{tr('Initialisation')}...")
         self.status_label.setFont(QFont("Segoe UI", 9))
         layout.addWidget(self.status_label)
 
@@ -40,7 +42,7 @@ class SAM3ProgressWindow(QWidget):
         footer.addWidget(self.count_label)
         footer.addStretch()
 
-        self.cancel_btn = QPushButton("Annuler")
+        self.cancel_btn = QPushButton(f"{tr('Annuler')}")
         self.cancel_btn.setFixedHeight(24)
         self.cancel_btn.clicked.connect(self._on_cancel)
         footer.addWidget(self.cancel_btn)
@@ -53,7 +55,7 @@ class SAM3ProgressWindow(QWidget):
         pct = int(initial_done / total * 100) if total > 0 else 0
         self.progress_bar.setValue(pct)
         self.count_label.setText(f"{initial_done} / {total}")
-        self.status_label.setText(f"Traitement de {total} image(s)...")
+        self.status_label.setText(f"{tr('Traitement de')} {total} {tr('image(s)')}...")
         self.cancel_btn.setEnabled(True)
         self.show()
         self.raise_()
@@ -69,13 +71,13 @@ class SAM3ProgressWindow(QWidget):
     def finish(self):
         self.progress_bar.setValue(100)
         self.count_label.setText(f"{self._total} / {self._total}")
-        self.status_label.setText("Traitement terminé.")
+        self.status_label.setText(f"{tr('Traitement terminé')}.")
         self.cancel_btn.setEnabled(False)
         QTimer.singleShot(1500, self.hide)
 
     def _on_cancel(self):
         self.cancel_btn.setEnabled(False)
-        self.status_label.setText("Annulation en cours...")
+        self.status_label.setText(f"{tr('Annulation en cours')}...")
         self.cancelled.emit()
 
     def reset(self):
@@ -86,3 +88,42 @@ class SAM3ProgressWindow(QWidget):
         self.count_label.setText("0 / 0")
         self.status_label.setText("")
         self.cancel_btn.setEnabled(True)
+        
+    def _on_language_changed(self, lang_code: str = None) -> None:
+        """Met à jour les textes de la fenêtre de progression SAM3"""
+
+        # -----------------------------
+        # TITRE DE FENÊTRE
+        # -----------------------------
+        self.setWindowTitle(tr("Traitement SAM3"))
+
+        # -----------------------------
+        # STATUS LABEL (états dynamiques possibles)
+        # -----------------------------
+        if self.progress_bar.value() == 0:
+            self.status_label.setText(tr("Initialisation") + "...")
+        elif self.progress_bar.value() >= 100:
+            self.status_label.setText(tr("Traitement terminé") + ".")
+
+        # -----------------------------
+        # FOOTER BUTTON
+        # -----------------------------
+        self.cancel_btn.setText(tr("Annuler"))
+
+        # -----------------------------
+        # COUNT LABEL (inchangé structurellement, mais on garde format)
+        # -----------------------------
+        self.count_label.setText(f"{self._done} / {self._total}")
+
+        # -----------------------------
+        # CONTEXT STATUS UPDATE (si en cours)
+        # -----------------------------
+        if 0 < self._done < self._total:
+            self.status_label.setText(
+                f"{tr('Traitement de')} {self._total} {tr('image(s)')}..."
+            )
+
+        # -----------------------------
+        # FORCE REFRESH UI
+        # -----------------------------
+        self.update()

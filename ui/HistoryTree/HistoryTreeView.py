@@ -403,3 +403,6 @@ class HistoryTreeView(QWidget):
                 border: none;
             }}
         """)
+        
+    def _on_language_changed(self) -> None:
+        self.preview._on_language_changed()

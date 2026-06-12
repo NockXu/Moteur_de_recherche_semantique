@@ -13,6 +13,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 from common.Image_Classes.Image import Image, ProcessingStatus
+from ui.utils.i18n import tr
 
 
 class Export:
@@ -119,26 +120,26 @@ class ExportDialog(QDialog):
         layout.setSpacing(15)
         
         # Titre
-        title = QLabel("Choisir le mode d'export")
+        title = QLabel(f"{tr("Choisir le mode d'export")}")
         title.setFont(QFont("Arial", 12, QFont.Weight.Bold))
         title.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(title)
         
         # Groupe de choix
-        choice_group = QGroupBox("Mode d'export")
+        choice_group = QGroupBox(f"{tr("Mode d'export")}")
         choice_layout = QVBoxLayout(choice_group)
         
         # Boutons radio
-        self.radio_simple = QRadioButton("Export simple (images uniquement)")
+        self.radio_simple = QRadioButton(f"{tr("Export simple (images uniquement)")}")
         self.radio_simple.setChecked(True)  # Sélectionné par défaut
         
-        simple_desc = QLabel("Exporte uniquement les images avec leurs métadonnées.")
+        simple_desc = QLabel(f"{tr("Exporte uniquement les images avec leurs métadonnées")}.")
         simple_desc.setStyleSheet("color: #666; font-size: 10px; margin-left: 20px;")
         simple_desc.setWordWrap(True)
         
-        self.radio_integral = QRadioButton("Export intégral (datasets + images)")
+        self.radio_integral = QRadioButton(f"{tr("Export intégral (datasets + images)")}")
         
-        integral_desc = QLabel("Exporte les datasets et les images dans un fichier complet.")
+        integral_desc = QLabel(f"{tr("Exporte les datasets et les images dans un fichier complet")}.")
         integral_desc.setStyleSheet("color: #666; font-size: 10px; margin-left: 20px;")
         integral_desc.setWordWrap(True)
         
@@ -152,10 +153,10 @@ class ExportDialog(QDialog):
         # Boutons
         button_layout = QHBoxLayout()
         
-        self.export_button = QPushButton("Exporter...")
+        self.export_button = QPushButton(f"{tr("Exporter")}...")
         self.export_button.setDefault(True)
         
-        self.cancel_button = QPushButton("Annuler")
+        self.cancel_button = QPushButton(f"{tr("Annuler")}")
         
         button_layout.addStretch()
         button_layout.addWidget(self.export_button)
@@ -197,15 +198,15 @@ class ExportDialog(QDialog):
             if success:
                 QMessageBox.information(
                     self, 
-                    "Export réussi", 
-                    f"Les données ont été exportées avec succès dans:\n{file_path}"
+                    f"{tr("Export réussi")}", 
+                    f"{tr("Les données ont été exportées avec succès dans")}:\n{file_path}"
                 )
                 self.accept()
             else:
                 QMessageBox.critical(
                     self, 
-                    "Erreur d'export", 
-                    "Une erreur est survenue lors de l'export."
+                    f"{tr("Erreur d'export")}", 
+                    f"{tr("Une erreur est survenue lors de l'export")}."
                 )
     
     def _perform_export(self, file_path: str) -> bool:
@@ -223,13 +224,26 @@ class ExportDialog(QDialog):
             return True
             
         except Exception as e:
-            print(f"Erreur lors de l'export: {e}")
+            print(f"{tr("Erreur lors de l'export")}: {e}")
             return False
     
     def get_selected_mode(self) -> Optional[str]:
         """Retourne le mode sélectionné"""
         return self.selected_mode
+        
+    def _on_language_changed(self):
+        self.setWindowTitle(tr("Exporter les données"))
 
+        self.findChild(QLabel).setText(tr("Choisir le mode d'export"))
+
+        self.radio_simple.setText(tr("Export simple (images uniquement)"))
+        self.radio_integral.setText(tr("Export intégral (datasets + images)"))
+
+        self.radio_simple.setToolTip(tr("Exporte uniquement les images avec leurs métadonnées"))
+        self.radio_integral.setToolTip(tr("Exporte les datasets et les images dans un fichier complet"))
+
+        self.export_button.setText(tr("Exporter") + "...")
+        self.cancel_button.setText(tr("Annuler"))
 
 # ─────────────────────────────────────────────
 # FONCTION UTILITAIRE POUR UTILISATION RAPIDE

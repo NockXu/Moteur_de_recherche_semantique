@@ -3,6 +3,8 @@ import sys
 from pathlib import Path
 from typing import List, Dict, Optional, Set
 
+from ui.utils.i18n import tr
+
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
@@ -46,11 +48,11 @@ class ImportToolModel:
             self._cache.clear()
             self._generator = self.scan_service.scan_lazy(folder)
 
-            print(f"Scan initialisé: {folder.name}")
+            print(f"{tr('Scan initialisé')}: {folder.name}")
             return True
 
         except Exception as e:
-            print(f"Erreur set_folder: {e}")
+            print(f"{tr('Erreur set_folder')}: {e}")
             return False
 
     # ─────────────────────────────────────────────
@@ -88,10 +90,9 @@ class ImportToolModel:
             # Utiliser la méthode optimisée qui retourne directement les chemins
             repo = ImageRepository(DbService().sqlite, DbService().faiss)
             self._db_paths = repo.get_all_image_paths()
-            print(f"🗄️ {len(self._db_paths)} images en BDD")
 
         except Exception as e:
-            print(f"Erreur load_db_status: {e}")
+            print(f"{tr("Erreur load_db_status")}: {e}")
             self._db_paths = set()
 
     # ─────────────────────────────────────────────

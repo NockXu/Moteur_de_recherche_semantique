@@ -9,6 +9,7 @@ from PyQt6.QtGui import QColor
 
 from .ImageView import ImageView
 
+from ui.utils.i18n import tr
 
 class BoxRow(QWidget):
     """
@@ -97,7 +98,7 @@ class PromptBuilderDialog(QDialog):
     def __init__(self, parent=None, image_path: str | None = None):
         super().__init__(parent)
 
-        self.setWindowTitle("Créer un prompt SAM3")
+        self.setWindowTitle(tr("Créer un prompt SAM3"))
         self.setMinimumWidth(700)
         self.setMinimumHeight(520)
 
@@ -119,12 +120,12 @@ class PromptBuilderDialog(QDialog):
         root.setContentsMargins(10, 10, 10, 10)
 
         # ---- Prompt texte ----
-        prompt_label = QLabel("Prompt")
+        prompt_label = QLabel(tr("Prompt"))
         prompt_label.setStyleSheet("font-weight: bold;")
 
         self._prompt_edit = QLineEdit()
         self._prompt_edit.setPlaceholderText(
-            "Décrivez ce que SAM doit segmenter..."
+            tr("Décrivez ce que SAM doit segmenter...")
         )
 
         root.addWidget(prompt_label)
@@ -154,7 +155,7 @@ class PromptBuilderDialog(QDialog):
         right_layout.setContentsMargins(4, 0, 0, 0)
         right_layout.setSpacing(6)
 
-        list_header = QLabel("Boîtes de sélection")
+        list_header = QLabel(tr("Boîtes de sélection"))
         list_header.setStyleSheet("font-weight: bold; font-size: 13px;")
         right_layout.addWidget(list_header)
 
@@ -168,7 +169,7 @@ class PromptBuilderDialog(QDialog):
         self._scroll_layout.setSpacing(0)
         self._scroll_layout.setContentsMargins(0, 0, 0, 0)
 
-        self._empty_label = QLabel("Dessinez une zone sur l'image.")
+        self._empty_label = QLabel(tr("Dessinez une zone sur l'image."))
         self._empty_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self._empty_label.setStyleSheet(
             "color: #666; font-style: italic; padding: 20px;"
@@ -179,7 +180,7 @@ class PromptBuilderDialog(QDialog):
         right_layout.addWidget(self._scroll_area, stretch=1)
 
         # Bouton « Tout effacer »
-        clear_btn = QPushButton("🗑 Tout effacer")
+        clear_btn = QPushButton(f"{tr('Tout effacer')}")
         clear_btn.clicked.connect(self._clear_all)
         right_layout.addWidget(clear_btn)
 
@@ -191,7 +192,7 @@ class PromptBuilderDialog(QDialog):
         # ---- FOOTER (threshold bar en bas du widget) ----
         self.footer_layout = QVBoxLayout()
 
-        self.threshold_label = QLabel("Seuil de confiance :")
+        self.threshold_label = QLabel(tr("Seuil de confiance :"))
         self.threshold_label.setStyleSheet("font-weight: bold;")
 
         self.footer_layout.addWidget(self.threshold_label)
@@ -227,9 +228,9 @@ class PromptBuilderDialog(QDialog):
 
         # ---- Boutons OK / Annuler ----
         btn_layout = QHBoxLayout()
-        ok_btn = QPushButton("OK")
+        ok_btn = QPushButton(tr("OK"))
         ok_btn.setDefault(True)
-        cancel_btn = QPushButton("Annuler")
+        cancel_btn = QPushButton(tr("Annuler"))
 
         ok_btn.clicked.connect(self._build_result)
         cancel_btn.clicked.connect(self.reject)
@@ -354,7 +355,7 @@ class PromptBuilderDialog(QDialog):
     def _open_image_dialog(self):
         from PyQt6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(
-            self, "Ouvrir une image", "",
+            self, f"{tr('Ouvrir une image')}", "",
             "Images (*.png *.jpg *.jpeg *.bmp *.tiff *.webp)"
         )
         if path:

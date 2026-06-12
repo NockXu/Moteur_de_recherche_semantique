@@ -16,6 +16,7 @@ from ui.ImageSearchedContainer.widget.ImageThumbnailWidget import ImageThumbnail
 from ui.ImageSearchedContainer.widget.SearchBar.SearchBarController import SearchBarController
 from ui.utils.colored_icon import colored_icon
 from ui.utils.JustifiedGalleryLayout import JustifiedGalleryLayout
+from ui.utils.i18n import tr
 
 # ─────────────────────────────────────────────
 # Lazy wrapper
@@ -89,10 +90,10 @@ class ImageSearchedContainerView(QWidget):
 
         self.right_layout = QHBoxLayout()
         self.filter_combo = QComboBox()
-        self.filter_combo.addItem("Aucun filtre", "none")
-        self.filter_combo.addItem("Score décroissant", "score_desc")
-        self.filter_combo.addItem("Score croissant", "score_asc")
-        self.filter_combo.addItem("Nombre de résultats", "count_desc")
+        self.filter_combo.addItem(tr("Aucun filtre"), "none")
+        self.filter_combo.addItem(tr("Score décroissant"), "score_desc")
+        self.filter_combo.addItem(tr("Score croissant"), "score_asc")
+        self.filter_combo.addItem(tr("Nombre de résultats"), "count_desc")
 
         self.filter_combo.currentTextChanged.connect(self._on_filter_changed)
 
@@ -126,7 +127,7 @@ class ImageSearchedContainerView(QWidget):
         # FOOTER
         footer = QHBoxLayout()
 
-        self.image_count_label = QLabel("Images :")
+        self.image_count_label = QLabel(f"{tr('Images')} :")
 
         self.image_count_spinbox = QSpinBox()
         self.image_count_spinbox.setMinimum(1)
@@ -235,7 +236,7 @@ class ImageSearchedContainerView(QWidget):
             card.widget.load_image()
             # Ne pas setter card._loaded ici : c'est le signal image_loaded qui le fait
         except Exception as e:
-            print(f"[LAZY] error: {e}")
+            print(f"{tr('[LAZY] error')}: {e}")
 
     # ─────────────────────────────────────────────
     # API
@@ -498,6 +499,59 @@ class ImageSearchedContainerView(QWidget):
         ]
 
         self.gallery_layout.set_visible_items(layout_items)
+        
+    def _on_language_changed(self, lang_code: str = None) -> None:
+        """Met à jour tous les textes UI de la galerie"""
+
+        # -----------------------------
+        # HEADER
+        # -----------------------------
+        self.reload_button.setToolTip(tr("Recharger"))
+        self.reload_button.setText("")  # bouton icône → pas de texte
+
+        # -----------------------------
+        # FILTER COMBO
+        # -----------------------------
+        current_mode = self._filter_mode
+
+        self.filter_combo.blockSignals(True)
+
+        self.filter_combo.setItemText(0, tr("Aucun filtre"))
+        self.filter_combo.setItemText(1, tr("Score décroissant"))
+        self.filter_combo.setItemText(2, tr("Score croissant"))
+        self.filter_combo.setItemText(3, tr("Nombre de résultats"))
+
+        self.filter_combo.blockSignals(False)
+
+        # restore mode visuel
+        index = self.filter_combo.findData(current_mode)
+        if index >= 0:
+            self.filter_combo.setCurrentIndex(index)
+
+        # -----------------------------
+        # SEARCH BAR (si elle expose UI traduisible)
+        # -----------------------------
+        if hasattr(self.search_controller, "view"):
+            if hasattr(self.search_controller.view, "retranslate"):
+                self.search_controller.view.retranslate()
+
+        # -----------------------------
+        # FOOTER LABELS
+        # -----------------------------
+        self.image_count_label.setText(f"{tr('Images')} :")
+        self.threshold_value_label.setText(f"{int(self.threshold_slider.value())}%")
+
+        # -----------------------------
+        # EMPTY UI TEXT (si jamais utilisé ailleurs)
+        # -----------------------------
+        # (pas dans ce widget, mais safe extension point)
+
+        # -----------------------------
+        # REFRESH VISUAL STATE (IMPORTANT)
+        # -----------------------------
+        # pas besoin de recharger images ni lazy loading
+        # juste UI text refresh
+        self.update()
 
 
 if __name__ == "__main__":

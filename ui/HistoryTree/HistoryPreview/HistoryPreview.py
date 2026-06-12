@@ -20,6 +20,7 @@ from common.WeightCalculator.weightCalculator import WeightSystem
 from ui.widgets.WeightsCalculator.WeightsCalculatorController import WeightCalculatorController
 
 from ui.utils import colored_icon
+from ui.utils.i18n import tr
 
 import os
 
@@ -70,12 +71,12 @@ class HistoryPreview(QWidget):
 
         # ---------- QUERY EDIT ----------
         self.query_edit = QTextEdit()
-        self.query_edit.setPlaceholderText("Entrer la requête ici")
+        self.query_edit.setPlaceholderText(tr("Entrer la requête ici"))
         container_layout.addWidget(self.query_edit)
 
         # ---------- THRESHOLD SLIDER ----------
         
-        threshold_label = QLabel("Seuil:")
+        self.threshold_label = QLabel(f"{tr('Seuil')}:")
         self.threshold_slider = QSlider(Qt.Orientation.Horizontal)
         self.threshold_slider.setRange(0, 100)
         self.threshold_slider.setValue(50)
@@ -88,7 +89,7 @@ class HistoryPreview(QWidget):
         self.threshold_value_label.setMinimumWidth(50)
 
         self.threshold_layout = QHBoxLayout()
-        self.threshold_layout.addWidget(threshold_label)
+        self.threshold_layout.addWidget(self.threshold_label)
         self.threshold_layout.addWidget(self.threshold_slider)
         self.threshold_layout.addWidget(self.threshold_value_label)
         container_layout.addLayout(self.threshold_layout)
@@ -186,8 +187,8 @@ class HistoryPreview(QWidget):
 
         confirm = QMessageBox.question(
             self,
-            "Supprimer Nœud",
-            "Supprimer ce nœud ? (Cette action suprimera tout les nœuds sous celui détruit)"
+            tr("Supprimer Nœud"),
+            tr("Supprimer ce nœud ? (Cette action suprimera tout les nœuds sous celui détruit)")
         )
 
         if confirm == QMessageBox.StandardButton.Yes:
@@ -221,3 +222,11 @@ class HistoryPreview(QWidget):
         self.current_node.node.w_const = const
         self.current_node.node.w_expr = expr
         history.save()
+
+    # ------- LANGUAGE CHANGED -------------
+    
+    def _on_language_changed(self) -> None:
+        self.threshold_label.setText(f"{tr('Seuil')}:")
+        self.query_edit.setPlaceholderText(tr("Entrer la requête ici"))
+        self.weight_calculator.view._on_language_changed()
+        

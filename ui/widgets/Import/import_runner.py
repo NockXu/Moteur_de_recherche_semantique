@@ -6,6 +6,7 @@ from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
 from common.Dataset_Classes.DatasetRepository import DatasetRepository
 
+from ui.utils.i18n import tr
 
 class ImportRunner:
     """
@@ -29,7 +30,7 @@ class ImportRunner:
         on_error: Callable[[str], None]
     ):
         if self._running:
-            on_error("Import already running")
+            on_error(tr("Import already running"))
             return
 
         self._running = True
@@ -44,11 +45,11 @@ class ImportRunner:
             total_datasets = len(datasets)
             success_datasets = 0
 
-            on_progress(f"Start import: {total_datasets} datasets")
+            on_progress(f"{tr("Start import")}: {total_datasets} {tr("datasets")}")
 
             for dataset in datasets:
                 if not self._running:
-                    on_progress("Import cancelled")
+                    on_progress(tr("Import cancelled"))
                     return
 
                 try:
@@ -63,21 +64,21 @@ class ImportRunner:
                 except Exception as e:
                     on_error(str(e))
 
-            on_progress(f"Start import: {total_images} images")
+            on_progress(f"{tr("Start import")}: {total_images} {tr("images")}")
 
             datasets: List[Dataset] = self.service.dataset_repo.get_all()
             images_to_save: List[Image] = []
 
             for i, image in enumerate(images):
                 if not self._running:
-                    on_progress("Import cancelled")
+                    on_progress(tr("Import cancelled"))
                     return
 
                 # Résoudre le chemin de l'image
                 final_path = self.service.resolve_path(image)
 
                 if not final_path:
-                    on_progress(f"Skip {image.name}")
+                    on_progress(f"{tr("Skip")}: {image.name}")
                     continue
 
                 # Mettre à jour le chemin de l'image
@@ -90,7 +91,7 @@ class ImportRunner:
 
                 images_to_save.append(image)
 
-            on_progress(f"Traitement fini passage à la sauvegarde en bdd")
+            on_progress(f"{tr("Traitement fini")}: {tr("passage à la sauvegarde en bdd")}")
 
             # Sauvegarder l'image
             BATCH_SIZE = 1000

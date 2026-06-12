@@ -1,6 +1,8 @@
 import sys
 import os
 
+from ui.utils.i18n import tr
+
 # Ajouter le chemin racine du projet au sys.path pour les imports
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))))
@@ -54,7 +56,7 @@ class ConnectionVerificatorView(QWidget):
         self.status_indicator.setPixmap(default_icon.pixmap(16, 16))
 
         # Label de statut
-        self.status_label = QLabel("Non connecté")
+        self.status_label = QLabel(tr("Non connecté"))
         self.status_label.setStyleSheet("""
             QLabel {
                 color: #6c757d;
@@ -133,25 +135,25 @@ class ConnectionVerificatorView(QWidget):
         """Met à jour l'affichage du statut"""
         if state == State.CONNECTED:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['connected'], self.icon_colors['connected']).pixmap(16, 16))
-            self.status_label.setText("Connecté")
+            self.status_label.setText(f"{tr('Connecté')}")
             self.version_label.setText(f"v{version}")
             self.version_label.show()
             
         elif state == State.DISCONNECTED:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['disconnected'], self.icon_colors['disconnected']).pixmap(16, 16))
-            self.status_label.setText("Non connecté")
+            self.status_label.setText(f"{tr('Non connecté')}")
             self.version_label.hide()
             
         elif state == State.ERROR:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['error'], self.icon_colors['error']).pixmap(16, 16))
-            self.status_label.setText("Erreur")
+            self.status_label.setText(f"{tr('Erreur')}")
             self.version_label.hide()
 
     def set_checking(self, is_checking: bool):
         """Met à jour l'interface pendant la vérification"""
         if is_checking:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['checking'], self.icon_colors['checking']).pixmap(16, 16))
-            self.status_label.setText("Vérification...")
+            self.status_label.setText(f"{tr('Vérification')}...")
             self.version_label.hide()
         else:
             # L'état sera mis à jour par update_status
@@ -160,6 +162,30 @@ class ConnectionVerificatorView(QWidget):
     def get_view(self) -> QWidget:
         """Retourne le widget vue"""
         return self
+    
+    def _on_language_changed(self):
+        """Met à jour les textes lors d'un changement de langue"""
+
+        # Texte selon l'état actuel (on doit les recalculer proprement)
+        current_text = self.status_label.text()
+
+        # Mapping simple basé sur l'état visible actuel
+        # (on ne stocke pas l'état -> on déduit via texte ou mieux: variable state si tu l'as)
+        
+        if current_text.startswith("Connecté") or current_text.startswith("Connected"):
+            self.status_label.setText(tr("Connecté"))
+            self.version_label.show()
+
+        elif current_text.startswith("Erreur") or current_text.startswith("Error"):
+            self.status_label.setText(tr("Erreur"))
+            self.version_label.hide()
+
+        elif current_text.startswith("Vérification") or current_text.startswith("Checking"):
+            self.status_label.setText(tr("Vérification") + "...")
+
+        else:
+            self.status_label.setText(tr("Non connecté"))
+            self.version_label.hide()
 
 
 if __name__ == "__main__":

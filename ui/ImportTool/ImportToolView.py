@@ -16,6 +16,8 @@ from ui.ImportTool.widget.ConnectionVerificator import ConnectionVerificatorCont
 
 from ui.utils.colored_icon import colored_icon
 
+from ui.utils.i18n import tr
+
 
 # ─────────────────────────────────────────────
 # Style helpers
@@ -93,12 +95,12 @@ class ImportToolView(QWidget):
 
         lay = QVBoxLayout(card)
 
-        self.folder_label = QLabel("Aucun dossier")
+        self.folder_label = QLabel(tr("Aucun dossier"))
         lay.addWidget(self.folder_label)
 
         button_layout = QHBoxLayout()
 
-        self.btn_select = QPushButton("Dossier")
+        self.btn_select = QPushButton(tr("Dossier"))
         self.btn_select.clicked.connect(self._on_select_folder)
         button_layout.addWidget(self.btn_select)
 
@@ -148,7 +150,7 @@ class ImportToolView(QWidget):
         progress_vlay.setContentsMargins(0, 0, 0, 0)
         progress_vlay.setSpacing(4)
 
-        self._progress_label = QLabel("En attente…")
+        self._progress_label = QLabel(tr("En attente…"))
         self._progress_label.setStyleSheet("""
             QLabel {
                 color: #6c757d;
@@ -207,7 +209,7 @@ class ImportToolView(QWidget):
             self.folder_selected.emit(path)
 
     def set_folder(self, path: str, ok: bool):
-        self.folder_label.setText(Path(path).name if ok else "Erreur")
+        self.folder_label.setText(Path(path).name if ok else tr("Erreur"))
 
     # ─────────────────────────────────────────────
     # Start / Stop
@@ -356,11 +358,11 @@ class ImportToolView(QWidget):
         total = self.model.get_images_count()
 
         if total == 0:
-            self._progress_label.setText("En attente…")
+            self._progress_label.setText(tr("En attente…"))
         elif pct == 100:
-            self._progress_label.setText(f"Terminé — {done} traité(s), {error} erreur(s)")
+            self._progress_label.setText(f"{tr('Terminé')} — {done} {tr('traité(s)')}, {error} {tr('erreur(s)')}")
         else:
-            self._progress_label.setText(f"{pct}% — {done + error} / {total} images")
+            self._progress_label.setText(f"{pct}% — {done + error} / {total} {tr('images')}")
 
     # ─────────────────────────────────────────────
     # Process mode
@@ -413,3 +415,48 @@ class ImportToolView(QWidget):
                 );
             }}
         """)
+
+    # ─────────────────────────────────────────────
+    # LANGUAGE
+    # ─────────────────────────────────────────────
+    
+    def _on_language_changed(self, lang_code: str = None):
+        """Met à jour tous les textes UI de l'import tool"""
+
+        # -----------------------------
+        # HEADER
+        # -----------------------------
+        self.folder_label.setText(
+            self.folder_label.text()
+            if self.folder_label.text() not in ["", "Aucun dossier", "Erreur"]
+            else tr("Aucun dossier")
+        )
+
+        self.btn_select.setText(tr("Dossier"))
+
+        # bouton start/stop → uniquement tooltip implicite via icône
+        self.btn_start.setToolTip(
+            tr("Démarrer") if not self.is_running else tr("Arrêter")
+        )
+
+        # -----------------------------
+        # FOOTER - PROGRESS LABEL
+        # -----------------------------
+        self._progress_label.setText(
+            tr("En attente…")
+        )
+
+        # on force une mise à jour cohérente avec l'état actuel
+        self._update_progress_display()
+
+        # -----------------------------
+        # CONNECTION WIDGET (si traduisible)
+        # -----------------------------
+        if hasattr(self.connection_verificator.view, "retranslate"):
+            self.connection_verificator.view.retranslate()
+
+        # -----------------------------
+        # FORCE REFRESH UI
+        # -----------------------------
+        self.update()
+            

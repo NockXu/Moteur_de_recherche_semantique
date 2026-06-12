@@ -10,6 +10,7 @@ from PyQt6.QtWidgets import (
 )
 from PyQt6.QtCore import Qt
 
+from ui.utils.i18n import tr
 from ui.widgets.Import.import_service import ImportService
 from ui.widgets.Import.import_runner import ImportRunner
 from ui.widgets.Import.WithDataset.WithDatasetController import WithDatasetController
@@ -34,7 +35,7 @@ class AdvancedImportDialog(QDialog):
         self.with_dataset_controller : WithDatasetController = None
         self.without_dataset_controller : WithoutDatasetController = None
 
-        self.setWindowTitle("Importation Avancée")
+        self.setWindowTitle(tr("Importation Avancée"))
         self.setModal(True)
         self.resize(600, 500)
 
@@ -47,11 +48,11 @@ class AdvancedImportDialog(QDialog):
         layout = QVBoxLayout()
 
         # FILE
-        file_group = QGroupBox("1. Fichier JSON")
+        file_group = QGroupBox(tr("1. Fichier JSON"))
         file_layout = QHBoxLayout()
 
-        self.file_label = QLabel("Aucun fichier sélectionné")
-        self.browse_button = QPushButton("Parcourir...")
+        self.file_label = QLabel(tr("Aucun fichier sélectionné"))
+        self.browse_button = QPushButton(tr("Parcourir..."))
         self.browse_button.clicked.connect(self.browse_file)
 
         file_layout.addWidget(self.file_label)
@@ -60,13 +61,13 @@ class AdvancedImportDialog(QDialog):
         layout.addWidget(file_group)
 
         # MODE
-        mode_group = QGroupBox("2. Mode")
+        mode_group = QGroupBox(tr("2. Mode"))
         mode_layout = QVBoxLayout()
 
         self.mode_group = QButtonGroup()
 
-        self.with_dataset_radio = QRadioButton("Avec dataset")
-        self.without_dataset_radio = QRadioButton("Sans dataset")
+        self.with_dataset_radio = QRadioButton(tr("Avec dataset"))
+        self.without_dataset_radio = QRadioButton(tr("Sans dataset"))
 
         self.with_dataset_radio.toggled.connect(self.on_mode_changed)
         self.without_dataset_radio.toggled.connect(self.on_mode_changed)
@@ -78,14 +79,14 @@ class AdvancedImportDialog(QDialog):
         layout.addWidget(mode_group)
 
         # CONFIG AREA (widget dynamique)
-        self.config_group = QGroupBox("3. Configuration")
+        self.config_group = QGroupBox(tr("3. Configuration"))
         self.config_layout = QVBoxLayout()
         self.config_group.setLayout(self.config_layout)
         self.config_group.setEnabled(False)
         layout.addWidget(self.config_group)
 
         # LOG
-        log_group = QGroupBox("4. Log")
+        log_group = QGroupBox(tr("4. Log"))
         log_layout = QVBoxLayout()
 
         self.log_text = QTextEdit()
@@ -98,11 +99,11 @@ class AdvancedImportDialog(QDialog):
         # BUTTONS
         btn_layout = QHBoxLayout()
 
-        self.import_btn = QPushButton("Importer")
+        self.import_btn = QPushButton(tr("Importer"))
         self.import_btn.setEnabled(False)
         self.import_btn.clicked.connect(self.start_import)
 
-        self.cancel_btn = QPushButton("Annuler")
+        self.cancel_btn = QPushButton(tr("Annuler"))
         self.cancel_btn.clicked.connect(self.reject)
 
         btn_layout.addStretch()
@@ -119,7 +120,7 @@ class AdvancedImportDialog(QDialog):
     def browse_file(self):
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "Sélectionner un fichier JSON",
+            tr("Sélectionner un fichier JSON"),
             "",
             "JSON (*.json)"
         )
@@ -144,16 +145,16 @@ class AdvancedImportDialog(QDialog):
 
             if has_dataset:
                 self.with_dataset_radio.setChecked(True)
-                self.log(f"Datasets détectés: {', '.join(self.detected_datasets)}")
+                self.log(f"{tr("Datasets détectés")}: {', '.join(self.detected_datasets)}")
             else:
                 self.without_dataset_radio.setChecked(True)
-                self.log("Sans dataset détecté")
+                self.log(f"{tr("Sans dataset détecté")}")
 
             self.config_group.setEnabled(True)
             self.import_btn.setEnabled(True)
 
         except Exception as e:
-            self.log(f"Erreur analyse: {e}")
+            self.log(f"{tr("Erreur analyse")}: {e}")
 
     # -------------------------
     # MODE / WIDGET
@@ -208,7 +209,7 @@ class AdvancedImportDialog(QDialog):
         mode = self.current_controller.get_mode()
 
         if not valid:
-            self.log("❌ Configuration invalide")
+            self.log(f"{tr("Configuration invalide")}")
             return
 
         service = ImportService(config, mode)
@@ -241,13 +242,38 @@ class AdvancedImportDialog(QDialog):
         self.log_text.append(str(msg))
 
     def on_done(self, success, total):
-        self.log(f"✅ Terminé: {success}/{total}")
+        self.log(f"{tr("Terminé")}: {success}/{total}")
         self.import_btn.setEnabled(True)
 
     def cancel_import(self):
         if self.runner:
             self.runner.cancel()
-            self.log("⛔ annulé")
+            self.log(f"{tr("annulé")}")
+            
+    def _on_language_changed(self, lang_code: str = None) -> None:
+        # --- STATIC UI ---
+        self.setWindowTitle(tr("Importation Avancée"))
+
+        self.file_group.setTitle(tr("1. Fichier JSON"))
+        self.mode_group.setTitle(tr("2. Mode"))
+        self.config_group.setTitle(tr("3. Configuration"))
+        self.log_group.setTitle(tr("4. Log"))
+
+        self.file_label.setText(tr("Aucun fichier sélectionné"))
+        self.browse_button.setText(tr("Parcourir..."))
+        self.import_btn.setText(tr("Importer"))
+        self.cancel_btn.setText(tr("Annuler"))
+
+        # --- LOG TEXT (optionnel) ---
+        self.log_text.setPlaceholderText(tr("Log en cours..."))
+
+        # --- DYNAMIC UI ---
+        if self.with_dataset_controller:
+            self.with_dataset_controller.on_language_changed()
+
+        if self.without_dataset_controller:
+            self.without_dataset_controller.on_language_changed()
+
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication

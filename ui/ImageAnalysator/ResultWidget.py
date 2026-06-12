@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
     QGraphicsOpacityEffect,
 )
 
+from ui.utils.i18n import tr
+
 class ColorDot(QPushButton):
 
     colorChanged = pyqtSignal()
@@ -75,7 +77,7 @@ class ResultsTable(QWidget):
 
         self.table.setColumnCount(4)
         self.table.setHorizontalHeaderLabels(
-            ["Résultat", "Score", "Boxe", "Color"]
+            [tr("Résultat"), tr("Score"), tr("Boxe"), tr("Color")]
         )
 
         self.table.verticalHeader().setVisible(False)
@@ -503,6 +505,38 @@ class ResultsTable(QWidget):
             }
             for prompt, data in grouped.items()
         ]
+        
+    def refresh_ui_language(self):
+        """Met à jour tous les textes de l'UI après changement de langue"""
+
+        # -------------------------
+        # Header table
+        # -------------------------
+        self.table.setHorizontalHeaderLabels(
+            [tr("Résultat"), tr("Score"), tr("Boxe"), tr("Color")]
+        )
+
+        # -------------------------
+        # Prompt rows (colonne fusionnée)
+        # -------------------------
+        for row in range(self.table.rowCount()):
+            item = self.table.item(row, 0)
+            if not item:
+                continue
+
+            data = item.data(Qt.ItemDataRole.UserRole)
+            if not data:
+                continue
+
+            # Prompt rows
+            if data.get("type") == "prompt":
+                prompt = data.get("prompt", "")
+                item.setText(f"{tr('Prompt')} : {prompt}")
+
+        # -------------------------
+        # Optionnel: refresh tooltips / futurs labels custom
+        # -------------------------
+        self.table.viewport().update()
 
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
