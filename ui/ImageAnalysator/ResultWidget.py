@@ -481,7 +481,7 @@ class ResultsTable(QWidget):
 
     def get_results(self):
         from collections import defaultdict
-        import torch
+        import torch # type: ignore
 
         grouped = defaultdict(
             lambda: {
@@ -541,7 +541,7 @@ class ResultsTable(QWidget):
 if __name__ == "__main__":
     from PyQt6.QtWidgets import QApplication
     import sys
-    import torch
+    import torch # type: ignore
 
     data = [
         {
