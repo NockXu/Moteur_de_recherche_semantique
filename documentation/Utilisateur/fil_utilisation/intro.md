@@ -14,7 +14,6 @@ Vous lancez alors l'application de recherche sémantique installée sur votre or
 
 ```py
 (commande à faire à la racine du projet)
-(commande faite sur windows)
 > python main.py 
 ```
 
