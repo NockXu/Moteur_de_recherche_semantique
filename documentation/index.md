@@ -2,11 +2,13 @@
 
 ## Sommaire
 
-1. Présentation
-
-2. Installation
-
-3. Documentations
+- [Accueil](#accueil)
+  - [Sommaire](#sommaire)
+  - [Description du projet](#description-du-projet)
+  - [Installation](#installation)
+    - [Prérequis](#prérequis)
+    - [Etape d'installation](#etape-dinstallation)
+  - [Documentation](#documentation)
 
 ## Description du projet
 

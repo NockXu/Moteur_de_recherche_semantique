@@ -258,10 +258,13 @@ class ImageSearchedContainerController(QObject):
             self._sam3_jobs.clear()
         self.old_prompt = None
         self._sam3_progress_window.reset()
+        if not history.current_search:
+            history.current_search = history.history_tree
+            
         search_text = history.current_search.node.query
 
         self.view.search_controller.set_text(search_text)
-        self.set_threshold(history.current_search.node.threshold)
+        self.set_threshold(history.current_search.node.threshold if history.current_search else 0.5)
 
         self.state.query = search_text
         self.state.cursor = None

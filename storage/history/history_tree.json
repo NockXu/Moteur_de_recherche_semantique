@@ -1,7 +1,7 @@
 {
     "node": {
         "query": "DEFAULT",
-        "threshold": 0.6,
+        "threshold": 0.43,
         "w_const": 0.0,
         "w_expr": "const"
     },
@@ -69,6 +69,64 @@
                 "w_expr": "const"
             },
             "children": []
+        },
+        {
+            "node": {
+                "query": "armure médiéval ",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "armure",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": [
+                {
+                    "node": {
+                        "query": "médiéval",
+                        "threshold": 0.5,
+                        "w_const": 1.0,
+                        "w_expr": "const"
+                    },
+                    "children": [
+                        {
+                            "node": {
+                                "query": "metal et cuir",
+                                "threshold": 0.5,
+                                "w_const": 1.0,
+                                "w_expr": "const"
+                            },
+                            "children": [
+                                {
+                                    "node": {
+                                        "query": "village fortifié",
+                                        "threshold": 0.5,
+                                        "w_const": 1.0,
+                                        "w_expr": "const"
+                                    },
+                                    "children": [
+                                        {
+                                            "node": {
+                                                "query": "garde",
+                                                "threshold": 0.5,
+                                                "w_const": 1.0,
+                                                "w_expr": "const"
+                                            },
+                                            "children": []
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

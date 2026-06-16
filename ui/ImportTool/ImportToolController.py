@@ -126,6 +126,10 @@ class ImportToolController(QObject):
         
         for img in images:
             if str(img.path) in self._existing_paths:
+                data = self.model._image_repository.get_image_by_path(str(img.path))
+                img.description = data.description
+                img.embedding = data.embedding
+                img.keywords = data.keywords
                 img.status = ProcessingStatus.COMPLETED
             else:
                 img.status = ProcessingStatus.PENDING

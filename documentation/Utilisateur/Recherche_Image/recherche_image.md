@@ -9,6 +9,16 @@ Il existe donc deux manières d'effectuer une recherche :
 - une recherche simple à partir d'une seule requête.
 - une recherche avancée utilisant un arbre de recherche.
 
+## Sommaire
+
+- [Rechercher des images](#rechercher-des-images)
+  - [Sommaire](#sommaire)
+  - [SEARCH RESULTS](#search-results)
+    - [En haut](#en-haut)
+    - [En bas](#en-bas)
+  - [HISTORY TREE](#history-tree)
+    - [Gestion des poids](#gestion-des-poids)
+
 ## SEARCH RESULTS
 
 ![Image du widget de recherche](Recherche_widget.png)

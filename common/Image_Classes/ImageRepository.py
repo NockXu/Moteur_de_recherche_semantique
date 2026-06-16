@@ -138,6 +138,7 @@ class ImageRepository:
             )
 
             self.db.commit()
+            self.train_index()
             return True
 
         except Exception:

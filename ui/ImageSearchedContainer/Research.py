@@ -78,7 +78,6 @@ class Research:
         weights : List[float] = []
         images_before : Dict[Image, Dict[str, int]] = {}
 
-
         # -------------------------
         # FAISS CHECK
         # -------------------------

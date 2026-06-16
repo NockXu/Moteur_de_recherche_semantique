@@ -4,6 +4,20 @@ Les menus de l'application est composé de quatre parties :
 
 ![Fichier, Outils, Styles, Langue](menu_global.png)
 
+## Somaire
+
+- [Menus de l'application](#menus-de-lapplication)
+  - [Somaire](#somaire)
+  - [Fichier](#fichier)
+    - [Importer/Exporter](#importerexporter)
+      - [Format JSON](#format-json)
+      - [Importation sans datasets](#importation-sans-datasets)
+      - [Importation avec datasets](#importation-avec-datasets)
+    - [Exporter](#exporter)
+  - [Outils](#outils)
+  - [Style](#style)
+  - [Langue](#langue)
+
 ## Fichier
 
 Ce menu regroupe les fonctionnalités d'importation et d'exportation des données du jeu de données.
