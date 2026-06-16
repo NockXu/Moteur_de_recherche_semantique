@@ -81,6 +81,16 @@ class ImageSearchedContainerController(QObject):
         self.sam3_manager.error.connect(self._on_sam3_image_error)
         self.view.threshold_changed.connect(self._on_threshold_changed)
         history.current_search_updated.connect(self.search)
+        self.view.image_count_spinbox.valueChanged.connect(self._on_image_count_changed)
+        
+    def _on_image_count_changed(self, value: int):
+        self.research.k = value
+        self.embedding_manager.start_search(
+            query=self.state.query,
+            threshold=self.model.threshold,
+            cursor=None,
+            auto_research=self.research
+        )
 
     def _on_results_displayed(self, results: dict[str, list[dict]]):
         """
@@ -209,7 +219,6 @@ class ImageSearchedContainerController(QObject):
     def _on_sam3_cancelled(self):
         self.sam3_manager.cancel_all()
         self._sam3_jobs.clear()
-        self.old_prompt = None  # force un retraitement complet au prochain send
         self._sam3_progress_window.reset()
 
     # ─────────────────────────────
@@ -219,6 +228,7 @@ class ImageSearchedContainerController(QObject):
         if self._sam3_jobs:
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
+            
         self.old_prompt = None
         self._sam3_progress_window.reset()
         self.state.query = search_text
@@ -299,23 +309,26 @@ class ImageSearchedContainerController(QObject):
     def load_more_images(self, reset: bool = False):
         if self._loading:
             return
+        
+        if (self.view.filter_combo.isVisible() and 
+            self.view.filter_combo.currentData() != "none"):
+            return
 
         self._loading = True
 
         self.research.k = self.view.image_count_spinbox.value()
 
         try:
-            result = self.research.find(
-                query=self.state.query,
-                threshold=self.model.threshold
-            )
+            result = self.research.multi_find()
 
             new_images = self.model.append_results(result)
             
+            self.view.image_count_spinbox.valueChanged.disconnect()
             self.view.display_images(
                 image_data=new_images,
                 total_count=len(self.model.images),
             )
+            self.view.image_count_spinbox.valueChanged.connect(self._on_image_count_changed)
 
         except Exception as e:
             print(f"{tr('[Load more ERROR]')} {e}")
@@ -359,7 +372,7 @@ class ImageSearchedContainerController(QObject):
         self.model.reset()
         self.view.clear()
         self.research.k = self.view.image_count_spinbox.value()
-        search_results = self.research.find()
+        search_results = self.research.multi_find()
         self.model.append_results(search_results)
         self._update_view()
 

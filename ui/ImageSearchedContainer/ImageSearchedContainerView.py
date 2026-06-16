@@ -152,7 +152,7 @@ class ImageSearchedContainerView(QWidget):
     # ─────────────────────────────────────────────
     # SCROLL / LOAD MORE
     # ─────────────────────────────────────────────
-    
+
     def set_image_count(self, count: int):
         self.image_count_spinbox.setValue(count)
 
@@ -165,6 +165,8 @@ class ImageSearchedContainerView(QWidget):
 
         bar = self.scroll_area.verticalScrollBar()
         if bar.maximum() - value < 300:
+            if self.filter_combo.isVisible() and self.filter_combo.currentData() != "none":
+                return  # don't load more if a filter is active
             self._loading = True
             QTimer.singleShot(100, self._emit_load_more)
 
@@ -243,8 +245,6 @@ class ImageSearchedContainerView(QWidget):
     # ─────────────────────────────────────────────
 
     def display_images(self, image_data: list[Image], total_count: int):
-        self.image_count_spinbox.setValue(total_count)
-
         for image in image_data:
             lazy_card = LazyImageCard(image)
 

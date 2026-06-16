@@ -73,7 +73,6 @@ class Research:
     ) -> List[Optional[SearchResults]]:
 
         research_history = history.current_search.get_all_ancestors()
-        print(research_history)
         query_embeds = []
         results : List[SearchResults] = []
         weights : List[float] = []
