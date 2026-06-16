@@ -5,12 +5,41 @@ from typing import List, Callable, Union, Dict
 import faiss
 
 class WeightFunction:
+    """
+    Represents a weighting strategy used to compute successive weights
+    from similarities between embeddings.
+
+    A WeightFunction encapsulates a name, a description, and the
+    underlying weighting function used to generate weights.
+
+    Args:
+        name (str):
+            Human-readable name of the weighting strategy.
+        description (str):
+            Description explaining how the weighting strategy works.
+        weight_fn (WeightSystem):
+            Function used to compute weights from similarities.
+    """
+    
     def __init__(self, name: str, description: str, weight_fn: WeightSystem):
         self.name = name
         self.description = description
         self.weight_fn = weight_fn
 
     def cosine(self, a: np.ndarray, b: np.ndarray) -> float:
+        """
+        Compute the cosine similarity between two vectors.
+
+        Args:
+            a (np.ndarray):
+                First vector.
+            b (np.ndarray):
+                Second vector.
+
+        Returns:
+            Cosine similarity between the two vectors.
+            Returns 0.0 if one of the vectors has a zero norm.
+        """
         denom = np.linalg.norm(a) * np.linalg.norm(b)
         if denom == 0:
             return 0.0
@@ -22,13 +51,22 @@ class WeightFunction:
         const: float = 1.0
     ) -> List[float]:
         """
-        Generic weight builder for vector chains (for the preview).
+        Compute a sequence of weights from a chain of vectors.
 
-        Parameters
-        ----------
-        vects : list of embeddings
-        weight_fn :
-            function(prev_weight, similarity, position) -> new_weight
+        Successive weights are generated using the configured
+        weighting function and the cosine similarity between
+        consecutive vectors.
+
+        Args:
+            vects (List[np.ndarray]):
+                List of embeddings used to compute similarities.
+            const (float):
+                Additional constant parameter passed to the
+                weighting function.
+
+        Returns:
+            Computed weights for each vector.
+            Returns an empty list if no vectors are provided.
         """
 
         if not vects:
@@ -50,11 +88,39 @@ class WeightFunction:
 
         return weights
 
-    def get_weights(self, sim: float, parent_weight: float,  position: int, const: int):
+    def get_weights(self, sim: float, parent_weight: float,  position: int, const: int) -> float:
+        """
+        Compute a weight using the configured weighting function.
+
+        Args:
+            sim (float):
+                Similarity value.
+            parent_weight (float):
+                Previously computed weight.
+            position (int):
+                Position in the sequence.
+            const (int):
+                Additional constant parameter.
+
+        Returns:
+            Weight computed by the weighting function.
+        """
         return self.weight_fn(parent_weight, sim, position, const)
 
     @staticmethod
     def generate_random_vects(n: int, dim: int) -> List[np.ndarray]:
+        """
+        Generate normalized random vectors.
+
+        Args:
+            n (int):
+                Number of vectors to generate.
+            dim (int):
+                Dimension of each vector.
+
+        Returns:
+            List of L2-normalized random vectors.
+        """
         vects = np.random.randn(n, dim).astype(np.float32)
         faiss.normalize_L2(vects)
         return list(vects)
@@ -62,6 +128,23 @@ class WeightFunction:
 
     @staticmethod
     def generate_clustered_vects(n: int, dim: int, k_clusters=3, noise=0.1) -> List[np.ndarray]:
+        """
+        Generate normalized vectors organized around clusters.
+
+        Args:
+            n (int):
+                Number of vectors to generate.
+            dim (int):
+                Dimension of each vector.
+            k_clusters (int):
+                Number of cluster centers.
+            noise (float):
+                Standard deviation of the noise added around
+                cluster centers.
+
+        Returns:
+            List of L2-normalized clustered vectors.
+        """
         centers = np.random.randn(k_clusters, dim).astype(np.float32)
 
         vects = []
@@ -80,9 +163,22 @@ class WeightFunction:
 
     @property
     def describe(self) -> str:
+        """
+        Retrieve the description of the weighting strategy.
+
+        Returns:
+            Description associated with this weighting strategy.
+        """
         return self.description
 
     def to_dict(self) -> Dict[str, Dict[str, Union[str, Callable[[float, float, int, float], float]]]]:
+        """
+        Convert the weighting strategy into a dictionary.
+
+        Returns:
+            Dictionary containing the strategy description
+            and the underlying weighting function.
+        """
         return {self.name: {
             "description": self.description,
             "weight_fn": self.weight_fn

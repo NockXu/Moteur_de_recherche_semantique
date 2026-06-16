@@ -537,6 +537,23 @@ class ImageRepository:
         return self._construct_from_rows([row])[0]
 
     def _construct_from_rows(self, rows) -> List[Image]:
+        """
+        Build Image objects from database rows.
+
+        This method converts raw rows retrieved from the database into
+        Image instances. It deserializes keywords stored as JSON, retrieves
+        the associated dataset, reconstructs embeddings from binary data,
+        and gracefully handles invalid or missing values.
+
+        Args:
+            rows:
+                Iterable containing database rows representing images.
+
+        Returns:
+            List[Image]:
+                A list of Image objects built from the provided rows.
+                Returns an empty list if no rows are provided.
+        """
         images = []
 
         for row in rows:

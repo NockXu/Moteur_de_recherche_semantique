@@ -7,6 +7,7 @@
   - [Description du projet](#description-du-projet)
   - [Installation](#installation)
     - [Prérequis](#prérequis)
+    - [Utilisation de conda](#utilisation-de-conda)
     - [Etape d'installation](#etape-dinstallation)
   - [Documentation](#documentation)
 
@@ -28,6 +29,19 @@ Avant toute chose, je vous recommande d'utiliser un environnement Python dédié
 
 - Python 3.12 ou version supérieure (les développements et les tests ont été réalisés avec Python 3.12.13).
 - Une carte graphique compatible CUDA (pour l'utilisation de GPU)
+- Windows (certaines dépendances sont spécifiques à Windows, mais il devrait exister des équivalents sous Linux).
+
+### Utilisation de conda
+
+Si vous voulez utiliser conda, voici les commandes pour mettre en place un environement
+
+```powershell
+
+conda create -n MoteurRechercheSementique python=3.12.13
+
+conda activate MoteurRechercheSementique
+
+```
 
 ### Etape d'installation
 

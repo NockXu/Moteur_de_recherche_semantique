@@ -219,14 +219,34 @@ class Image:
 
     @property
     def is_processed(self) -> bool:
+        """
+        Determine whether the processing has been completed.
+
+        Returns:
+            True if the current status is COMPLETED, otherwise False.
+        """
         return self.status == ProcessingStatus.COMPLETED
+
 
     @property
     def has_error(self) -> bool:
+        """
+        Determine whether the processing ended with an error.
+
+        Returns:
+            True if the current status is ERROR, otherwise False.
+        """
         return self.status == ProcessingStatus.ERROR
+
 
     @property
     def is_processing(self) -> bool:
+        """
+        Determine whether the processing is currently in progress.
+
+        Returns:
+            True if the current status is IN_PROGRESS, otherwise False.
+        """
         return self.status == ProcessingStatus.IN_PROGRESS
 
     # =========================
