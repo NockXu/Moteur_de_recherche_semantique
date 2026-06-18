@@ -15,4 +15,3 @@ Cette documentation a pour objectif de vous guider dans l'utilisation de l'ensem
 5. [Cas d’usage guidé](./fil_utilisation/intro.md)
 
 ![Image représentant la vue globale de l'application](global.png)
-

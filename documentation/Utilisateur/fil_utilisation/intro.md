@@ -6,7 +6,7 @@ Vous disposez d'une image qui vous intéresse et vous souhaitez retrouver d'autr
 
 ## Image de départ
 
-![Image de départ](../../../dataset/Guide%20utilisation/knight.webp)
+![Image de départ](henry.webp)
 
 ## Lancer l'application
 
