@@ -28,7 +28,7 @@ class Research:
         self,
         query: str | None = None,
         threshold: float = 0.5,
-    ) -> Optional[SearchResults]:
+    ) -> SearchResults | None:
         # -------------------------
         # ALL IMAGES MODE
         # -------------------------
@@ -70,13 +70,13 @@ class Research:
 
     def multi_find(
         self
-    ) -> List[Optional[SearchResults]]:
+    ) -> list[SearchResults | None]:
 
         research_history = history.current_search.get_all_ancestors()
         query_embeds = []
-        results : List[SearchResults] = []
-        weights : List[float] = []
-        images_before : Dict[Image, Dict[str, int]] = {}
+        results : list[SearchResults] = []
+        weights : list[float] = []
+        images_before : dict[Image, dict[str, int]] = {}
 
         # -------------------------
         # FAISS CHECK
@@ -121,7 +121,7 @@ class Research:
             # -------------------------
 
             if len(query_embeds) > 1: 
-                weight_function : Optional[WeightFunction] = get_weight_function_by_expr(research.node.w_expr)
+                weight_function : WeightFunction | None = get_weight_function_by_expr(research.node.w_expr)
 
                 if weight_function is None:
                     weight_function = WeightFunction("", "", WeightSystem("const"))

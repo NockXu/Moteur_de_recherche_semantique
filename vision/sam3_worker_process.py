@@ -8,18 +8,45 @@ import traceback
 from collections import deque
 from pathlib import Path
 
+from typing import Any, Generator, Dict, List, Optional
+
 ROOT_DIR = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT_DIR))
 
 from common.SAM3BatchProcessor import SAM3BatchProcessor
 
 
-def _write_message(message: dict):
+def _write_message(message: dict) -> None:
+    """
+    Serialize a message dictionary using pickle and write it to standard output.
+
+    The message is prefixed with a 4-byte big-endian unsigned integer indicating 
+    the total size of the binary payload.
+
+    Args:
+        message (dict):
+            The message payload dictionary to send.
+    """
     payload = pickle.dumps(message, protocol=pickle.HIGHEST_PROTOCOL)
     os.write(1, struct.pack(">I", len(payload)) + payload)
 
 
 def _read_exact(fd, size: int) -> bytes:
+    """
+    Read an exact number of bytes from a generic binary stream block.
+
+    This function blocks and loops internally until the requested byte size 
+    is successfully assembled.
+
+    Args:
+        fd (io.BufferedReader):
+            The binary input stream source.
+        size (int):
+            The explicit number of bytes to retrieve.
+
+    Returns:
+        The exact sequence of requested bytes.
+    """
     data = bytearray()
     while len(data) < size:
         chunk = fd.read(size - len(data))
@@ -29,8 +56,19 @@ def _read_exact(fd, size: int) -> bytes:
     return bytes(data)
 
 
-def _reader_thread(fd, msg_queue: queue.Queue):
-    """Thread dédié à la lecture de stdin — compatible Windows et Unix."""
+def _reader_thread(fd, msg_queue: queue.Queue) -> None:
+    """
+    Dedicated background reader thread managing standard input streams.
+
+    This worker monitors binary stream payloads natively across Windows and Unix 
+    architectures, unpacks structural packets, and moves them safely into a shared queue.
+
+    Args:
+        fd (io.BufferedReader):
+            The monitored standard input buffer frame stream.
+        msg_queue (queue.Queue):
+            The shared thread-safe queue holding processed inbound commands.
+    """
     try:
         while True:
             header = _read_exact(fd, 4)
@@ -43,7 +81,20 @@ def _reader_thread(fd, msg_queue: queue.Queue):
         msg_queue.put({"type": "error", "_reader": str(exc)})
 
 
-def _to_cpu(value):
+def _to_cpu(value: Any) -> Any:
+    """
+    Recursively move any layout nested PyTorch tensors back to standard CPU memory space.
+
+    This utility method ensures multi-dimensional data arrays can be serialized 
+    via pickle smoothly without hardware backend dependency errors.
+
+    Args:
+        value (Any):
+            A generic composite collection wrapper or a standalone PyTorch tensor array.
+
+    Returns:
+        The detached CPU-mapped tensor equivalent or equivalent nested structures.
+    """
     try:
         import torch
     except Exception:
@@ -64,7 +115,14 @@ def _to_cpu(value):
     return value
 
 
-def main():
+def main() -> None:
+    """
+    Main entry point managing sub-process communication and image batch processing.
+
+    This method configures platform-specific binary stream endpoints, initializes 
+    the underlying SAM3 processing context, and balances arriving job execution cycles 
+    against cancellation requests.
+    """
     # Keep stdout reserved for the binary protocol. Any normal print from SAM3
     # dependencies is redirected to stderr so it cannot corrupt frames.
     sys.stdout = sys.stderr
@@ -97,8 +155,16 @@ def main():
     job_queue: deque[dict] = deque()
     cancelled: set[str] = set()
 
-    def drain_msg_queue():
-        """Vide la queue de messages sans bloquer."""
+    def drain_msg_queue() -> Generator[dict, None, bool]:
+        """
+        Drain all buffered stream commands from the message queue non-blockingly.
+
+        Yields:
+            Incoming query message dictionaries collected from the pipeline.
+
+        Returns:
+            False if an EOF sentinel block was matched, True otherwise.
+        """
         while True:
             try:
                 msg = msg_queue.get_nowait()

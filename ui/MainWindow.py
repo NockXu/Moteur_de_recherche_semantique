@@ -76,10 +76,9 @@ class MainWindow(QMainWindow):
 
     def _setup_language(self):
         """Initialise les traductions"""
-
-        translations_config : Dict[str, str] = load_from_config("translations")
+        translations_config : dict[str, str] = load_from_config("translations")
         if not translations_config:
-            current_language : Optional[str] = None
+            current_language : str | None = None
             return
         
         current_language : str = translations_config.get("current_language", "fr")
@@ -268,7 +267,6 @@ class MainWindow(QMainWindow):
     
     def _on_image_clicked(self, img: Image):
         """Gère le clic sur une image"""
-        
         # Afficher l'image dans le preview
         self.image_preview_controller.set_image(img)
         
@@ -338,6 +336,8 @@ class MainWindow(QMainWindow):
         except Exception as e:
             print(f"{tr('Erreur lors de la fermeture')}: {e}")
             event.accept()  # Forcer la fermeture même en cas d'erreur
+            
+        os._exit(0)
 
 
 if __name__ == "__main__":

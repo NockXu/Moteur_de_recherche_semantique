@@ -6,8 +6,7 @@ import cv2
 from PyQt6.QtGui import QImage
 
 def draw_results(painter: QPainter, results: list[dict], display_rect: QRect, pixmap_size):
-    """
-    Dessine les résultats SAM3 sur n'importe quel painter.
+    """Dessine les résultats SAM3 sur n'importe quel painter.
     Extrait de ImageView.paintEvent — réutilisable partout.
     """
     for entry in results:

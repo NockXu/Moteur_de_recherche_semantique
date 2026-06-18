@@ -3,8 +3,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QRect, QSize
 
 
 class MasonryLayout(QWidget):
-    """
-    Layout masonry (Pinterest) : colonnes de largeur fixe,
+    """Layout masonry (Pinterest) : colonnes de largeur fixe,
     hauteur de chaque carte dictée par le ratio réel de l'image.
 
     Les widgets enfants sont positionnés manuellement via resizeEvent

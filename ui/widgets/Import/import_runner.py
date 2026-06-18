@@ -1,5 +1,6 @@
 import threading
-from typing import Callable, Optional, List
+from typing import Optional, List
+from collections.abc import Callable
 
 from ui.widgets.Import.import_service import ImportService
 from common.Image_Classes.Image import Image
@@ -9,14 +10,13 @@ from common.Dataset_Classes.DatasetRepository import DatasetRepository
 from ui.utils.i18n import tr
 
 class ImportRunner:
-    """
-    Wrapper async propre autour de ImportService
+    """Wrapper async propre autour de ImportService
     (aucune dépendance PyQt ici)
     """
 
     def __init__(self, service: ImportService):
         self.service = service
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._running = False
 
     # -----------------------
@@ -66,8 +66,8 @@ class ImportRunner:
 
             on_progress(f"{tr("Start import")}: {total_images} {tr("images")}")
 
-            datasets: List[Dataset] = self.service.dataset_repo.get_all()
-            images_to_save: List[Image] = []
+            datasets: list[Dataset] = self.service.dataset_repo.get_all()
+            images_to_save: list[Image] = []
 
             for i, image in enumerate(images):
                 if not self._running:

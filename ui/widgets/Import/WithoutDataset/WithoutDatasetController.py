@@ -22,9 +22,9 @@ class WithoutDatasetController:
         # init
         self.on_mode_changed(self.view.get_mode())
 
-    def get_all(self) -> List[DatasetConfigData]:
+    def get_all(self) -> list[DatasetConfigData]:
         """Retourne toutes les données des dossiers"""
-        datas : List[DatasetConfigData] = []
+        datas : list[DatasetConfigData] = []
         for config in self.view.config:
             if config["name"].text() == "" or config["path"].text() == "":
                 continue

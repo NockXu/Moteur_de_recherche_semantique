@@ -1,5 +1,4 @@
-"""
-ImagePreview - Widget PyQt6 pour la prévisualisation d'images avec métadonnées
+"""ImagePreview - Widget PyQt6 pour la prévisualisation d'images avec métadonnées
 
 Ce package fournit un widget complet pour afficher une image et ses informations associées
 avec une architecture MVC propre et réutilisable.
@@ -26,6 +25,6 @@ __author__ = "Semantic Search Engine Team"
 
 __all__ = [
     "ImagePreviewController",
-    "ImagePreviewView", 
-    "ImagePreviewModel"
+    "ImagePreviewModel",
+    "ImagePreviewView"
 ]

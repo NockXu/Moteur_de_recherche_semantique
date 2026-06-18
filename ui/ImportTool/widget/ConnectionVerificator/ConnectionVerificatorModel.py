@@ -19,6 +19,7 @@ from ui.utils.i18n import tr
 
 class State(Enum):
     """États de connexion possibles"""
+
     DISCONNECTED = "non_connecté"
     CONNECTED = "connecté"
     ERROR = "erreur_connection"
@@ -52,11 +53,11 @@ class ConnectionVerificatorModel:
         return self._version
     
     def check_connection(self) -> State:
-        """
-        Vérifie la connexion au serveur Ollama et met à jour l'état
+        """Vérifie la connexion au serveur Ollama et met à jour l'état
         
         Returns:
             State: Le nouvel état de connexion
+
         """
         try:
             # Créer un wrapper avec les paramètres actuels
@@ -75,17 +76,17 @@ class ConnectionVerificatorModel:
                 
         except OllamaConnectionError as e:
             self._state = State.ERROR
-            self._error_message = f"{tr('Erreur de connexion')}: {str(e)}"
+            self._error_message = f"{tr('Erreur de connexion')}: {e!s}"
             self._version = ""
             
         except OllamaResponseError as e:
             self._state = State.ERROR
-            self._error_message = f"{tr('Réponse invalide du serveur')}: {str(e)}"
+            self._error_message = f"{tr('Réponse invalide du serveur')}: {e!s}"
             self._version = ""
             
         except Exception as e:
             self._state = State.ERROR
-            self._error_message = f"{tr('Erreur inattendue')}: {str(e)}"
+            self._error_message = f"{tr('Erreur inattendue')}: {e!s}"
             self._version = ""
         
         return self._state
@@ -105,11 +106,11 @@ class ConnectionVerificatorModel:
         self._version = ""
     
     def get_status_info(self) -> dict:
-        """
-        Retourne un dictionnaire avec toutes les informations de statut
+        """Retourne un dictionnaire avec toutes les informations de statut
         
         Returns:
             dict: Informations sur l'état de connexion
+
         """
         return {
             "state": self._state.value,

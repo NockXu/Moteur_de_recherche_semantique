@@ -1,7 +1,9 @@
 from PyQt6.QtCore import QThread, pyqtSignal
-from typing import List, Callable, Optional
+from typing import List, Optional
+from collections.abc import Callable
 import sys
 import os
+from pathlib import Path
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -15,28 +17,21 @@ from ui.utils.i18n import tr
 
 
 class ProcessingWorker(QThread):
-    """Worker thread SAFE pour traitement d'images"""
-
-    # ─────────────────────────────
-    # Signals
-    # ─────────────────────────────
     progress_updated = pyqtSignal(str, ProcessingStatus)
     image_processed = pyqtSignal(str, str, list)
     image_error = pyqtSignal(str, str)
     processing_complete = pyqtSignal()
     processing_stopped = pyqtSignal()
 
-    def __init__(self, images: List[Image], model: str = "qwen2.5vl:7b"):
+    def __init__(self, folder_path: Path, existing_paths: set[str], model: str = "qwen2.5vl:7b"):
         super().__init__()
-        self.images = images
-        self.ollama_wrapper = OllamaWrapper()
+        self.folder_path = folder_path
+        self.existing_paths = existing_paths  # Les chemins déjà en BDD pour un skip instantané
         self.model = model
+        self.ollama_wrapper = OllamaWrapper()
 
         db_service = DbService()
-        self._image_repository = ImageRepository(
-            db_service.sqlite,
-            db_service.faiss
-        )
+        self._image_repository = ImageRepository(db_service.sqlite, db_service.faiss)
 
         self._is_running = False
         self._current_index = 0
@@ -51,36 +46,43 @@ class ProcessingWorker(QThread):
     def run(self):
         self._is_running = True
         self._current_index = 0
-
         stopped_manually = False
 
-        try:
-            total_images = len(self.images)
-            for i, image in enumerate(self.images):
+        # Extensions acceptées (évite d'importer ImageScanService dans le thread)
+        valid_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff'}
 
+        try:
+            # 1. Récupération rapide des fichiers (générateur léger)
+            files = [f for f in self.folder_path.iterdir() if f.is_file() and f.suffix.lower() in valid_exts]
+            total_images = len(files)
+
+            for i, file_path in enumerate(files):
                 if not self._is_running:
                     stopped_manually = True
                     break
 
                 self._current_index = i
+                img_path_str = str(file_path.resolve())
+
+                # SKIP ultra-rapide si le chemin est déjà connu dans le set des existants
+                if img_path_str in self.existing_paths:
+                    continue
+
+                # Création de l'objet Image léger uniquement pour celle qu'on traite MAINTENANT
+                image = Image(path=file_path)
                 
-                # Progression globale : "3/10 - weezer.png"
-                progress_text = f"{i+1}/{total_images} - {image.path.name}"
+                # Notification de progression globale à l'UI
+                progress_text = f"{i+1}/{total_images} - {file_path.name}"
                 self.progress_updated.emit(progress_text, ProcessingStatus.IN_PROGRESS)
 
                 try:
                     self._process_single_image(image)
                 except Exception as e:
-                    print(f"{tr('Erreur image')} {image.path.name}: {e}")
-                    # Mettre à jour l'état de l'image en cas d'erreur
-                    image.status = ProcessingStatus.ERROR
-                    self.progress_updated.emit(str(image.path), ProcessingStatus.ERROR)
+                    print(f"{tr('Erreur image')} {file_path.name}: {e}")
+                    self.progress_updated.emit(img_path_str, ProcessingStatus.ERROR)
 
         finally:
             self._is_running = False
-            print(tr("ProcessingWorker terminé"))
-
-            # IMPORTANT: un seul chemin de sortie
             if stopped_manually:
                 self.processing_stopped.emit()
             else:
@@ -90,64 +92,41 @@ class ProcessingWorker(QThread):
     # PROCESS SINGLE IMAGE
     # ─────────────────────────────
     def _process_single_image(self, image: Image):
-
-        # skip déjà traité
-        if image.status == ProcessingStatus.COMPLETED and "Déjà traitée" in (image.description or ""):
-            return
-
         if not self._is_running:
             return
 
-        # état
         image.status = ProcessingStatus.IN_PROGRESS
         self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
 
         if not self.image_processor:
             raise RuntimeError(tr("ImageProcessor non initialisé"))
 
-        # ───── STEP 1 : description
-        self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
+        # STEP 1 : Description Ollama
         self.image_processor.ImageToData(image)
-        if not self._is_running:
+        if not self._is_running or not image.description:
             return
 
-        if not image.description:
-            raise RuntimeError(tr("Description vide"))
-
-        # ───── STEP 2 : embedding
-        self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
+        # STEP 2 : Embedding
         self.image_processor.TextToEmbedding(image)
-        if not self._is_running:
+        if not self._is_running or not image.embedding:
             return
 
-        if not image.embedding:
-            raise RuntimeError(tr("Embedding vide"))
-
-        # ───── STEP 3 : dataset
-        image.dataset_name = os.path.basename(os.path.dirname(image.path))
-
-        # ───── STEP 4 : DB
+        # STEP 3 : Dataset & DB
+        image.dataset_name = self.folder_path.name
         try:
-            self.progress_updated.emit(str(image.path), ProcessingStatus.IN_PROGRESS)
             self._image_repository.save_image(image)
         except Exception as e:
             print(f"{tr('Erreur DB')}: {e}")
 
-        # ───── SUCCESS
+        # Émission du succès vers l'UI pour mise à jour dynamique des vignettes visibles
         self.progress_updated.emit(str(image.path), ProcessingStatus.COMPLETED)
-        self.image_processed.emit(
-            str(image.path),
-            image.description,
-            image.embedding
-        )
+        self.image_processed.emit(str(image.path), image.description, image.embedding)
 
     # ─────────────────────────────
     # STOP SAFE (IMPORTANT FIX)
     # ─────────────────────────────
     def stop(self):
-        """Arrêt propre (SAFE)"""
-        print(f"{tr('Stop demandé ProcessingWorker')}")
-        self._is_running = False   # plus de terminate()
+        self._is_running = False
 
     # ─────────────────────────────
     # STATE
@@ -160,7 +139,7 @@ class ProcessingWorker(QThread):
             return 1.0
         return min(1.0, self._current_index / len(self.images))
 
-    def get_current_image(self) -> Optional[str]:
+    def get_current_image(self) -> str | None:
         if 0 <= self._current_index < len(self.images):
             return str(self.images[self._current_index].path)
         return None
@@ -178,7 +157,8 @@ class BatchProcessingManager:
 
     def start_batch_processing(
         self,
-        images: List[Image],
+        folder_path: Path,
+        existing_paths: set[str],
         on_progress: Callable = None,
         on_image_processed: Callable = None,
         on_image_error: Callable = None,
@@ -190,7 +170,7 @@ class BatchProcessingManager:
         if self.current_worker and self.current_worker.isRunning():
             raise RuntimeError(tr("Traitement déjà en cours"))
 
-        self.current_worker = ProcessingWorker(images, model)
+        self.current_worker = ProcessingWorker(folder_path, existing_paths, model)
 
         # signaux
         if on_progress:

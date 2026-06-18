@@ -98,7 +98,7 @@ class ConnectionVerificatorView(QWidget):
             from PyQt6.QtCore import QByteArray
             
             # Lire le fichier SVG
-            with open(svg_path, 'r', encoding='utf-8') as f:
+            with open(svg_path, encoding='utf-8') as f:
                 svg_content = f.read()
             
             # Remplacer les couleurs dans le SVG
@@ -165,7 +165,6 @@ class ConnectionVerificatorView(QWidget):
     
     def _on_language_changed(self):
         """Met à jour les textes lors d'un changement de langue"""
-
         # Texte selon l'état actuel (on doit les recalculer proprement)
         current_text = self.status_label.text()
 

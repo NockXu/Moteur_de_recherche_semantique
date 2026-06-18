@@ -23,10 +23,9 @@ class ImageAnalysator(QWidget):
 
         if self.image_path and self.image_path != "none":
             self.set_image(image)
-        else:
-            if __name__ == "__main__":
-                image = Image("../Test_SAM/saber_high_resolution.jpg", Dataset(0, "test"))
-                self.set_image(image)
+        elif __name__ == "__main__":
+            image = Image("../Test_SAM/saber_high_resolution.jpg", Dataset(0, "test"))
+            self.set_image(image)
 
         self.sam3_widget.prompt_selected.connect(self.on_prompt_selected)
         self.sam3_widget.results_displayed.connect(self.image_view.set_active_results)

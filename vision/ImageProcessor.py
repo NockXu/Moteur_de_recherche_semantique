@@ -10,8 +10,7 @@ from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
 
 class ImageProcessor:
-    """
-    Handles image processing and interaction with the embedding model.
+    """Handles image processing and interaction with the embedding model.
 
     Args:
         wrapper (OllamaWrapper):
@@ -19,6 +18,7 @@ class ImageProcessor:
 
         model (str):
             Name of the model used for processing images.
+
     """
 
     def __init__(self, wrapper: OllamaWrapper, model: str):
@@ -26,8 +26,7 @@ class ImageProcessor:
         self.model = model
 
     def ImageToData(self, image: Image) -> None:
-        """
-        Generate a description and keywords in a single call.
+        """Generate a description and keywords in a single call.
 
         This function mutates the image object by setting.
 
@@ -40,53 +39,47 @@ class ImageProcessor:
 
         Returns:
             None
+
         """
         try:
             prompt = """Analyse cette image et produis deux sorties distinctes optimisées pour la recherche sémantique.
 
 Objectif :
-- Une description riche et précise
-- Une liste de mots-clés simples et exploitables
-
----
+- Une description courte et précise
+- Une liste de mots-clés simples et exploitables et courte
 
 1. DESCRIPTION :
 
-Génère une description complète, structurée et optimisée pour un embedding.
+Décris uniquement les éléments les plus importants de l'image :
+1. Sujet principal.
+2. Action ou texte visible.
+3. Contexte.
+4. Attributs visuels essentiels.
 
-Instructions :
-- Décris les objets principaux (type, forme, taille relative, position, texte visible)
-- Explique les actions ou interactions visibles ou le texte
-- Précise les attributs visuels (couleurs, textures, matériaux, état)
-- Décris l’environnement (intérieur/extérieur, contexte, type de lieu)
-- Ajoute les détails secondaires utiles (arrière-plan, éclairage, ambiance, angle de vue)
-- Ajoute des concepts implicites pertinents (ex : travail, loisir, transport, vacances)
+Si la limite de mots est atteinte, ignore les éléments de priorité inférieure.
+
+Ignore les détails mineurs, l'arrière-plan non pertinent et toute supposition.
 
 Contraintes :
-- Phrases complètes uniquement
-- Texte fluide (pas de liste)
-- Factuel, sans supposition incertaine
-- Entre 100 et 200 mots
-
----
+- 1 à 2 phrases.
+- 15 à 25 mots maximum.
+- Factuel et concis.
 
 2. KEYWORDS :
 
 Génère une liste de mots-clés simples et variés.
 
 Règles STRICTES :
-- Chaque mot-clé est UNIQUE
-- Un seul mot par mot-clé (pas d’expressions)
-- Mots simples uniquement (ex : "rock", pas "groupe de rock")
-- Entre 10 et 20 mots-clés
-- Séparés par des virgules
-
----
+- 5 à 8 mots-clés.
+- Un seul mot par mot-clé.
+- Tous différents.
+- Les plus discriminants uniquement.
+- Séparés par des virgules.
 
 FORMAT DE SORTIE OBLIGATOIRE :
 
 DESCRIPTION:
-[paragraphe]
+[texte]
 
 KEYWORDS:
 mot1, mot2, mot3, mot4"""
@@ -127,11 +120,10 @@ mot1, mot2, mot3, mot4"""
             image.keywords = keywords
 
         except Exception as e:
-            raise RuntimeError(f"Erreur lors du traitement de l'image {image.path}: {str(e)}")
+            raise RuntimeError(f"Erreur lors du traitement de l'image {image.path}: {e!s}")
 
     def TextToEmbedding(self, image: Image) -> None:
-        """
-        Generate an embedding from the image description and keywords.
+        """Generate an embedding from the image description and keywords.
 
         The embedding is built by combining the image description with its keywords
         and stored directly into the image object.
@@ -148,6 +140,7 @@ mot1, mot2, mot3, mot4"""
         Raises:
             RuntimeError:
                 If embedding generation fails.
+
         """
         try:
             if not image.description:
@@ -170,11 +163,10 @@ mot1, mot2, mot3, mot4"""
             image.embedding = result
 
         except Exception as e:
-            raise RuntimeError(f"Embedding error for {image.path}: {str(e)}")
+            raise RuntimeError(f"Embedding error for {image.path}: {e!s}")
 
     def reduce_img(self, image: Image) -> str:
-        """
-        Resize and compress an image while preserving aspect ratio.
+        """Resize and compress an image while preserving aspect ratio.
 
         The image is resized to fit within 1024x1024 pixels while maintaining
         its original proportions. The processed image is saved in the
@@ -192,6 +184,7 @@ mot1, mot2, mot3, mot4"""
                 If the image file extension is not supported.
             OSError:
                 If the image cannot be opened or saved.
+
         """
         max_width = 1024
         max_height = 1024
@@ -224,9 +217,8 @@ mot1, mot2, mot3, mot4"""
 
             return img_path
 
-    def clean_reduce_img(self, output_dir: Optional[Path] = None) -> None:
-        """
-        Remove all files from the reduced images directory.
+    def clean_reduce_img(self, output_dir: Path | None = None) -> None:
+        """Remove all files from the reduced images directory.
 
         If no directory is provided, the default directory
         `storage/images_reduced` is used.
@@ -242,6 +234,7 @@ mot1, mot2, mot3, mot4"""
         Raises:
             OSError:
                 If a file cannot be deleted.
+
         """
         if output_dir is None:
             base_dir = Path(__file__).resolve().parent
@@ -295,7 +288,7 @@ if __name__ == "__main__":
 
         except Exception as e:
             processor.clean_reduce_img()
-            print(f"✗ Error processing {image.name}: {str(e)}")
+            print(f"✗ Error processing {image.name}: {e!s}")
 
     for image in images:
         print(image)

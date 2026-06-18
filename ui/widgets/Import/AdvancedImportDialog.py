@@ -132,7 +132,7 @@ class AdvancedImportDialog(QDialog):
 
     def analyze_file(self):
         try:
-            with open(self.file_path, "r", encoding="utf-8") as f:
+            with open(self.file_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             # Extraire les noms de datasets uniques

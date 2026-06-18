@@ -1,6 +1,7 @@
 import sys
 import time
-from typing import List, Optional, Callable
+from typing import List, Optional
+from collections.abc import Callable
 from PyQt6.QtCore import QObject, pyqtSignal
 
 from ui.ImageSearchedContainer.ImageSearchedContainerView import ImageSearchedContainerView
@@ -25,8 +26,8 @@ from ui.ImageSearchedContainer.SAM3ProgressWindow import SAM3ProgressWindow
 # =========================
 class SearchState:
     def __init__(self):
-        self.query: Optional[str] = None
-        self.cursor: Optional[tuple[float, int]] = None
+        self.query: str | None = None
+        self.cursor: tuple[float, int] | None = None
         self.has_more: bool = False
 
 # =========================
@@ -36,7 +37,7 @@ class ImageSearchedContainerController(QObject):
 
     images_loaded = pyqtSignal(int)
 
-    def __init__(self, thumbnail_size: int = 150, theme_changed: Optional[pyqtSignal] = None):
+    def __init__(self, thumbnail_size: int = 150, theme_changed: pyqtSignal | None = None):
         super().__init__()
 
         self.view = ImageSearchedContainerView()
@@ -64,7 +65,7 @@ class ImageSearchedContainerController(QObject):
         self.thumbnail_size = thumbnail_size
         self._loading = False
 
-        self.image_click_callback: Optional[Callable[[Image], None]] = None
+        self.image_click_callback: Callable[[Image], None] | None = None
 
         self._connect_signals()
 
@@ -93,8 +94,7 @@ class ImageSearchedContainerController(QObject):
         )
 
     def _on_results_displayed(self, results: dict[str, list[dict]]):
-        """
-        Slot connecté à Image Preview
+        """Slot connecté à Image Preview
 
         Reçoit la liste de dicts :
             [{"type":"result", "prompt":str, "index":int,
@@ -107,16 +107,14 @@ class ImageSearchedContainerController(QObject):
         self.view.update_images(results)
 
     def _on_results_cleared(self, image_paths: list[str]):
-        """
-        Slot connecté à Image Preview
+        """Slot connecté à Image Preview
 
         Quand les résultats sont effacés, on met à jour la vue.
         """
         self.view.clear_results(image_paths)
 
     def _on_multi_send(self, prompts: list[dict]):
-        """
-        Slot connecté à SAM3Widget
+        """Slot connecté à SAM3Widget
 
         Reçoit la liste de prompts et les envoie à l'embedding manager.
         """
@@ -351,7 +349,7 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # CLICK
     # ─────────────────────────────
-    def _on_image_clicked(self, image: Optional[Image]) -> None:
+    def _on_image_clicked(self, image: Image | None) -> None:
         if self.image_click_callback and image:
             self.image_click_callback(image)
 

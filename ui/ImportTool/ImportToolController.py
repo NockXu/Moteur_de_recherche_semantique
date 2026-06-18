@@ -3,9 +3,7 @@ import os
 from pathlib import Path
 from typing import Optional, List
 
-sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-
-from PyQt6.QtCore import QObject, pyqtSignal, QThread, pyqtSlot
+from PyQt6.QtCore import QObject, pyqtSignal, pyqtSlot
 
 from ui.ImportTool.ImportToolView import ImportToolView
 from ui.ImportTool.ImportToolModel import ImportToolModel
@@ -16,20 +14,6 @@ from database.DbService import DbService
 from vision.ollama_wrapper import OllamaWrapper
 
 from ui import load_config, load_from_config, save_in_config
-
-# ─────────────────────────────────────────────
-# Thread BDD (non bloquant)
-# ─────────────────────────────────────────────
-class _DbStatusLoader(QThread):
-    finished = pyqtSignal()
-
-    def __init__(self, model: ImportToolModel):
-        super().__init__()
-        self.model = model
-
-    def run(self):
-        self.model.load_db_status()
-        self.finished.emit()
 
 
 # ─────────────────────────────────────────────
@@ -50,7 +34,6 @@ class ImportToolController(QObject):
         if theme_changed:
             theme_changed.connect(self.view._on_theme_changed)
         
-        # Créer et injecter le modèle correctement
         self.model = ImportToolModel()
         self.view.set_model(self.model)
 
@@ -58,16 +41,14 @@ class ImportToolController(QObject):
         self.image_repository = ImageRepository(db_service.sqlite, db_service.faiss)
 
         self.processing_manager = BatchProcessingManager(ollama_wrapper)
-
         self.current_worker = None
-        self._db_loader: Optional[_DbStatusLoader] = None
 
         # pagination state UI
         self._has_more = True
-        self._loading_page = False  # Optimisation anti-double chargement
+        self._loading_page = False 
         
         # Filtrage des images existantes
-        self._existing_paths: Optional[set[str]] = None
+        self._existing_paths: set[str] | None = None
 
         self._connect_signals()
 
@@ -82,58 +63,89 @@ class ImportToolController(QObject):
         self.view.load_more_requested.connect(self._load_next_page_throttled)
 
     def _on_folder_selected(self, folder_path: str):
-
         save_in_config("import_image_folder", folder_path)
-        
         self._handle_folder_selection(folder_path)
 
     # ─────────────────────────────────────────────
     # FOLDER LOAD
     # ─────────────────────────────────────────────
+    # ─────────────────────────────────────────────
+    # FOLDER LOAD
+    # ─────────────────────────────────────────────
     def _handle_folder_selection(self, folder_path: str):
+        # ─── FIX : Nettoyer l'ancienne vue pour éviter l'accumulation ───
+        if hasattr(self.view, 'clear') and callable(self.view.clear):
+            self.view.clear()
+        elif hasattr(self.view, 'clear_images') and callable(self.view.clear_images):
+            self.view.clear_images()
+        elif hasattr(self.view, 'image_grid') and self.view.image_grid:
+            # Sécurité si aucune méthode de clear n'existe : on vide manuellement le layout
+            layout = self.view.image_grid.layout() if hasattr(self.view.image_grid, 'layout') else getattr(self.view, 'layout', lambda: None)()
+            if layout:
+                while layout.count():
+                    item = layout.takeAt(0)
+                    widget = item.widget()
+                    if widget:
+                        widget.deleteLater()
+
+        # Init du modèle
         success = self.model.set_folder(folder_path)
         self.view.set_folder(folder_path, success)
 
         if not success:
             return
 
-        # reset pagination state
         self._has_more = True
-
-        # Récupérer tous les chemins d'images existants en BDD (un seul appel)
         self._existing_paths = self.image_repository.get_all_image_paths()
         
-        # first page SANS filtrage (on veut tout afficher)
+        # Charger la première page visuelle (60 images)
         images = self.model.load_next_page()
-        
-        # Marquer les statuts des images existantes
         self._update_images_status_from_db(images)
         
-        self.view.load_images(images)
+        # La vue affiche uniquement les 60 nouvelles images du nouveau dossier
+        self.view.display_images(images)
+        
+        # ─── SYNCHRONISATION PROGRESSION ───
+        total_count = self.model.get_total_images_count()
+        
+        if hasattr(self.view, 'progress'):
+            self.view.progress.setMaximum(total_count)
+            self.view.progress.setValue(0)
+            
+        if hasattr(self.view, '_progress_label'):
+            self.view._progress_label.setText(f"En attente… (0 / {total_count} images)")
 
-        self.folder_loaded.emit(len(images))
-
-        # load DB status async
-        self._start_db_loader()
+        self.folder_loaded.emit(total_count)
 
     # ─────────────────────────────────────────────
     # FILTRAGE IMAGES
     # ─────────────────────────────────────────────
-    def _update_images_status_from_db(self, images: List[Image]):
-        """Met à jour le statut des images selon leur présence en BDD"""
+    def _update_images_status_from_db(self, images: list[Image]):
         if not self._existing_paths:
+            for img in images:
+                img.status = ProcessingStatus.NOT_STARTED
             return
-        
-        for img in images:
-            if str(img.path) in self._existing_paths:
-                data = self.model._image_repository.get_image_by_path(str(img.path))
-                img.description = data.description
-                img.embedding = data.embedding
-                img.keywords = data.keywords
-                img.status = ProcessingStatus.COMPLETED
-            else:
-                img.status = ProcessingStatus.PENDING
 
+        for img in images:
+            # Sécurité : On s'assure de comparer des chaînes de caractères standardisées
+            img_path_str = str(Path(img.path).resolve())
+            
+            if img_path_str in self._existing_paths:
+                # Récupération des données depuis le repository local
+                data = self.image_repository.get_image_by_path(img_path_str)
+                if data:
+                    img.description = data.description
+                    img.embedding = data.embedding
+                    img.keywords = data.keywords
+                    img.status = ProcessingStatus.COMPLETED
+                else:
+                    img.status = ProcessingStatus.NOT_STARTED
+            else:
+                img.status = ProcessingStatus.NOT_STARTED
+
+    # ─────────────────────────────────────────────
+    # PAGINATION
+    # ─────────────────────────────────────────────
     # ─────────────────────────────────────────────
     # PAGINATION
     # ─────────────────────────────────────────────
@@ -142,56 +154,53 @@ class ImportToolController(QObject):
             return
 
         images = self.model.load_next_page()
-
         if not images:
             self._has_more = False
             return
 
-        # Mettre à jour les statuts avant d'ajouter
         self._update_images_status_from_db(images)
         self.view.append_images(images)
+        
+        # On force le maintien des compteurs globaux
+        self._force_global_progress_maintenance()
 
     def _load_next_page_throttled(self):
-        """Version optimisée avec throttling pour éviter les appels multiples"""
-        if not self._has_more:
+        if not self._has_more or self._loading_page:
             return
-        
-        # Éviter les chargements multiples rapides (optimisation performance)
-        if hasattr(self, '_loading_page') and self._loading_page:
-            return
-        
+
         self._loading_page = True
-        
         try:
             images = self.model.load_next_page()
-            
             if not images:
                 self._has_more = False
                 return
-            
-            # Mettre à jour les statuts avant d'ajouter
+
             self._update_images_status_from_db(images)
             self.view.append_images(images)
+            
+            # On force le maintien des compteurs globaux
+            self._force_global_progress_maintenance()
         finally:
             self._loading_page = False
 
-    # ─────────────────────────────────────────────
-    # DB LOADER
-    # ─────────────────────────────────────────────
-    def _start_db_loader(self):
-        if self._db_loader and self._db_loader.isRunning():
-            self._db_loader.quit()
-            self._db_loader.wait()
-
-        self._db_loader = _DbStatusLoader(self.model)
-        self._db_loader.finished.connect(self._on_db_loaded)
-        self._db_loader.start()
-
-    @pyqtSlot()
-    def _on_db_loaded(self):
-        # refresh UI statuses (COMPLETED badges etc.)
-        self.view._refresh_image_display()
-        self.view._update_progress_display()
+    def _force_global_progress_maintenance(self):
+        """Sécurité pour empêcher la vue d'écraser le maximum lors du défilement/lazy-loading."""
+        if hasattr(self.model, 'get_total_images_count'):
+            total_count = self.model.get_total_images_count()
+            
+            # 1. On appelle d'abord la méthode de la vue pour qu'elle fasse sa popote interne
+            if hasattr(self.view, '_update_progress_display'):
+                try:
+                    self.view._update_progress_display()
+                except TypeError:
+                    pass
+            
+            # 2. IMMEDIATEMENT APRÈS, on ré-écrase ses compteurs avec la réalité globale si on ne traite pas
+            if not self.is_processing():
+                if hasattr(self.view, 'progress'):
+                    self.view.progress.setMaximum(total_count)
+                if hasattr(self.view, '_progress_label'):
+                    self.view._progress_label.setText(f"En attente… (0 / {total_count} images)")
 
     # ─────────────────────────────────────────────
     # PROCESSING
@@ -200,14 +209,14 @@ class ImportToolController(QObject):
         if self.processing_manager.is_processing():
             return
 
-        images = self.model.get_not_treated_images()
-        if not images:
+        # On vérifie juste qu'un dossier est sélectionné
+        if not self.model.selected_folder:
             return
 
-        self.model.reset_all_status(images)
-
+        # On passe directement le chemin du dossier et notre Set BDD au thread de traitement
         self.current_worker = self.processing_manager.start_batch_processing(
-            images,
+            folder_path=self.model.selected_folder,
+            existing_paths=self._existing_paths if self._existing_paths else set(),
             on_progress=self._on_image_progress,
             on_image_processed=self._on_image_processed,
             on_image_error=self._on_image_error,
@@ -239,6 +248,7 @@ class ImportToolController(QObject):
             description=description,
             embedding=embedding
         )
+        self.view.update_image_status(image_path, ProcessingStatus.COMPLETED)
 
     def _on_image_error(self, image_path: str, error: str):
         self.model.update_image_status(
@@ -246,6 +256,7 @@ class ImportToolController(QObject):
             ProcessingStatus.ERROR,
             error_message=error
         )
+        self.view.update_image_status(image_path, ProcessingStatus.ERROR)
 
     def _on_processing_complete(self):
         self.view.set_processing_mode(False)
@@ -263,17 +274,11 @@ class ImportToolController(QObject):
         if info:
             print(f"{Path(img.path).name} - {info.status.value}")
 
-    # ─────────────────────────────────────────────
-    # DEFAULT FOLDER
-    # ─────────────────────────────────────────────
     def _load_default_dataset_folder(self):
         folder = load_from_config("import_image_folder")
         if folder:
             self._handle_folder_selection(folder)
 
-    # ─────────────────────────────────────────────
-    # API
-    # ─────────────────────────────────────────────
     def get_view(self):
         return self.view
 
@@ -284,22 +289,16 @@ class ImportToolController(QObject):
         return self.processing_manager.is_processing()
 
     def cleanup(self):
-        if self._db_loader and self._db_loader.isRunning():
-            self._db_loader.quit()
-            self._db_loader.wait()
-
         if self.is_processing():
             self.processing_manager.stop_current_processing(wait=True)
-
         self.view.cleanup()
 
     def load(self):
         self._load_default_dataset_folder()
 
+
 if __name__ == "__main__":
-    import sys
     from PyQt6.QtWidgets import QApplication
-    
     app = QApplication(sys.argv)
     controller = ImportToolController()
     controller.get_view().show()

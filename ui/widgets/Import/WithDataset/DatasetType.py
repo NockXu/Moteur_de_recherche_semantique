@@ -8,7 +8,7 @@ class DatasetStatus:
 
 class DatasetData(TypedDict):
     dataset_name: str
-    status: Optional[DatasetStatus]
+    status: DatasetStatus | None
 
 class DatasetConfig(TypedDict):
     line_edit: QLineEdit

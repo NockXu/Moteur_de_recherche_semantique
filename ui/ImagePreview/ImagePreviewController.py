@@ -11,14 +11,13 @@ from ui import load_from_config, save_in_config
 
 
 class ImagePreviewController(QObject):
-    """
-    Controller simple type "Inspector panel"
+    """Controller simple type "Inspector panel"
     """
 
     image_changed = pyqtSignal(Image)
     error_occurred = pyqtSignal(str)
 
-    def __init__(self, parent=None, theme_changed : Optional[pyqtSignal] = None):
+    def __init__(self, parent=None, theme_changed : pyqtSignal | None = None):
         super().__init__(parent)
 
         self.view = ImagePreviewView()
@@ -57,7 +56,7 @@ class ImagePreviewController(QObject):
         self.model.clear()
         self.view.display_image(None)
 
-    def get_current_image(self) -> Optional[Image]:
+    def get_current_image(self) -> Image | None:
         return self.model.get_image()
 
     # ─────────────────────────────
@@ -76,7 +75,7 @@ class ImagePreviewController(QObject):
     # HISTORY (OPTIONAL UI HOOK)
     # ─────────────────────────────
 
-    def get_history(self) -> List[Image]:
+    def get_history(self) -> list[Image]:
         return self.model.get_history()
 
     def load(self) -> bool:

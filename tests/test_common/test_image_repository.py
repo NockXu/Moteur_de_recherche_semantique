@@ -682,7 +682,6 @@ class TestImageRepository(unittest.TestCase):
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_get_all(self, mock_dataset_repo_class):
         """Test get_all"""
-
         mock_repo = MagicMock()
         mock_dataset_repo_class.return_value = mock_repo
         mock_repo.get_by_id.return_value = Dataset(1, "test")
@@ -708,7 +707,6 @@ class TestImageRepository(unittest.TestCase):
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_get_all_no_keywords_no_dataset(self, mock_dataset_repo_class):
         """Test get_all"""
-
         mock_repo = MagicMock()
         mock_dataset_repo_class.return_value = mock_repo
         mock_repo.get_by_id.return_value = None
@@ -734,7 +732,6 @@ class TestImageRepository(unittest.TestCase):
     @patch('common.Image_Classes.ImageRepository.DatasetRepository')
     def test_get_all_nothing(self, mock_dataset_repo_class):
         """Test get_all"""
-
         mock_repo = MagicMock()
         mock_dataset_repo_class.return_value = mock_repo
         mock_repo.get_by_id.return_value = None

@@ -9,7 +9,7 @@ class WeightsCalculatorModel:
         self.n_vects = n_vects
         self.dim = dim
         self.const = const
-        self.weight_fonction : Optional[WeightFunction] = None
+        self.weight_fonction : WeightFunction | None = None
 
     @property
     def is_weight_fonction(self) -> bool:

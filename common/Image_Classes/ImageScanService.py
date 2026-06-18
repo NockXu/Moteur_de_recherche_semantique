@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List, Optional, Iterable
+from typing import List, Optional
+from collections.abc import Iterable
 import os
 import sys
 
@@ -8,11 +9,10 @@ from common.Image_Classes.Image import Image
 
 
 from pathlib import Path
-from typing import Iterable
+from collections.abc import Iterable
 
 class ImageScanService:
-    """
-    Service responsible for scanning directories and discovering image files.
+    """Service responsible for scanning directories and discovering image files.
 
     Responsibilities:
         - Scan a directory recursively
@@ -36,10 +36,9 @@ class ImageScanService:
     def scan(
         self,
         directory: str,
-        dataset: Optional[Dataset] = None
-    ) -> List[Image]:
-        """
-        Scan a directory and return all discovered images.
+        dataset: Dataset | None = None
+    ) -> list[Image]:
+        """Scan a directory and return all discovered images.
 
         This method performs a full scan of the given directory.
         It may be expensive on large folders.
@@ -53,6 +52,7 @@ class ImageScanService:
 
         Returns:
             List of discovered Image objects.
+
         """
         return list(self._scan_generator(directory, dataset))
 
@@ -62,10 +62,9 @@ class ImageScanService:
     def scan_lazy(
         self,
         directory: str,
-        dataset: Optional[Dataset] = None
+        dataset: Dataset | None = None
     ) -> Iterable[Image]:
-        """
-        Lazily scan a directory and yield Image objects.
+        """Lazily scan a directory and yield Image objects.
 
         This generator is optimized for:
             - Large directories
@@ -81,6 +80,7 @@ class ImageScanService:
 
         Yields:
             Next discovered Image object.
+
         """
         return self._scan_generator(directory, dataset)
 
@@ -90,10 +90,9 @@ class ImageScanService:
     def _scan_generator(
         self,
         directory: str,
-        dataset: Optional[Dataset]
+        dataset: Dataset | None
     ) -> Iterable[Image]:
-        """
-        Internal generator that recursively scans a directory
+        """Internal generator that recursively scans a directory
         and yields Image objects for supported file types.
 
         Args:
@@ -106,8 +105,8 @@ class ImageScanService:
         Yields:
             Image:
                 Lightweight Image object (no embedding, no processing).
-        """
 
+        """
         base_path = Path(directory)
 
         if not base_path.exists() or not base_path.is_dir():
@@ -137,10 +136,9 @@ class ImageScanService:
         directory: str,
         page: int,
         page_size: int,
-        dataset: Optional[Dataset] = None
-    ) -> List[Image]:
-        """
-        Scan a directory with pagination support.
+        dataset: Dataset | None = None
+    ) -> list[Image]:
+        """Scan a directory with pagination support.
 
         This method avoids loading all results in memory by using
         a lazy generator and slicing results on the fly.
@@ -160,15 +158,15 @@ class ImageScanService:
 
         Returns:
             Paginated list of Image objects.
-        """
 
+        """
         if page < 0 or page_size <= 0:
             return []
 
         start = page * page_size
         end = start + page_size
 
-        results: List[Image] = []
+        results: list[Image] = []
 
         for idx, image in enumerate(self._scan_generator(directory, dataset)):
             if idx < start:

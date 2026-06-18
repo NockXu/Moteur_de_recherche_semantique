@@ -1,6 +1,7 @@
 import sys
 import os
-from typing import Dict, List, Callable
+from typing import Dict, List
+from collections.abc import Callable
 
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
@@ -18,7 +19,7 @@ class MenuBarView:
         self.menu_bar = QMenuBar()
         self.menu_bar.setFont(QFont("Segoe UI", 10))
     
-    def create_menu_bar(self, menu_structure: Dict[str, List[MenuAction]], handlers: Dict[str, Callable]):
+    def create_menu_bar(self, menu_structure: dict[str, list[MenuAction]], handlers: dict[str, Callable]):
         """Crée la barre de menu à partir de la structure et des handlers"""
         self.menu_bar.clear()
         

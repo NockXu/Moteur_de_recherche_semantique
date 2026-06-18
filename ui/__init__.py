@@ -7,21 +7,20 @@ config_path = Path("./storage/config_ui.json")
 # créer le dossier si absent
 config_path.parent.mkdir(parents=True, exist_ok=True)
 
-def load_config() -> Dict[str, Any]:
+def load_config() -> dict[str, Any]:
     """Charge la config existante ou retourne un dict vide."""
-
     if not config_path.exists():
         return {}
 
     try:
-        with open(config_path, "r", encoding="utf-8") as f:
+        with open(config_path, encoding="utf-8") as f:
             return json.load(f)
 
     except Exception as e:
         print(f"Erreur lecture config: {e}")
         return {}
 
-def load_from_config(key: str) -> Optional[Any]:
+def load_from_config(key: str) -> Any | None:
     """Charge une valeur depuis la config."""
     config = load_config()
     return config.get(key)

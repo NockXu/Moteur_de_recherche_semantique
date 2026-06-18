@@ -1,5 +1,4 @@
-"""
-Configuration des chemins de stockage pour le moteur de recherche sémantique
+"""Configuration des chemins de stockage pour le moteur de recherche sémantique
 """
 
 from pathlib import Path

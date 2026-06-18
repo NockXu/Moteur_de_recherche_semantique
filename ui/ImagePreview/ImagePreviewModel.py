@@ -14,8 +14,8 @@ class ImagePreviewModel:
     """Modèle simple pour la preview d'une image"""
 
     def __init__(self):
-        self.current_image: Optional[Image] = None
-        self.history: List[Image] = []
+        self.current_image: Image | None = None
+        self.history: list[Image] = []
         self.max_history_size = 30
 
     # ─────────────────────────────
@@ -28,7 +28,7 @@ class ImagePreviewModel:
 
         self.current_image = image
 
-    def get_image(self) -> Optional[Image]:
+    def get_image(self) -> Image | None:
         return self.current_image
 
     def clear(self):
@@ -46,7 +46,7 @@ class ImagePreviewModel:
         if len(self.history) > self.max_history_size:
             self.history = self.history[:self.max_history_size]
 
-    def get_history(self) -> List[Image]:
+    def get_history(self) -> list[Image]:
         return self.history
 
     # ─────────────────────────────

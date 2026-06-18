@@ -241,7 +241,6 @@ class TestSqliteManager(unittest.TestCase):
             if "images" in statement:  # La 2ème instruction CREATE TABLE images
                 raise sqlite3.OperationalError("syntax error")
             # Pour les autres instructions, simuler un succès
-            return None
         
         mock_cursor.execute.side_effect = side_effect
         

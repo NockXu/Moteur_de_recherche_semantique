@@ -71,7 +71,7 @@ class ResultsTable(QWidget):
         self._all_results_cache = []
 
         # row_index → dot widget (pour récupérer la couleur choisie)
-        self._row_dot: dict[int, "ColorDot"] = {}
+        self._row_dot: dict[int, ColorDot] = {}
 
         self.table = QTableWidget()
 
@@ -120,7 +120,7 @@ class ResultsTable(QWidget):
     # LOAD DATA
     # =========================
 
-    def load_results(self, processed_results: List[Dict[str, Any]]):
+    def load_results(self, processed_results: list[dict[str, Any]]):
         from collections import defaultdict
         import torch # type: ignore
 
@@ -379,8 +379,7 @@ class ResultsTable(QWidget):
     # =========================
 
     def _refresh_visuals(self):
-        """
-        Colore les lignes selon leur état de sélection.
+        """Colore les lignes selon leur état de sélection.
 
         Lignes résultat sélectionnées :
           - fond teinté avec la couleur du dot (alpha SEL_BG_ALPHA)
@@ -390,7 +389,6 @@ class ResultsTable(QWidget):
         Lignes prompt → teinte bleue si au moins un enfant sélectionné,
                          teinte complète si tous sélectionnés.
         """
-
         # Index des résultats sélectionnés pour lookup rapide
         sel_keys = {
             (s["prompt"], s["index"])
@@ -508,7 +506,6 @@ class ResultsTable(QWidget):
         
     def refresh_ui_language(self):
         """Met à jour tous les textes de l'UI après changement de langue"""
-
         # -------------------------
         # Header table
         # -------------------------

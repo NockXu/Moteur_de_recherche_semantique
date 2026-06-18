@@ -329,7 +329,7 @@ class HistoryTreeView(QWidget):
 
     # ---------------- PREVIEW ----------------
 
-    def on_node_clicked(self, node : Optional[Tree]):
+    def on_node_clicked(self, node : Tree | None):
         if node is None:
             self.hide_preview()
             return

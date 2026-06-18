@@ -1,5 +1,6 @@
 from pathlib import Path
-from typing import List, Tuple, Sequence, Dict, Any
+from typing import List, Tuple, Dict, Any
+from collections.abc import Sequence
 import numpy as np
 import heapq
 import faiss
@@ -9,8 +10,7 @@ N_CLUSTERS = 256
 NPROBE = 65
 
 class FaissManager:
-    """
-    Manages a FAISS vector index for similarity search and clustering-based optimization.
+    """Manages a FAISS vector index for similarity search and clustering-based optimization.
 
     This class loads an existing index from disk or creates a new one if it does not exist.
 
@@ -21,6 +21,7 @@ class FaissManager:
     Args:
         index_path (Path):
             Path to the FAISS index file.
+
     """
 
     def __init__(self, index_path: Path):
@@ -34,8 +35,7 @@ class FaissManager:
     # INIT
     # =========================
     def _load_or_create(self) -> None:
-        """
-        Load an existing FAISS index or create a new one if it does not exist.
+        """Load an existing FAISS index or create a new one if it does not exist.
 
         If the index file is found, it is loaded from disk.
         Otherwise, a new empty index is created.
@@ -46,6 +46,7 @@ class FaissManager:
         Raises:
             RuntimeError:
                 If loading or creation of the index fails.
+
         """
         try:
             if self.index_path.exists():
@@ -60,8 +61,7 @@ class FaissManager:
             )
 
     def _create_index(self, nb_embeddings: int, n_clusters: int):
-        """
-        Create a FAISS index optimized for the number of embeddings.
+        """Create a FAISS index optimized for the number of embeddings.
 
         The number of clusters is automatically adjusted to avoid invalid
         or inefficient configurations when the dataset is small.
@@ -75,6 +75,7 @@ class FaissManager:
 
         Returns:
             A FAISS IndexIDMap wrapping an IndexIVFFlat instance.
+
         """
         # Safety check: ensure valid number of clusters
         n_clusters = min(n_clusters, nb_embeddings) if nb_embeddings > 0 else 1
@@ -96,9 +97,8 @@ class FaissManager:
     # TRAIN
     # =========================
 
-    def train(self, embeddings: List[List[float]]) -> bool:
-        """
-        Train the FAISS index using a list of embeddings.
+    def train(self, embeddings: list[list[float]]) -> bool:
+        """Train the FAISS index using a list of embeddings.
 
         The embeddings are normalized before training. Training is only
         performed if the index is initialized and there are enough samples.
@@ -109,6 +109,7 @@ class FaissManager:
 
         Returns:
             True if the index was successfully trained, False otherwise.
+
         """
         if not self.index:
             return False
@@ -127,9 +128,8 @@ class FaissManager:
     # =========================
     # ADD
     # =========================
-    def add(self, embeddings: List[List[float]], ids: Sequence[int]) -> None:
-        """
-        Add embeddings and their associated IDs to the FAISS index.
+    def add(self, embeddings: list[list[float]], ids: Sequence[int]) -> None:
+        """Add embeddings and their associated IDs to the FAISS index.
 
         The embeddings are normalized before insertion, and the index is
         automatically saved after the operation.
@@ -143,6 +143,7 @@ class FaissManager:
 
         Returns:
             None
+
         """
         arr = np.array(embeddings, dtype=np.float32)
         faiss.normalize_L2(arr)
@@ -157,11 +158,10 @@ class FaissManager:
     # =========================
     def search(
         self,
-        query: List[float],
+        query: list[float],
         k: int = 200
-    ) -> List[Tuple[int, float]]:
-        """
-        Search for the nearest neighbors in the FAISS index.
+    ) -> list[tuple[int, float]]:
+        """Search for the nearest neighbors in the FAISS index.
 
         The query vector is normalized before searching. The results are
         sorted by similarity score in descending order.
@@ -176,6 +176,7 @@ class FaissManager:
         Returns:
             List of (id, similarity score) pairs sorted by relevance.
             Returns an empty list if the index is not initialized or empty.
+
         """
         if not self.index or self.index.ntotal == 0:
             return []
@@ -202,11 +203,11 @@ class FaissManager:
     # SAVE / LOAD
     # =========================
     def save(self) -> bool:
-        """
-        Save the FAISS index to disk.
+        """Save the FAISS index to disk.
 
         Returns:
             True if the index was successfully saved, False otherwise.
+
         """
         if self.index is None:
             return False
@@ -217,13 +218,13 @@ class FaissManager:
         return True
 
     def reset(self) -> bool:
-        """
-        Reset the FAISS index by creating a new empty index and saving it.
+        """Reset the FAISS index by creating a new empty index and saving it.
 
         This operation removes all previously stored embeddings.
 
         Returns:
             True if the index was successfully reset, False otherwise.
+
         """
         self.index = self._create_index(0, N_CLUSTERS)
         
@@ -232,9 +233,8 @@ class FaissManager:
     # =========================
     # STATS
     # =========================
-    def stats(self) -> Dict[str, Any]:
-        """
-        Return statistics about the FAISS index.
+    def stats(self) -> dict[str, Any]:
+        """Return statistics about the FAISS index.
 
         This includes information about index availability, size,
         dimension, training state, and clustering parameters.
@@ -242,6 +242,7 @@ class FaissManager:
         Returns:
             Dictionary containing FAISS index metadata.
             If the index is not initialized, returns {"available": False}.
+
         """
         if self.index is None:
             return {"available": False}

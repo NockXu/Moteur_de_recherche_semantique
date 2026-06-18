@@ -12,8 +12,7 @@ from .ImageView import ImageView
 from ui.utils.i18n import tr
 
 class BoxRow(QWidget):
-    """
-    Widget représentant une boîte dans le scroll.
+    """Widget représentant une boîte dans le scroll.
     Affiche : [couleur] [coords] [bouton +/-] [supprimer]
     """
 
@@ -84,8 +83,7 @@ class BoxRow(QWidget):
         self.coords_label.setText(f"#{self.box_index}  [{x1}, {y1}, {x2}, {y2}]")
 
 class PromptBuilderDialog(QDialog):
-    """
-    Dialog pour construire un visual_prompt SAM3.
+    """Dialog pour construire un visual_prompt SAM3.
     Contient un ImageView intégré pour dessiner des boîtes à la souris.
 
     result : {
@@ -249,8 +247,7 @@ class PromptBuilderDialog(QDialog):
         self._image_view.setImage(image_path)
 
     def add_box(self, box_index: int, coords: list[float], color: QColor | None = None):
-        """
-        Ajoute manuellement une boîte dans la liste (sans passer par l'ImageView).
+        """Ajoute manuellement une boîte dans la liste (sans passer par l'ImageView).
         """
         if color is None:
             color = self._image_view._next_box_color()
@@ -263,8 +260,7 @@ class PromptBuilderDialog(QDialog):
         self._refresh_empty()
 
     def add_boxes_from_view(self, image_view: ImageView):
-        """
-        Importe toutes les boîtes validées depuis un ImageView externe.
+        """Importe toutes les boîtes validées depuis un ImageView externe.
         Vide la liste existante et synchronise l'ImageView interne.
         """
         self._clear_rows()
@@ -292,7 +288,6 @@ class PromptBuilderDialog(QDialog):
 
     def _apply_selection(self):
         """Valide la sélection courante de l'ImageView et l'ajoute à la liste."""
-
         rect = self._image_view.get_selection_rect_image_coords()
         idx = self._image_view.apply_selection()
 

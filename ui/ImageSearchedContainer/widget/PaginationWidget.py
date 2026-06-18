@@ -109,6 +109,5 @@ class PaginationWidget(QWidget):
 
     def set_total_pages(self, total: int):
         self.total_pages = max(1, total)
-        if self.current_page > self.total_pages:
-            self.current_page = self.total_pages
+        self.current_page = min(self.current_page, self.total_pages)
         self._refresh_buttons()

@@ -116,8 +116,7 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def _layout_row(self, row, row_width, rect_x, y, max_width, target_height, spacing):
-        """
-        Étire une ligne pour remplir toute la largeur.
+        """Étire une ligne pour remplir toute la largeur.
         """
         if not row:
             return
@@ -143,8 +142,7 @@ class JustifiedGalleryLayout(QLayout):
             x += w + spacing
 
     def _compute_scale(self, row_width, max_width, n_items, spacing):
-        """
-        Calcule le facteur d'étirement pour remplir la ligne.
+        """Calcule le facteur d'étirement pour remplir la ligne.
         """
         total_spacing = spacing * (n_items - 1)
         if row_width + total_spacing == 0:
@@ -167,8 +165,7 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def set_visible_items(self, items: list[QLayoutItem]):
-        """
-        Définit les items réellement affichés (ordre + filtre).
+        """Définit les items réellement affichés (ordre + filtre).
         """
         self._visible_items = items
         self.invalidate()

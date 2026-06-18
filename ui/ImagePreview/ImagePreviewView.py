@@ -18,8 +18,7 @@ from ui.ImageAnalysator.ImageAnalysator import ImageAnalysator
 from ui.utils.i18n import tr
 
 class ImagePreviewView(QWidget):
-    """
-    Vue preview stable (type inspector panel)
+    """Vue preview stable (type inspector panel)
     """
 
     image_clicked = pyqtSignal()
@@ -305,7 +304,6 @@ class ImagePreviewView(QWidget):
 
     def _on_language_changed(self, lang_code: str = None):
         """Refresh complet de l'UI lors du changement de langue"""
-
         # -----------------------------
         # Labels statiques (UI fixe)
         # -----------------------------
@@ -330,7 +328,6 @@ class ImagePreviewView(QWidget):
         
     def _refresh_image_texts(self):
         """Met à jour uniquement les textes dépendants de l'image"""
-
         image = self._current_image
         
         # Image analysator

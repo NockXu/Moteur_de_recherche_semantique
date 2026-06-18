@@ -7,8 +7,7 @@ from storage.config import get_database_path
 
 
 class SqliteManager:
-    """
-    Manages SQLite database connection and initialization.
+    """Manages SQLite database connection and initialization.
 
     This class ensures the database exists, creates it if necessary,
     and provides a persistent connection and cursor.
@@ -23,6 +22,7 @@ class SqliteManager:
     Raises:
         Exception:
             If no valid database path can be resolved.
+
     """
 
     def __init__(self, db_path: str | None = None):
@@ -46,20 +46,19 @@ class SqliteManager:
     # DATABASE INITIALIZATION
     # =========================
     def _ensure_database_exists(self) -> None:
-        """
-        Ensure that the SQLite database file exists.
+        """Ensure that the SQLite database file exists.
 
         If the database does not exist, it is automatically initialized.
 
         Returns:
             None
+
         """
         if not self.db_path.exists():
             self._initialize_database()
 
     def _initialize_database(self) -> None:
-        """
-        Initialize the SQLite database using the initialization SQL script.
+        """Initialize the SQLite database using the initialization SQL script.
 
         This method creates the database file if it does not exist and executes
         the required SQL schema to set up tables.
@@ -70,6 +69,7 @@ class SqliteManager:
         Raises:
             RuntimeError:
                 If database initialization fails.
+
         """
         try:
             import sqlite3
@@ -107,8 +107,7 @@ class SqliteManager:
     # CONNECTION
     # =========================
     def connect(self) -> None:
-        """
-        Establish a connection to the SQLite database.
+        """Establish a connection to the SQLite database.
 
         Creates a connection and cursor for executing SQL queries.
         Thread safety is disabled via `check_same_thread=False`.
@@ -119,6 +118,7 @@ class SqliteManager:
         Raises:
             RuntimeError:
                 If the database connection fails.
+
         """
         try:
             self.conn = sqlite3.connect(
@@ -131,11 +131,11 @@ class SqliteManager:
             raise RuntimeError(f"SQLite connection error: {e}")
 
     def close(self) -> None:
-        """
-        Close the SQLite database connection if it exists.
+        """Close the SQLite database connection if it exists.
 
         Returns:
             None
+
         """
         if self.conn:
             self.conn.close()
@@ -145,9 +145,8 @@ class SqliteManager:
     # =========================
     # EXECUTION
     # =========================
-    def execute(self, query: str, params: Tuple[Any, ...] = ()) -> None:
-        """
-        Execute an SQL query on the SQLite database.
+    def execute(self, query: str, params: tuple[Any, ...] = ()) -> None:
+        """Execute an SQL query on the SQLite database.
 
         Args:
             query (str):
@@ -162,6 +161,7 @@ class SqliteManager:
         Raises:
             RuntimeError:
                 If the SQL execution fails.
+
         """
         try:
             self.cursor.execute(query, params)
@@ -171,9 +171,8 @@ class SqliteManager:
 
     from typing import List, Tuple, Any
 
-    def executemany(self, query: str, params_list: List[Tuple[Any, ...]]) -> None:
-        """
-        Execute an SQL query multiple times with different parameter sets.
+    def executemany(self, query: str, params_list: list[tuple[Any, ...]]) -> None:
+        """Execute an SQL query multiple times with different parameter sets.
 
         This method is used for batch inserts or updates and automatically commits
         the transaction after execution.
@@ -191,6 +190,7 @@ class SqliteManager:
         Raises:
             RuntimeError:
                 If the SQL execution fails.
+
         """
         try:
             self.cursor.executemany(query, params_list)
@@ -199,9 +199,8 @@ class SqliteManager:
         except Exception as e:
             raise RuntimeError(f"SQL executemany error: {e}")
 
-    def fetch_one(self, query: str, params: Tuple[Any, ...] = ()) -> Optional[Tuple[Any, ...]]:
-        """
-        Execute an SQL query and return a single result.
+    def fetch_one(self, query: str, params: tuple[Any, ...] = ()) -> tuple[Any, ...] | None:
+        """Execute an SQL query and return a single result.
 
         Args:
             query (str):
@@ -212,8 +211,8 @@ class SqliteManager:
 
         Returns:
             A single row from the database, or None if no result is found.
-        """
 
+        """
         if self.cursor is None:
             raise RuntimeError("Database connection is closed")
 
@@ -222,9 +221,8 @@ class SqliteManager:
 
     from typing import List, Tuple, Any
 
-    def fetch_all(self, query: str, params: Tuple[Any, ...] = ()) -> List[Tuple[Any, ...]]:
-        """
-        Execute an SQL query and return all results.
+    def fetch_all(self, query: str, params: tuple[Any, ...] = ()) -> list[tuple[Any, ...]]:
+        """Execute an SQL query and return all results.
 
         Args:
             query (str):
@@ -235,8 +233,8 @@ class SqliteManager:
 
         Returns:
             List of rows returned by the query. Each row is a tuple.
-        """
 
+        """
         if self.cursor is None:
             raise RuntimeError("Database connection is closed")
 
@@ -247,31 +245,31 @@ class SqliteManager:
     # TRANSACTIONS
     # =========================
     def begin(self) -> None:
-        """
-        Begin a new database transaction.
+        """Begin a new database transaction.
 
         Returns:
             None
+
         """
         self.conn.execute("BEGIN")
 
 
     def commit(self) -> None:
-        """
-        Commit the current transaction.
+        """Commit the current transaction.
 
         Returns:
             None
+
         """
         self.conn.commit()
 
 
     def rollback(self) -> None:
-        """
-        Roll back the current transaction.
+        """Roll back the current transaction.
 
         Returns:
             None
+
         """
         self.conn.rollback()
 
@@ -279,18 +277,17 @@ class SqliteManager:
     # CONTEXT MANAGER
     # =========================
     def __enter__(self) -> SqliteManager:
-        """
-        Enter the runtime context related to this object.
+        """Enter the runtime context related to this object.
 
         Returns:
             The current instance for use in a `with` statement.
+
         """
         return self
 
 
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
-        """
-        Exit the runtime context and handle transaction finalization.
+        """Exit the runtime context and handle transaction finalization.
 
         If an exception occurred, the transaction is rolled back.
         Otherwise, it is committed. The database connection is then closed.
@@ -307,6 +304,7 @@ class SqliteManager:
 
         Returns:
             None
+
         """
         if exc_type:
             self.rollback()

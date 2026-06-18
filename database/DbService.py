@@ -11,8 +11,7 @@ TSqlite = TypeVar('TSqlite', bound=SqliteManager)
 TFaiss = TypeVar('TFaiss', bound=FaissManager)
 
 class DbService:
-    """
-    Singleton service that provides access to database and FAISS index managers.
+    """Singleton service that provides access to database and FAISS index managers.
 
     This class ensures a single shared instance of database services across
     the application.
@@ -25,13 +24,13 @@ class DbService:
     faiss: TFaiss
 
     def __new__(cls) -> "DbService":
-        """
-        Create or return the singleton instance.
+        """Create or return the singleton instance.
 
         Initializes database managers on first creation.
 
         Returns:
             The singleton instance.
+
         """
         # If already created in this thread → reuse
         if hasattr(cls._thread_local, "instance"):

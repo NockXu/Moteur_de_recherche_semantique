@@ -12,7 +12,8 @@ import subprocess  # Pour lancer "ollama serve"
 import time  # Pour boucler avec un timeout lors du démarrage serveur
 from dataclasses import dataclass  # Modèles de données simples et typés
 from pathlib import Path  # Manipulation robuste des chemins
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union  # Types
+from typing import Any, Dict, List, Optional, Union
+from collections.abc import Mapping, Sequence  # Types
 
 
 # ------------------------------
@@ -42,33 +43,36 @@ class OllamaServerStartError(OllamaError):
 @dataclass(frozen=True, slots=True)
 class OllamaModelDetails:
     """Détails d'un modèle, tels que renvoyés dans /api/tags."""
-    format: Optional[str] = None
-    family: Optional[str] = None
-    families: Optional[List[str]] = None
-    parameter_size: Optional[str] = None
-    quantization_level: Optional[str] = None
+
+    format: str | None = None
+    family: str | None = None
+    families: list[str] | None = None
+    parameter_size: str | None = None
+    quantization_level: str | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class OllamaModelInfo:
     """Informations de base sur un modèle installé (issu de /api/tags)."""
+
     name: str
-    modified_at: Optional[str] = None
-    size: Optional[int] = None
-    digest: Optional[str] = None
-    details: Optional[OllamaModelDetails] = None
+    modified_at: str | None = None
+    size: int | None = None
+    digest: str | None = None
+    details: OllamaModelDetails | None = None
 
 
 @dataclass(frozen=True, slots=True)
 class OllamaGenerateResult:
     """Résultat simplifié de /api/generate en mode stream=false."""
+
     response: str
-    model: Optional[str] = None
-    done: Optional[bool] = None
-    total_duration: Optional[int] = None  # ns (souvent)
-    load_duration: Optional[int] = None
-    prompt_eval_count: Optional[int] = None
-    eval_count: Optional[int] = None
+    model: str | None = None
+    done: bool | None = None
+    total_duration: int | None = None  # ns (souvent)
+    load_duration: int | None = None
+    prompt_eval_count: int | None = None
+    eval_count: int | None = None
 
 
 # ------------------------------
@@ -76,8 +80,7 @@ class OllamaGenerateResult:
 # ------------------------------
 
 class OllamaWrapper:
-    """
-    Wrapper Python (simple, robuste, typé) autour de l'API HTTP d'Ollama.
+    """Wrapper Python (simple, robuste, typé) autour de l'API HTTP d'Ollama.
 
     Base URL par défaut : xxxx
     Endpoints utilisés :
@@ -101,8 +104,7 @@ class OllamaWrapper:
     # --------------------------
 
     def is_server_running(self) -> bool:
-        """
-        Retourne True si le serveur Ollama répond.
+        """Retourne True si le serveur Ollama répond.
 
         Stratégie : on essaie GET /api/version (léger et dédié à ça).
         """
@@ -120,10 +122,9 @@ class OllamaWrapper:
         *,
         wait: bool = True,
         wait_timeout_s: float = 10.0,
-        extra_env: Optional[Mapping[str, str]] = None,
+        extra_env: Mapping[str, str] | None = None,
     ) -> subprocess.Popen[bytes]:
-        """
-        Lance `ollama serve` via subprocess.
+        """Lance `ollama serve` via subprocess.
 
         Args:
             wait: si True, attend que le port réponde avant de rendre la main.
@@ -135,16 +136,17 @@ class OllamaWrapper:
 
         Raises:
             OllamaServerStartError: si ollama n'est pas trouvé ou ne démarre pas.
+
         """
         # Vérifie que l'exécutable "ollama" est présent dans le PATH.
-        ollama_path: Optional[str] = shutil.which("ollama")
+        ollama_path: str | None = shutil.which("ollama")
         if ollama_path is None:
             raise OllamaServerStartError(
                 "Exécutable 'ollama' introuvable. Installe Ollama et/ou ajoute-le au PATH."
             )
 
         # Prépare l'environnement du processus.
-        env: Dict[str, str] = dict(**(extra_env or {}))  # Copie défensive
+        env: dict[str, str] = dict(**(extra_env or {}))  # Copie défensive
         # Note : on laisse le reste de l'environnement hérité du parent (comportement standard).
 
         # Lance le serveur : stdout/stderr sont capturés pour debug/enseignement.
@@ -180,8 +182,7 @@ class OllamaWrapper:
         )
 
     def _is_port_open(self) -> bool:
-        """
-        Test rapide TCP du port du base_url (sans HTTP).
+        """Test rapide TCP du port du base_url (sans HTTP).
 
         Utile pour savoir si quelque chose écoute déjà, sans dépendre d'une réponse JSON.
         """
@@ -212,8 +213,7 @@ class OllamaWrapper:
     # --------------------------
 
     def get_version(self) -> str:
-        """
-        Retourne la version du serveur Ollama via GET /api/version. :contentReference[oaicite:3]{index=3}
+        """Retourne la version du serveur Ollama via GET /api/version. :contentReference[oaicite:3]{index=3}
         """
         payload = self._http_request_json("GET", "/api/version", body=None)
         # La doc renvoie typiquement { "version": "x.y.z" }.
@@ -222,16 +222,15 @@ class OllamaWrapper:
             raise OllamaResponseError(f"Réponse /api/version inattendue: {payload!r}")
         return version
 
-    def list_models(self) -> List[OllamaModelInfo]:
-        """
-        Liste les modèles installés via GET /api/tags. :contentReference[oaicite:4]{index=4}
+    def list_models(self) -> list[OllamaModelInfo]:
+        """Liste les modèles installés via GET /api/tags. :contentReference[oaicite:4]{index=4}
         """
         payload = self._http_request_json("GET", "/api/tags", body=None)
         raw_models = payload.get("models")
         if not isinstance(raw_models, list):
             raise OllamaResponseError(f"Réponse /api/tags inattendue: {payload!r}")
 
-        models: List[OllamaModelInfo] = []
+        models: list[OllamaModelInfo] = []
         for item in raw_models:
             # Chaque entrée doit être un dict.
             if not isinstance(item, dict):
@@ -243,7 +242,7 @@ class OllamaWrapper:
 
             # Détails optionnels.
             raw_details = item.get("details")
-            details: Optional[OllamaModelDetails] = None
+            details: OllamaModelDetails | None = None
             if isinstance(raw_details, dict):
                 details = OllamaModelDetails(
                     format=raw_details.get("format") if isinstance(raw_details.get("format"), str) else None,
@@ -274,11 +273,10 @@ class OllamaWrapper:
         *,
         model: str,
         prompt: str,
-        system: Optional[str] = None,
-        options: Optional[Mapping[str, Any]] = None,
+        system: str | None = None,
+        options: Mapping[str, Any] | None = None,
     ) -> OllamaGenerateResult:
-        """
-        Appelle POST /api/generate en texte seul (stream=false). :contentReference[oaicite:5]{index=5}
+        """Appelle POST /api/generate en texte seul (stream=false). :contentReference[oaicite:5]{index=5}
 
         Args:
             model: nom du modèle (ex: "llama3", "mistral", etc.)
@@ -288,8 +286,9 @@ class OllamaWrapper:
 
         Returns:
             OllamaGenerateResult : réponse texte + quelques métriques si présentes.
+
         """
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": model,       # Modèle ciblé
             "prompt": prompt,     # Prompt texte
             "stream": False,      # On veut une réponse complète en une fois
@@ -325,13 +324,12 @@ class OllamaWrapper:
         *,
         model: str,
         prompt: str,
-        image: Union[str, Path, bytes],
-        image_mime_hint: Optional[str] = None,
-        system: Optional[str] = None,
-        options: Optional[Mapping[str, Any]] = None,
+        image: str | Path | bytes,
+        image_mime_hint: str | None = None,
+        system: str | None = None,
+        options: Mapping[str, Any] | None = None,
     ) -> OllamaGenerateResult:
-        """
-        Appelle POST /api/generate avec une image (multimodal).
+        """Appelle POST /api/generate avec une image (multimodal).
         Ollama attend une liste "images" contenant des chaînes base64. :contentReference[oaicite:6]{index=6}
 
         Args:
@@ -344,6 +342,7 @@ class OllamaWrapper:
 
         Returns:
             OllamaGenerateResult
+
         """
         # Convertit l'image en bytes.
         image_bytes: bytes
@@ -358,7 +357,7 @@ class OllamaWrapper:
         # Encode en base64 (ASCII) comme attendu par l'API.
         image_b64: str = base64.b64encode(image_bytes).decode("ascii")
 
-        body: Dict[str, Any] = {
+        body: dict[str, Any] = {
             "model": model,           # Modèle multimodal
             "prompt": prompt,         # Prompt
             "images": [image_b64],    # Liste base64 (même pour une seule image)
@@ -402,14 +401,13 @@ class OllamaWrapper:
         *,
         model: str,
         text: str,
-    ) -> List[float]:
-        """
-        Génère un embedding.
+    ) -> list[float]:
+        """Génère un embedding.
 
         Note doc : l'endpoint "Generate Embedding" a été supersédé par /api/embed
         (selon docs/api.md). :contentReference[oaicite:7]{index=7}
         """
-        body: Dict[str, Any] = {"model": model, "input": text}
+        body: dict[str, Any] = {"model": model, "input": text}
         payload = self._http_request_json("POST", "/api/embed", body=body)
 
         # Selon versions, la forme peut varier ; on vise un cas courant : {"embeddings":[[...]]} ou {"embedding":[...]}.
@@ -434,10 +432,9 @@ class OllamaWrapper:
         method: str,
         path: str,
         *,
-        body: Optional[Mapping[str, Any]],
-    ) -> Dict[str, Any]:
-        """
-        Exécute une requête HTTP et retourne un dict JSON.
+        body: Mapping[str, Any] | None,
+    ) -> dict[str, Any]:
+        """Exécute une requête HTTP et retourne un dict JSON.
 
         On utilise urllib (stdlib) pour éviter une dépendance à requests/httpx dans un contexte étudiant.
         """
@@ -450,13 +447,13 @@ class OllamaWrapper:
         url: str = urljoin(self._base_url + "/", path.lstrip("/"))
 
         # Prépare les headers.
-        headers: Dict[str, str] = {
+        headers: dict[str, str] = {
             "Accept": "application/json",            # On attend du JSON
             "Content-Type": "application/json",      # Si body présent
         }
 
         # Sérialise le body en JSON si nécessaire.
-        data: Optional[bytes]
+        data: bytes | None
         if body is None:
             data = None
         else:
@@ -502,7 +499,7 @@ class OllamaWrapper:
         self,
         path: str,
         body: dict,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         import http.client
 
         host, port = self._parse_host_port()
@@ -517,7 +514,7 @@ class OllamaWrapper:
             response = conn.getresponse()
 
             full_response = ""
-            last_payload: Dict[str, Any] = {}
+            last_payload: dict[str, Any] = {}
 
             for line in response:
                 line = line.decode("utf-8").strip()

@@ -14,6 +14,17 @@ from PyQt6.QtCore import pyqtSignal
 
 
 class HistoryRepository(QWidget):
+    """Repository responsible for managing the search history tree and its configuration.
+
+    This class provides an abstraction layer to load, save, and track the persistent 
+    state of searches using a custom tree structure. It integrates with PyQt6 signals 
+    to trigger saving operations when changes occur.
+
+    Signals:
+        history_changed: Emitted when the history requires saving.
+        current_search_updated: Emitted when the active search node changes.
+    """
+
     history_changed = pyqtSignal()
     current_search_updated = pyqtSignal()
 
@@ -21,15 +32,27 @@ class HistoryRepository(QWidget):
         super().__init__()
         self.history_path = None
         self.history_tree = None
-        self.current_search : Optional[Tree] = None
+        self.current_search : Tree | None = None
 
         self.history_changed.connect(self.save)
 
     def set_current_search(self, node: Tree) -> None:
+        """Set the currently active search tree node and notify listeners.
+
+        Args:
+            node (Tree):
+                The tree node representing the current search.
+
+        """
         self.current_search = node
         self.current_search_updated.emit()
 
     def load_history(self) -> None:
+        """Load the history tree from a local JSON file.
+
+        If the history file directory or file does not exist, or if the file 
+        is corrupted/empty, a default tree structure is created and initialized.
+        """
         if self.history_path is None:
             return
 
@@ -45,7 +68,7 @@ class HistoryRepository(QWidget):
                 json.dump(self.history_tree.to_dict(), f, ensure_ascii=False, indent=4)
             return
 
-        with open(history_file, "r", encoding="utf-8") as f:
+        with open(history_file, encoding="utf-8") as f:
             data = json.load(f)
 
         # Fichier vide ou JSON invalide
@@ -57,6 +80,12 @@ class HistoryRepository(QWidget):
 
 
     def save_history(self) -> bool:
+        """Serialize and save the current history tree structure to a JSON file.
+
+        Returns:
+            True if the history was successfully saved, False if history_path is not set.
+
+        """
         if self.history_path is None:
             return False
 
@@ -76,6 +105,12 @@ class HistoryRepository(QWidget):
         return True
 
     def load(self) -> None:
+        """Load global configurations, trigger history loading, and restore the active search state.
+
+        This method reads the history path and last known search node parameters 
+        from the application configuration, then looks up the correct tree node 
+        based on generation and index indices.
+        """
         self.history_path = load_from_config("history_path")
 
         self.load_history()
@@ -104,6 +139,15 @@ class HistoryRepository(QWidget):
         self.current_search = potential_trees[index]
 
     def save(self) -> bool:
+        """Save the current state of the history path and current search data into the application configuration.
+
+        This method calculates the context indices (generation and sibling index) 
+        of the current search node and stores them before saving the tree data.
+
+        Returns:
+            True if the structural history file was successfully updated, False otherwise.
+
+        """
         if self.current_search is None:
             self.current_search = self.history_tree
 

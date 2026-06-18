@@ -64,7 +64,7 @@ class WeightCalculatorController(QWidget):
     def init_funcs(self) -> None:
         self.view.set_weight_functions(self.model.get_funcs())
 
-    def get_data(self) -> Tuple[float, WeightSystem]:
+    def get_data(self) -> tuple[float, WeightSystem]:
         return (self.model.const, self.model.weight_fonction.weight_fn)
 
 if __name__ == "__main__":

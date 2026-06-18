@@ -1,12 +1,12 @@
 from __future__ import annotations
 from dataclasses import dataclass
 import numpy as np
-from typing import List, Callable, Union, Dict
+from typing import List, Union, Dict
+from collections.abc import Callable
 import faiss
 
 class WeightFunction:
-    """
-    Represents a weighting strategy used to compute successive weights
+    """Represents a weighting strategy used to compute successive weights
     from similarities between embeddings.
 
     A WeightFunction encapsulates a name, a description, and the
@@ -19,6 +19,7 @@ class WeightFunction:
             Description explaining how the weighting strategy works.
         weight_fn (WeightSystem):
             Function used to compute weights from similarities.
+
     """
     
     def __init__(self, name: str, description: str, weight_fn: WeightSystem):
@@ -27,8 +28,7 @@ class WeightFunction:
         self.weight_fn = weight_fn
 
     def cosine(self, a: np.ndarray, b: np.ndarray) -> float:
-        """
-        Compute the cosine similarity between two vectors.
+        """Compute the cosine similarity between two vectors.
 
         Args:
             a (np.ndarray):
@@ -39,6 +39,7 @@ class WeightFunction:
         Returns:
             Cosine similarity between the two vectors.
             Returns 0.0 if one of the vectors has a zero norm.
+
         """
         denom = np.linalg.norm(a) * np.linalg.norm(b)
         if denom == 0:
@@ -47,11 +48,10 @@ class WeightFunction:
 
     def weights_from_cosines(
         self,
-        vects: List[np.ndarray],
+        vects: list[np.ndarray],
         const: float = 1.0
-    ) -> List[float]:
-        """
-        Compute a sequence of weights from a chain of vectors.
+    ) -> list[float]:
+        """Compute a sequence of weights from a chain of vectors.
 
         Successive weights are generated using the configured
         weighting function and the cosine similarity between
@@ -67,8 +67,8 @@ class WeightFunction:
         Returns:
             Computed weights for each vector.
             Returns an empty list if no vectors are provided.
-        """
 
+        """
         if not vects:
             return []
 
@@ -89,8 +89,7 @@ class WeightFunction:
         return weights
 
     def get_weights(self, sim: float, parent_weight: float,  position: int, const: int) -> float:
-        """
-        Compute a weight using the configured weighting function.
+        """Compute a weight using the configured weighting function.
 
         Args:
             sim (float):
@@ -104,13 +103,13 @@ class WeightFunction:
 
         Returns:
             Weight computed by the weighting function.
+
         """
         return self.weight_fn(parent_weight, sim, position, const)
 
     @staticmethod
-    def generate_random_vects(n: int, dim: int) -> List[np.ndarray]:
-        """
-        Generate normalized random vectors.
+    def generate_random_vects(n: int, dim: int) -> list[np.ndarray]:
+        """Generate normalized random vectors.
 
         Args:
             n (int):
@@ -120,6 +119,7 @@ class WeightFunction:
 
         Returns:
             List of L2-normalized random vectors.
+
         """
         vects = np.random.randn(n, dim).astype(np.float32)
         faiss.normalize_L2(vects)
@@ -127,9 +127,8 @@ class WeightFunction:
 
 
     @staticmethod
-    def generate_clustered_vects(n: int, dim: int, k_clusters=3, noise=0.1) -> List[np.ndarray]:
-        """
-        Generate normalized vectors organized around clusters.
+    def generate_clustered_vects(n: int, dim: int, k_clusters=3, noise=0.1) -> list[np.ndarray]:
+        """Generate normalized vectors organized around clusters.
 
         Args:
             n (int):
@@ -144,6 +143,7 @@ class WeightFunction:
 
         Returns:
             List of L2-normalized clustered vectors.
+
         """
         centers = np.random.randn(k_clusters, dim).astype(np.float32)
 
@@ -163,21 +163,21 @@ class WeightFunction:
 
     @property
     def describe(self) -> str:
-        """
-        Retrieve the description of the weighting strategy.
+        """Retrieve the description of the weighting strategy.
 
         Returns:
             Description associated with this weighting strategy.
+
         """
         return self.description
 
-    def to_dict(self) -> Dict[str, Dict[str, Union[str, Callable[[float, float, int, float], float]]]]:
-        """
-        Convert the weighting strategy into a dictionary.
+    def to_dict(self) -> dict[str, dict[str, str | Callable[[float, float, int, float], float]]]:
+        """Convert the weighting strategy into a dictionary.
 
         Returns:
             Dictionary containing the strategy description
             and the underlying weighting function.
+
         """
         return {self.name: {
             "description": self.description,
@@ -191,8 +191,7 @@ class WeightFunction:
         
     
 class WeightSystem:
-    """
-    System allowing a custom weight function defined as a string expression.
+    """System allowing a custom weight function defined as a string expression.
 
     The expression is evaluated with the following variables:
 
@@ -208,7 +207,9 @@ class WeightSystem:
 
     Notes:
         The expression is evaluated dynamically and must use only the variables above.
+
     """
+
     def __init__(self, expr: str):
         self.expr = expr
 

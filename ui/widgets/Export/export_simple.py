@@ -16,8 +16,7 @@ from database.DbService import DbService
 
 
 class ExportSimple:
-    """
-    Export simple des images au format JSON
+    """Export simple des images au format JSON
     Structure:
     {
         "<name>": {
@@ -35,15 +34,15 @@ class ExportSimple:
         """Initialise le service d'export simple"""
         self.db_service = DbService()
 
-    def export_images(self, file_path: str) -> Dict[str, Any]:
-        """
-        Exporte toutes les images vers un fichier JSON
+    def export_images(self, file_path: str) -> dict[str, Any]:
+        """Exporte toutes les images vers un fichier JSON
         
         Args:
             file_path: Chemin du fichier de sortie
             
         Returns:
             Dict: Les images exportées
+
         """
         try:
             # Récupérer toutes les images
@@ -58,7 +57,7 @@ class ExportSimple:
             print(f"{tr("Erreur lors de l'export")}: {e}")
             raise
 
-    def _get_all_images(self) -> Dict[str, Any]:
+    def _get_all_images(self) -> dict[str, Any]:
         """Récupère toutes les images et les formate selon la structure demandée"""
         try:
             # Récupérer toutes les images via ImageRepository
@@ -83,7 +82,7 @@ class ExportSimple:
             print(f"{tr("Erreur lors de la récupération des images")}: {e}")
             return {}
 
-    def _write_json_file(self, file_path: str, data: Dict[str, Any]) -> None:
+    def _write_json_file(self, file_path: str, data: dict[str, Any]) -> None:
         """Écrit les données dans un fichier JSON"""
         try:
             # Créer le répertoire si nécessaire
@@ -100,11 +99,11 @@ class ExportSimple:
             raise
 
     def export_to_string(self) -> str:
-        """
-        Exporte toutes les images vers une chaîne JSON
+        """Exporte toutes les images vers une chaîne JSON
         
         Returns:
             str: Les images au format JSON
+
         """
         try:
             # Récupérer toutes les images
@@ -122,26 +121,26 @@ class ExportSimple:
 # FONCTION UTILITAIRE POUR UTILISATION RAPIDE
 # ─────────────────────────────────────────────
 
-def export_images_file(file_path: str) -> Dict[str, Any]:
-    """
-    Fonction utilitaire pour exporter rapidement toutes les images
+def export_images_file(file_path: str) -> dict[str, Any]:
+    """Fonction utilitaire pour exporter rapidement toutes les images
     
     Args:
         file_path: Chemin du fichier de sortie
         
     Returns:
         Dict: Les images exportées
+
     """
     exporter = ExportSimple()
     return exporter.export_images(file_path)
 
 
 def export_images_string() -> str:
-    """
-    Fonction utilitaire pour exporter rapidement les images en string
+    """Fonction utilitaire pour exporter rapidement les images en string
     
     Returns:
         str: Les images au format JSON
+
     """
     exporter = ExportSimple()
     return exporter.export_to_string()

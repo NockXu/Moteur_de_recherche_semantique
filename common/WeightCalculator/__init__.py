@@ -44,7 +44,7 @@ for name, data in expressions.items():
         )
     )
 
-def get_weight_function_by_expr(expr : WeightSystem) -> Optional[WeightFunction]:
+def get_weight_function_by_expr(expr : WeightSystem) -> WeightFunction | None:
     for weight_fonction in weight_functions:
         if weight_fonction.weight_fn.expr == expr.expr:
             return weight_fonction

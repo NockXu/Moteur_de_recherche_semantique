@@ -11,7 +11,7 @@ from ui import load_config, save_in_config
 SOURCE_LANG = "fr"
 
 _current_lang: str = SOURCE_LANG
-_translations: Dict[str, Dict[str, str]] = {}
+_translations: dict[str, dict[str, str]] = {}
 
 
 # ── Runtime ────────────────────────────────────────────────────────────────
@@ -22,7 +22,7 @@ def init_translations(lang: str) -> None:
     _current_lang = lang
     _translations_path : str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),  load_config().get("translations", {}).get("path", ""))
     if _translations_path:
-        with open(_translations_path, "r", encoding="utf-8") as f:
+        with open(_translations_path, encoding="utf-8") as f:
             _translations = json.load(f)
     else:
         _translations = {}
@@ -46,14 +46,14 @@ def tr(text: str) -> str:
 
 # ── Extraction ─────────────────────────────────────────────────────────────
 
-def _extract_tr_calls(source: str) -> List[str]:
+def _extract_tr_calls(source: str) -> list[str]:
     """Retourne toutes les chaînes passées à tr() dans un fichier source."""
     try:
         tree = ast.parse(source)
     except SyntaxError:
         return []
 
-    strings: List[str] = []
+    strings: list[str] = []
     for node in ast.walk(tree):
         if (
             isinstance(node, ast.Call)
@@ -70,20 +70,19 @@ def _extract_tr_calls(source: str) -> List[str]:
 
 def extract_translations(
     project_root: str,
-    language_list: List[str],
-) -> Dict[str, Dict[str, str]]:
-    """
-    Parcourt tous les .py du projet, extrait les appels tr("..."),
+    language_list: list[str],
+) -> dict[str, dict[str, str]]:
+    """Parcourt tous les .py du projet, extrait les appels tr("..."),
     met à jour la config et retourne le dict de traductions.
 
     Les traductions déjà renseignées ne sont jamais écrasées.
-    Les clés disparues du code sont conservées (au cas où)."""
-
+    Les clés disparues du code sont conservées (au cas où).
+    """
     translations_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),  load_config().get("translations", {}).get("path", ""))
-    with open(translations_path, "r", encoding="utf-8") as f:
+    with open(translations_path, encoding="utf-8") as f:
         translations = json.load(f)
 
-    added: List[str] = []
+    added: list[str] = []
     already_present: int = 0
 
     for file in sorted(Path(project_root).rglob("*.py")):

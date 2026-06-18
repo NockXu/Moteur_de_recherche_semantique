@@ -12,8 +12,7 @@ from typing import List, TypedDict, Optional, Tuple
 import numpy as np
 
 class SearchResults(TypedDict):
-    """
-    Represents the result of a search operation.
+    """Represents the result of a search operation.
 
     This structure contains the retrieved images and the number
     of results requested (k).
@@ -23,13 +22,14 @@ class SearchResults(TypedDict):
             List of retrieved images.
         k (int):
             Number of results requested.
+
     """
-    images: List[Image]
+
+    images: list[Image]
     k: int
 
 class ImageRepository:
-    """
-    Repository responsible for managing Image persistence and search operations.
+    """Repository responsible for managing Image persistence and search operations.
 
     This class acts as a bridge between:
     - SQLite database (metadata storage)
@@ -41,6 +41,7 @@ class ImageRepository:
 
         faiss (FaissManager):
             FAISS index manager used for similarity search.
+
     """
 
     def __init__(self, db: SqliteManager, faiss: FaissManager):
@@ -49,9 +50,8 @@ class ImageRepository:
         self._dataset_repo = DatasetRepository(db)
         self._dataset_cache = {}
         
-    def _get_dataset_by_id(self, dataset_id: int) -> Optional[Dataset]:
-        """
-        Retrieve a Dataset by its ID using an internal cache to reduce database queries.
+    def _get_dataset_by_id(self, dataset_id: int) -> Dataset | None:
+        """Retrieve a Dataset by its ID using an internal cache to reduce database queries.
 
         This method first checks the cache before querying the repository.
 
@@ -61,6 +61,7 @@ class ImageRepository:
 
         Returns:
             The dataset if found, otherwise None.
+
         """
         # Check cache first
         if dataset_id in self._dataset_cache:
@@ -76,8 +77,7 @@ class ImageRepository:
         return dataset
     
     def save_image(self, image: Image) -> bool:
-        """
-        Save or update an image in both SQLite and FAISS storage.
+        """Save or update an image in both SQLite and FAISS storage.
 
         This method:
         - ensures dataset existence
@@ -86,6 +86,7 @@ class ImageRepository:
 
         Returns:
             True if the operation succeeded, False otherwise.
+
         """
         try:
             blob = None
@@ -144,15 +145,15 @@ class ImageRepository:
         except Exception:
             return False
 
-    def save_many_images(self, images: List[Image]) -> int:
-        """
-        Save multiple images in batch into SQLite.
+    def save_many_images(self, images: list[Image]) -> int:
+        """Save multiple images in batch into SQLite.
 
         This method uses bulk insertion (executemany) with a fallback
         to row-by-row insertion in case of failure.
 
         Returns:
             Number of successfully saved images.
+
         """
         query = """
             INSERT INTO images (
@@ -229,11 +230,11 @@ class ImageRepository:
         return success_count
 
     def train_index(self) -> bool:
-        """
-        Rebuild and train the FAISS index from all stored image embeddings.
+        """Rebuild and train the FAISS index from all stored image embeddings.
 
         Returns:
             True if training and indexing succeeded, False otherwise.
+
         """
         # -------------------------
         # LOAD ALL EMBEDDINGS
@@ -289,12 +290,11 @@ class ImageRepository:
     # =========================
     def search(
         self,
-        query: List[float],
+        query: list[float],
         threshold: float = 0.5,
         k: int = 200
     ) -> SearchResults:
-        """
-        Search similar images using FAISS + SQLite metadata + reranking.
+        """Search similar images using FAISS + SQLite metadata + reranking.
 
         Args:
             query (List[float]):
@@ -306,8 +306,8 @@ class ImageRepository:
 
         Returns:
             List of matched images sorted by similarity score.
-        """
 
+        """
         # =========================
         # FAISS RETRIEVAL
         # =========================
@@ -416,9 +416,8 @@ class ImageRepository:
             k=k
         )
 
-    def get_k(self, k : int) -> List[Image]:
-        """
-        Retrieve the first k images from the database.
+    def get_k(self, k : int) -> list[Image]:
+        """Retrieve the first k images from the database.
 
         Args:
             k (int):
@@ -426,8 +425,8 @@ class ImageRepository:
 
         Returns:
             List of k images
+
         """
-        
         query = """
             SELECT
                 id,
@@ -446,14 +445,13 @@ class ImageRepository:
 
         return self._construct_from_rows(rows)
 
-    def get_all(self) -> List[Image]:
-        """
-        Retrieve all images from the database.
+    def get_all(self) -> list[Image]:
+        """Retrieve all images from the database.
 
         Returns:
             List of all stored images.
-        """
 
+        """
         rows = self.db.fetch_all(
             """
             SELECT
@@ -470,9 +468,8 @@ class ImageRepository:
 
         return self._construct_from_rows(rows)
 
-    def get_image_by_id(self, image_id: int) -> Optional[Image]:
-        """
-        Retrieve an image by its ID.
+    def get_image_by_id(self, image_id: int) -> Image | None:
+        """Retrieve an image by its ID.
 
         Args:
             image_id (int):
@@ -480,8 +477,8 @@ class ImageRepository:
 
         Returns:
             Image with the given ID, or None if not found
+
         """
-        
         query = """
             SELECT
                 id,
@@ -503,9 +500,8 @@ class ImageRepository:
 
         return self._construct_from_rows([row])[0]
 
-    def get_image_by_path(self, path: str) -> Optional[Image]:
-        """
-        Retrieve an image by its path.
+    def get_image_by_path(self, path: str) -> Image | None:
+        """Retrieve an image by its path.
 
         Args:
             path (str):
@@ -513,8 +509,8 @@ class ImageRepository:
 
         Returns:
             Image with the given path, or None if not found
+
         """
-        
         query = """
             SELECT
                 id,
@@ -536,9 +532,8 @@ class ImageRepository:
 
         return self._construct_from_rows([row])[0]
 
-    def _construct_from_rows(self, rows) -> List[Image]:
-        """
-        Build Image objects from database rows.
+    def _construct_from_rows(self, rows) -> list[Image]:
+        """Build Image objects from database rows.
 
         This method converts raw rows retrieved from the database into
         Image instances. It deserializes keywords stored as JSON, retrieves
@@ -553,6 +548,7 @@ class ImageRepository:
             List[Image]:
                 A list of Image objects built from the provided rows.
                 Returns an empty list if no rows are provided.
+
         """
         images = []
 
@@ -602,8 +598,7 @@ class ImageRepository:
         return images
 
     def exist(self, path: str) -> bool:
-        """
-        Check if an image exists in the database.
+        """Check if an image exists in the database.
 
         Args:
             path (str):
@@ -611,6 +606,7 @@ class ImageRepository:
 
         Returns:
             True if the image exists, otherwise False.
+
         """
         return (
             self.db.fetch_one(
@@ -621,11 +617,11 @@ class ImageRepository:
         )
 
     def get_all_image_paths(self) -> set[str]:
-        """
-        Retrieve all image paths stored in the database.
+        """Retrieve all image paths stored in the database.
 
         Returns:
             Set of existing image paths.
+
         """
         rows = self.db.fetch_all("SELECT path FROM images")
         return {row[0] for row in rows}

@@ -12,8 +12,7 @@ from PIL import Image as PILImage
 from common.Dataset_Classes.Dataset import Dataset
 
 class ProcessingStatus(Enum):
-    """
-    Represents the status of a processing task.
+    """Represents the status of a processing task.
 
     This enum is used to track the lifecycle state of a process,
     from not started to completion or failure.
@@ -31,8 +30,7 @@ from datetime import datetime
 import hashlib
 
 class Image:
-    """
-    Class representing an image.
+    """Class representing an image.
 
     This class does not contains database logic.
     It is used across the application for processing, indexing and analysis.
@@ -62,22 +60,23 @@ class Image:
             Processing end time of the image.
         image_id (Optional[str]): 
             ID of the image.
+
     """
 
     def __init__(
         self,
-        path: Union[str, Path],
+        path: str | Path,
         dataset: Dataset,
-        name: Optional[str] = None,
+        name: str | None = None,
         score: float = 0.0,
         status: ProcessingStatus = ProcessingStatus.NOT_STARTED,
         description: str = "",
-        keywords: Optional[List[str]] = None,
-        embedding: Optional[List[float]] = None,
+        keywords: list[str] | None = None,
+        embedding: list[float] | None = None,
         error_message: str = "",
-        processing_start_time: Optional[datetime] = None,
-        processing_end_time: Optional[datetime] = None,
-        image_id: Optional[str] = None,
+        processing_start_time: datetime | None = None,
+        processing_end_time: datetime | None = None,
+        image_id: str | None = None,
     ):
         self.path = Path(path)
 
@@ -112,7 +111,7 @@ class Image:
             self.size = 0
 
         self._sam3_results = None
-        self.prompts : Dict[str, float] = {}
+        self.prompts : dict[str, float] = {}
         # Image dimensions (for layout system)
         self.width = 0
         self.height = 0
@@ -137,11 +136,11 @@ class Image:
     # =========================
 
     def to_dict(self) -> dict:
-        """
-        Convert the Image object into a JSON-serializable dictionary.
+        """Convert the Image object into a JSON-serializable dictionary.
 
         Returns:
             Dictionary representation of the Image model.
+
         """
         return {
             "id": self.id,
@@ -168,9 +167,8 @@ class Image:
     from typing import Any, Dict
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> Image:
-        """
-        Create an Image instance from a dictionary representation.
+    def from_dict(cls, data: dict[str, Any]) -> Image:
+        """Create an Image instance from a dictionary representation.
 
         This method is used to reconstruct an Image object from serialized data
         (e.g., database row, JSON, or cache).
@@ -181,6 +179,7 @@ class Image:
 
         Returns:
             Reconstructed Image instance.
+
         """
         start = (
             datetime.fromisoformat(data["processing_start_time"])
@@ -219,33 +218,33 @@ class Image:
 
     @property
     def is_processed(self) -> bool:
-        """
-        Determine whether the processing has been completed.
+        """Determine whether the processing has been completed.
 
         Returns:
             True if the current status is COMPLETED, otherwise False.
+
         """
         return self.status == ProcessingStatus.COMPLETED
 
 
     @property
     def has_error(self) -> bool:
-        """
-        Determine whether the processing ended with an error.
+        """Determine whether the processing ended with an error.
 
         Returns:
             True if the current status is ERROR, otherwise False.
+
         """
         return self.status == ProcessingStatus.ERROR
 
 
     @property
     def is_processing(self) -> bool:
-        """
-        Determine whether the processing is currently in progress.
+        """Determine whether the processing is currently in progress.
 
         Returns:
             True if the current status is IN_PROGRESS, otherwise False.
+
         """
         return self.status == ProcessingStatus.IN_PROGRESS
 
@@ -256,11 +255,11 @@ class Image:
     from typing import Any
 
     def copy(self) -> Image:
-        """
-        Create a deep copy of the Image instance.
+        """Create a deep copy of the Image instance.
 
         Returns:
             A new Image instance with the same data but independent mutable fields.
+
         """
         dataset = Dataset(id=self.dataset_id, name=self.dataset_name)
 
@@ -279,48 +278,48 @@ class Image:
         )
 
     def __eq__(self, other) -> bool:
-        """
-        Compare two Image objects based on their unique ID.
+        """Compare two Image objects based on their unique ID.
 
         Returns:
             True if both objects are Image instances with the same ID.
+
         """
         return isinstance(other, Image) and self.id == other.id
 
 
     def __hash__(self) -> int:
-        """
-        Return a hash based on the unique image ID.
+        """Return a hash based on the unique image ID.
 
         Returns:
             Hash value of the image ID.
+
         """
         return hash(self.id)
 
-    def set_SAM3_results(self, results : Optional[List[Dict[str, Any]]]):
-        """
-        Set the SAM3 results for the image.
+    def set_SAM3_results(self, results : list[dict[str, Any]] | None):
+        """Set the SAM3 results for the image.
         
         Args:
             results: The SAM3 results to set.
+
         """
         self._sam3_results = results
 
-    def get_SAM3_results(self) -> Optional[List[Dict[str, Any]]]:
-        """
-        Get the SAM3 results for the image.
+    def get_SAM3_results(self) -> list[dict[str, Any]] | None:
+        """Get the SAM3 results for the image.
         
         Returns:
             The SAM3 results.
+
         """
         return self._sam3_results
 
-    def set_prompts(self, prompts: List[dict]):
-        """
-        Set the prompts for the image.
+    def set_prompts(self, prompts: list[dict]):
+        """Set the prompts for the image.
         
         Args:
             prompts: The prompts to set.
+
         """
         for prompt in prompts:
             text = prompt.get("prompt", None)
@@ -329,11 +328,11 @@ class Image:
             threshold = prompt.get("threshold", 0.5)
             self.prompts.update({text: threshold})
 
-    def get_prompts(self) -> List[dict]:
-        """
-        Get the prompts for the image.
+    def get_prompts(self) -> list[dict]:
+        """Get the prompts for the image.
         
         Returns:
             The prompts.
+
         """
         return [{"prompt": prompt, "threshold": threshold} for prompt, threshold in self.prompts.items()]

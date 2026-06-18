@@ -23,7 +23,7 @@ def TextToEmbedding(wrapper: OllamaWrapper, image: Image) -> None:
     except Exception as e:
         return None
 
-def inputToEmbedding(wrapper: OllamaWrapper, input: str) -> List[float]:
+def inputToEmbedding(wrapper: OllamaWrapper, input: str) -> list[float]:
     print(f"[DEBUG] inputToEmbedding appelé avec: '{input}'")
     print(f"[DEBUG] wrapper: {wrapper}")
     try:

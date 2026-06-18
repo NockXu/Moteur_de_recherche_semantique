@@ -678,5 +678,9 @@
     "Exporter les données": {
         "fr": "Exporter les données",
         "en": "Export Data"
+    },
+    "Scan complet initialisé": {
+        "fr": "Scan complet initialisé",
+        "en": ""
     }
 }

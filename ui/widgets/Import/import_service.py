@@ -15,16 +15,15 @@ from common.Dataset_Classes.DatasetRepository import DatasetRepository
 
 class ImportService:
 
-    def __init__(self, configs: List[DatasetConfigData], mode : str):
+    def __init__(self, configs: list[DatasetConfigData], mode : str):
         self.image_repo = ImageRepository(DbService().sqlite, DbService().faiss)
         self.dataset_repo = DatasetRepository(DbService().sqlite)
         self.configs = configs
         self.mode = mode
         self.path_cache = self._build_path_cache()
 
-    def _build_path_cache(self) -> Dict[str, tuple[str, str]]:
-        """
-        Scanne tous les dossiers UNE SEULE FOIS au démarrage
+    def _build_path_cache(self) -> dict[str, tuple[str, str]]:
+        """Scanne tous les dossiers UNE SEULE FOIS au démarrage
         Retourne: {nom_fichier: (chemin_complet, nom_dataset)}
         """
         cache = {}
@@ -48,11 +47,11 @@ class ImportService:
     # -------------------------
     # LOAD JSON
     # -------------------------
-    def load_file(self, file_path: str) -> Dict[str, List[Image] | List[Dataset]]:
+    def load_file(self, file_path: str) -> dict[str, list[Image] | list[Dataset]]:
         if self.mode != "with_dataset":
             return self.load_file_without_dataset(file_path)
         
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         images = []
@@ -93,9 +92,9 @@ class ImportService:
     # -------------------------
     # LOAD JSON WITHOUT DATASET SECTION
     # -------------------------
-    def load_file_without_dataset(self, file_path: str) -> Dict[str, List[Image] | List[Dataset]]:
+    def load_file_without_dataset(self, file_path: str) -> dict[str, list[Image] | list[Dataset]]:
         """Pour les JSON qui n'ont pas de section datasets"""
-        with open(file_path, "r", encoding="utf-8") as f:
+        with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
         images = []
@@ -123,9 +122,8 @@ class ImportService:
     # -------------------------
     # PATH RESOLUTION
     # -------------------------
-    def resolve_path(self, image: Image) -> Optional[str]:
+    def resolve_path(self, image: Image) -> str | None:
         """Résout le chemin INSTANTANÉMENT via le cache"""
-        
         if image.name in self.path_cache:
             full_path, dataset_name = self.path_cache[image.name]
             image.dataset_name = dataset_name

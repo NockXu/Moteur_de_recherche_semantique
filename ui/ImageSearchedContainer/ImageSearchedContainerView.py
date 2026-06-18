@@ -226,8 +226,7 @@ class ImageSearchedContainerView(QWidget):
             self._lazy_timer.stop()
 
     def _load_thumbnail(self, card: LazyImageCard):
-        """
-        Déclenche le chargement async du widget.
+        """Déclenche le chargement async du widget.
         card._loaded sera mis à True via le signal image_loaded,
         PAS ici — le chargement est asynchrone.
         """
@@ -272,8 +271,7 @@ class ImageSearchedContainerView(QWidget):
         self._update_filter_ui_visibility()
 
     def _on_image_loaded(self, card: LazyImageCard):
-        """
-        Appelé quand le widget a vraiment fini de charger sa pixmap.
+        """Appelé quand le widget a vraiment fini de charger sa pixmap.
         C'est ici qu'on marque la card comme loaded.
         """
         card._loaded = True
@@ -309,7 +307,7 @@ class ImageSearchedContainerView(QWidget):
 
         self._update_filter_ui_visibility()
     
-    def get_widgets(self, sam3_result: bool = False) -> Optional[List[ImageThumbnailWidget]]:
+    def get_widgets(self, sam3_result: bool = False) -> list[ImageThumbnailWidget] | None:
         if sam3_result:
             return [
                 c.widget
@@ -323,7 +321,7 @@ class ImageSearchedContainerView(QWidget):
             if c.widget
         ]
 
-    def show_only(self, widgets: List[ImageThumbnailWidget]) -> None:
+    def show_only(self, widgets: list[ImageThumbnailWidget]) -> None:
         widgets_set = set(widgets)
 
         for card in self._cards:
@@ -502,7 +500,6 @@ class ImageSearchedContainerView(QWidget):
         
     def _on_language_changed(self, lang_code: str = None) -> None:
         """Met à jour tous les textes UI de la galerie"""
-
         # -----------------------------
         # HEADER
         # -----------------------------

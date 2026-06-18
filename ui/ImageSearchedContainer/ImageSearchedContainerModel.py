@@ -7,33 +7,31 @@ from common.Image_Classes.ImageRepository import SearchResults
 
 
 class ImageSearchedContainerModel:
-    """
-    Version CLEAN compatible Load More + SearchResults
+    """Version CLEAN compatible Load More + SearchResults
     - pas de pagination interne
     - pas de duplication de logique SQL
     - cache UI uniquement
     """
 
     def __init__(self):
-        self.images: List[Image] = []
+        self.images: list[Image] = []
 
         # state LOAD MORE
-        self.next_cursor: Optional[float] = None
+        self.next_cursor: float | None = None
         self.has_more: bool = True
 
         # UI state
         self.sort_by: str = "score"
         self.sort_order: str = "desc"
-        self.filter_tags: List[str] = []
+        self.filter_tags: list[str] = []
         self.threshold: float = 0.5
 
     # ─────────────────────────────────────────────
     # DATA MANAGEMENT (append only)
     # ─────────────────────────────────────────────
 
-    def append_results(self, search_results : SearchResults) -> Optional[List[Image]]:
-        """
-        Ajoute un batch SearchResults (LOAD MORE) - sans duplication
+    def append_results(self, search_results : SearchResults) -> list[Image] | None:
+        """Ajoute un batch SearchResults (LOAD MORE) - sans duplication
         """
         new_images = [img for img in search_results['images'] if img not in self.images]
         self.images.extend(new_images)
@@ -50,7 +48,7 @@ class ImageSearchedContainerModel:
     # FILTERS (UI only)
     # ─────────────────────────────────────────────
 
-    def apply_filters(self) -> List[Image]:
+    def apply_filters(self) -> list[Image]:
         if not self.filter_tags:
             return self.images
 
@@ -63,7 +61,7 @@ class ImageSearchedContainerModel:
     # SORTING (UI only)
     # ─────────────────────────────────────────────
 
-    def apply_sorting(self, images: List[Image]) -> List[Image]:
+    def apply_sorting(self, images: list[Image]) -> list[Image]:
         reverse = self.sort_order == "desc"
 
         if self.sort_by == "score":
@@ -81,17 +79,16 @@ class ImageSearchedContainerModel:
     # VIEW DATA (IMPORTANT)
     # ─────────────────────────────────────────────
 
-    def get_visible_images(self) -> List[Image]:
-        """
-        Ce que la vue doit afficher
+    def get_visible_images(self) -> list[Image]:
+        """Ce que la vue doit afficher
         """
         filtered = self.apply_filters()
         return self.apply_sorting(filtered)
 
-    def get_image_without_sam3_result(self) -> List[Image]:
+    def get_image_without_sam3_result(self) -> list[Image]:
         filtered = self.apply_filters()
 
-        images : List[Image] = []
+        images : list[Image] = []
 
         for image in filtered:
             if image._sam3_results is None:
@@ -103,7 +100,7 @@ class ImageSearchedContainerModel:
     # SINGLE IMAGE ACCESS
     # ─────────────────────────────────────────────
 
-    def get_image_by_path(self, path: str) -> Optional[Image]:
+    def get_image_by_path(self, path: str) -> Image | None:
         for img in self.images:
             if str(img.path) == path:
                 return img
@@ -113,7 +110,7 @@ class ImageSearchedContainerModel:
     # TAGS
     # ─────────────────────────────────────────────
 
-    def get_all_tags(self) -> List[str]:
+    def get_all_tags(self) -> list[str]:
         tags = set()
         for img in self.images:
             tags.update(img.keywords)
@@ -123,7 +120,7 @@ class ImageSearchedContainerModel:
     # STATS
     # ─────────────────────────────────────────────
 
-    def get_statistics(self) -> Dict:
+    def get_statistics(self) -> dict:
         visible = self.get_visible_images()
 
         return {
@@ -140,7 +137,7 @@ class ImageSearchedContainerModel:
     # FILTER API
     # ─────────────────────────────────────────────
 
-    def set_filter_tags(self, tags: List[str]):
+    def set_filter_tags(self, tags: list[str]):
         self.filter_tags = list(tags)
 
     def clear_filters(self):

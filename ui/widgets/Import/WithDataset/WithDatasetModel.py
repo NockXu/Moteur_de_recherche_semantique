@@ -9,10 +9,10 @@ from database.DbService import DbService
 
 class WithDatasetModel:
     def __init__(self):
-        self.datasets_data : Dict[DatasetData] = {}
-        self._datasets_cache : Optional[List[Dataset]] = None
+        self.datasets_data : dict[DatasetData] = {}
+        self._datasets_cache : list[Dataset] | None = None
 
-    def update(self, name : str) -> Optional[DatasetData]:
+    def update(self, name : str) -> DatasetData | None:
         # Cas invalide
         if not self.is_valid(name):
             return None
@@ -39,7 +39,6 @@ class WithDatasetModel:
             
     def is_valid(self, dataset_name: str) -> bool:
         """Vérifie si la configuration est valide"""
-        
         if not dataset_name.strip():
             return False
         return True

@@ -14,7 +14,6 @@ class WithDatasetController:
         
     def on_dataset_path_changed(self, config: DatasetConfig, name: str):
         """Gère le changement de chemin d'un dataset"""
-        
         if config["line_edit"].text() == "":
             config["status_label"].setText("")
             config["status_label"].hide()
@@ -27,7 +26,7 @@ class WithDatasetController:
         if __name__ == "__main__":
             print(self.get_all())
 
-    def get_all(self) -> List[DatasetConfigData]:
+    def get_all(self) -> list[DatasetConfigData]:
         datasets_data = []
 
         for name, config in self.view.datasets_config.items():

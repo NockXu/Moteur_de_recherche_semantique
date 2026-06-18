@@ -6,8 +6,7 @@ from PyQt6.QtGui import QPixmap, QPainter, QColor, QFont
 from PyQt6.QtWidgets import QLabel, QHBoxLayout, QSizePolicy
 
 from ui.widgets.ImageThumbnailWidget import ImageThumbnailWidget as BaseImageThumbnailWidget
-from common.Image_Classes.Image import Image
-
+from common.Image_Classes.Image import Image, ProcessingStatus
 
 class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
@@ -17,6 +16,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self,
         image: Image | None,
         col_width: int = 200,
+        status: ProcessingStatus = ProcessingStatus.IN_PROGRESS,
         lazy: bool = False,
     ):
         self._lazy_mode = lazy
@@ -28,9 +28,9 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         super().__init__(
             image_path=str(self._image.path),
             title=self._image.name,
-            status=None,
+            status=status,
             col_width=col_width,
-            show_status_badge=False,
+            show_status_badge=True,
             show_title=False,
         )
 
@@ -39,6 +39,11 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
         self.image_label.set_image(image)
         self._customize_title_layout()
+        
+        # ─── CORRECTION 1 : On ne redéclare plus self._source_pixmap ici ───
+        # On laisse la classe mère gérer sa variable pour éviter les conflits de scope.
+        self._pending_status: ProcessingStatus | None = status
+        self._status: ProcessingStatus = status
 
     @property
     def aspect_ratio(self):
@@ -55,15 +60,14 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
     @pyqtSlot(QPixmap)
     def _on_pixmap_loaded(self, thumb: QPixmap):
+        self._loader = None
+        # On assigne la pixmap à la fois à la variable locale et à celle de la classe mère
+        self._source_pixmap = thumb 
+        
+        # On informe aussi l'instance de la classe mère
         super()._on_pixmap_loaded(thumb)
-        self._pixmap_ready = True
-        self._is_loaded = True
-
-        if self._pending_results is not None:
-            # Attendre que le layout soit stabilisé avant de dessiner
-            QTimer.singleShot(0, self._apply_pending_results)
-
-        self.image_loaded.emit()
+        
+        self._try_render()
 
     def _apply_pending_results(self):
         if self._pending_results is not None:
@@ -77,7 +81,6 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self._pending_results = result
 
         if self._pixmap_ready:
-            # Même chose ici : laisser le layout se stabiliser
             QTimer.singleShot(0, self._apply_pending_results)
 
     def unload_image(self):
@@ -134,3 +137,15 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
     def clear_results(self):
         self.image_label.clear_results()
         self._pending_results = None
+
+    def set_status(self, status: ProcessingStatus):
+        self._status = status
+        self._try_render()
+        
+    def _try_render(self):
+        if not self._source_pixmap:
+            return
+        
+        self._pixmap_ready = True
+        self._is_loaded = True
+        self.image_loaded.emit()

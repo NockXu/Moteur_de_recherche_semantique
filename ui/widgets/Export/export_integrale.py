@@ -17,8 +17,7 @@ from database.DbService import DbService
 
 
 class ExportIntegrale:
-    """
-    Export intégral des données au format JSON avec datasets et images
+    """Export intégral des données au format JSON avec datasets et images
     Structure:
     {
         "<name>": {
@@ -37,15 +36,15 @@ class ExportIntegrale:
         """Initialise le service d'export intégral"""
         self.db_service = DbService()
 
-    def export_all_data(self, file_path: str) -> Dict[str, Any]:
-        """
-        Exporte toutes les données (datasets + images) vers un fichier JSON
+    def export_all_data(self, file_path: str) -> dict[str, Any]:
+        """Exporte toutes les données (datasets + images) vers un fichier JSON
         
         Args:
             file_path: Chemin du fichier de sortie
             
         Returns:
             Dict: Les données exportées
+
         """
         try:
             # Récupérer toutes les images
@@ -63,7 +62,7 @@ class ExportIntegrale:
             print(f"{tr("Erreur lors de l'export")}: {e}")
             raise
 
-    def _get_all_images(self) -> Dict[str, Any]:
+    def _get_all_images(self) -> dict[str, Any]:
         """Récupère toutes les images et les formate selon la structure demandée"""
         try:
             # Récupérer toutes les images via ImageRepository
@@ -89,7 +88,7 @@ class ExportIntegrale:
             print(f"{tr("Erreur lors de la récupération des images")}: {e}")
             return {}
 
-    def _write_json_file(self, file_path: str, data: Dict[str, Any]) -> None:
+    def _write_json_file(self, file_path: str, data: dict[str, Any]) -> None:
         """Écrit les données dans un fichier JSON"""
         try:
             # Créer le répertoire si nécessaire
@@ -106,11 +105,11 @@ class ExportIntegrale:
             raise
 
     def export_to_string(self) -> str:
-        """
-        Exporte toutes les données vers une chaîne JSON
+        """Exporte toutes les données vers une chaîne JSON
         
         Returns:
             str: Les données au format JSON
+
         """
         try:
             # Récupérer tous les datasets
@@ -134,26 +133,26 @@ class ExportIntegrale:
 # FONCTION UTILITAIRE POUR UTILISATION RAPIDE
 # ─────────────────────────────────────────────
 
-def export_integral_file(file_path: str) -> Dict[str, Any]:
-    """
-    Fonction utilitaire pour exporter rapidement toutes les données
+def export_integral_file(file_path: str) -> dict[str, Any]:
+    """Fonction utilitaire pour exporter rapidement toutes les données
     
     Args:
         file_path: Chemin du fichier de sortie
         
     Returns:
         Dict: Les données exportées
+
     """
     exporter = ExportIntegrale()
     return exporter.export_all_data(file_path)
 
 
 def export_integral_string() -> str:
-    """
-    Fonction utilitaire pour exporter rapidement les données en string
+    """Fonction utilitaire pour exporter rapidement les données en string
     
     Returns:
         str: Les données au format JSON
+
     """
     exporter = ExportIntegrale()
     return exporter.export_to_string()

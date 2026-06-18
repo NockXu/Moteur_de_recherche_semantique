@@ -6,8 +6,7 @@ from ui.utils.i18n import tr
 
 
 class SAM3ProgressWindow(QWidget):
-    """
-    Fenêtre flottante non-bloquante affichant la progression du traitement SAM3 multi-images.
+    """Fenêtre flottante non-bloquante affichant la progression du traitement SAM3 multi-images.
     """
 
     cancelled = pyqtSignal()
@@ -91,7 +90,6 @@ class SAM3ProgressWindow(QWidget):
         
     def _on_language_changed(self, lang_code: str = None) -> None:
         """Met à jour les textes de la fenêtre de progression SAM3"""
-
         # -----------------------------
         # TITRE DE FENÊTRE
         # -----------------------------

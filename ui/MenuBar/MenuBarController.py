@@ -1,6 +1,7 @@
 import sys
 import os
-from typing import Dict, List, Callable
+from typing import Dict, List
+from collections.abc import Callable
 
 from PyQt6.QtWidgets import QMenuBar, QMessageBox, QFileDialog
 from PyQt6.QtWidgets import (
@@ -26,8 +27,7 @@ from qt_material import apply_stylesheet, list_themes
 
 
 class MenuBarController(QObject):
-    """
-    Contrôleur pour la barre de menu principale de l'application.
+    """Contrôleur pour la barre de menu principale de l'application.
     
     Architecture MVC :
     - Model : MenuModel (structure des menus)
@@ -90,14 +90,13 @@ class MenuBarController(QObject):
     
     def _setup_menu_bar(self):
         """Crée la barre de menu avec le système MVC"""
-        
         self.menu_bar = self.view.create_menu_bar(self.model.menus, self.handlers)
     
     # ─────────────────────────────────────────────
     # API PUBLIQUE
     # ─────────────────────────────────────────────
     
-    def add_menu(self, menu_name: str, actions: List[MenuAction]):
+    def add_menu(self, menu_name: str, actions: list[MenuAction]):
         """Ajoute dynamiquement un nouveau menu"""
         self.model.add_menu(menu_name, actions)
         self._setup_menu_bar()  # Recréer la barre
@@ -135,7 +134,6 @@ class MenuBarController(QObject):
 
     def open_style_selector(self):
         """Affiche une boîte de dialogue de sélection des thèmes."""
-
         dialog = QDialog(self.parent)
         dialog.setWindowTitle(tr("Sélection du thème"))
 
@@ -163,7 +161,6 @@ class MenuBarController(QObject):
 
     def apply_theme(self, theme: str):
         """Applique un thème qt-material."""
-
         if theme == "default":
             self.parent.setStyleSheet("")
             return
@@ -208,7 +205,6 @@ class MenuBarController(QObject):
     
     def open_language_dialog(self):
         """Affiche une fenêtre pour choisir la langue"""
-
         dialog = QDialog(self.parent)
         dialog.setWindowTitle("Sélection de la langue")
         dialog.resize(300, 400)
@@ -245,7 +241,6 @@ class MenuBarController(QObject):
 
     def _setup_language_menu(self):
         """Ajoute une entrée de menu pour ouvrir le sélecteur de langue"""
-
         if not self.translations_config:
             return
 
@@ -259,7 +254,6 @@ class MenuBarController(QObject):
         
     def set_language(self, lang_code: str):
         """Change la langue active de l'application"""
-
         if lang_code not in self.translations_config.get("available_languages", []):
             return
 
@@ -293,14 +287,14 @@ def add_preferences_action(controller):
 
 
 def create_menu_bar(parent=None):
-    """
-    Fonction factory pour créer une barre de menu.
+    """Fonction factory pour créer une barre de menu.
     
     Args:
         parent: Widget parent de la barre de menu
         
     Returns:
         MenuBarController: Contrôleur de la barre de menu
+
     """
     controller = MenuBarController(parent)
     

@@ -3,7 +3,8 @@ from PyQt6.QtWidgets import QHBoxLayout, QWidget, QComboBox, QLabel, QVBoxLayout
 import numpy as np
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
-from typing import Callable, List
+from typing import List
+from collections.abc import Callable
 
 from common.WeightCalculator.weightCalculator import WeightFunction
 from ui.utils.i18n import tr

@@ -32,7 +32,7 @@ class FakeOllamaWrapper:
         *,
         model: str,
         prompt: str,
-        image: Union[str, Path, bytes],
+        image: str | Path | bytes,
         image_mime_hint=None,
         system=None,
         options=None,

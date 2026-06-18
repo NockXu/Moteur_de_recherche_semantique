@@ -79,7 +79,7 @@ class ImageView(QLabel):
     #  Chargement de l'image                                               #
     # ------------------------------------------------------------------ #
 
-    def setImage(self, image_path: Optional[Path]):
+    def setImage(self, image_path: Path | None):
         if image_path is None:
             self._image_path = None
             self._pixmap = None
@@ -286,8 +286,7 @@ class ImageView(QLabel):
     # ------------------------------------------------------------------ #
 
     def set_active_results(self, results: list[dict]):
-        """
-        Slot connecté à ResultsTable.result_selected.
+        """Slot connecté à ResultsTable.result_selected.
 
         Reçoit la liste de dicts :
             [{"type":"result", "prompt":str, "index":int,
@@ -399,8 +398,7 @@ class ImageView(QLabel):
     # ------------------------------------------------------------------ #
 
     def get_selection_rect(self) -> QRect | None:
-        """
-        Retourne le QRect de la sélection courante (tracée à la souris),
+        """Retourne le QRect de la sélection courante (tracée à la souris),
         ou None si aucune sélection n'est en cours / disponible.
         La boîte est visible à l'écran en pointillés pendant son tracé.
         """
@@ -409,11 +407,9 @@ class ImageView(QLabel):
         return self._current_rect.normalized()
 
     def get_selection_rect_image_coords(self) -> QRect | None:
-        """
-        Retourne la sélection dans les coordonnées
+        """Retourne la sélection dans les coordonnées
         de l'image originale.
         """
-
         rect = self.get_selection_rect()
 
         if rect is None or self._pixmap is None:
@@ -482,8 +478,7 @@ class ImageView(QLabel):
         self.box_changed.emit(self._resize_index, QRect(r))  # <-- IMPORTANT
 
     def delete_box(self, index: int) -> bool:
-        """
-        Supprime la boîte identifiée par *index*.
+        """Supprime la boîte identifiée par *index*.
         Retourne True si elle existait, False sinon.
         """
         if index not in self._boxes:
@@ -493,15 +488,13 @@ class ImageView(QLabel):
         return True
 
     def get_box_color(self, index: int) -> QColor | None:
-        """
-        Retourne la QColor associée à la boîte *index*, ou None.
+        """Retourne la QColor associée à la boîte *index*, ou None.
         """
         box = self._boxes.get(index)
         return QColor(box["color"]) if box else None
 
     def get_all_boxes(self) -> dict[int, dict]:
-        """
-        Retourne une copie du dictionnaire de toutes les boîtes :
+        """Retourne une copie du dictionnaire de toutes les boîtes :
         {index: {"rect": QRect, "color": QColor}}
         """
         return {

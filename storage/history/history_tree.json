@@ -1,7 +1,7 @@
 {
     "node": {
         "query": "DEFAULT",
-        "threshold": 0.43,
+        "threshold": 0.5,
         "w_const": 0.0,
         "w_expr": "const"
     },
@@ -127,6 +127,33 @@
                     ]
                 }
             ]
+        },
+        {
+            "node": {
+                "query": "soleil",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "image de soleil",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
+        },
+        {
+            "node": {
+                "query": "image la structure interne du soleil",
+                "threshold": 0.5,
+                "w_const": 1.0,
+                "w_expr": "const"
+            },
+            "children": []
         }
     ]
 }

@@ -17,8 +17,7 @@ from ui.utils.i18n import tr
 
 
 class Export:
-    """
-    Service d'export des images (clean version)
+    """Service d'export des images (clean version)
     - pas de DB coupling direct
     - pas de print
     - output structuré
@@ -28,7 +27,7 @@ class Export:
     # CORE SERIALIZATION
     # ─────────────────────────────
 
-    def image_to_dict(self, image: Image) -> Dict[str, Any]:
+    def image_to_dict(self, image: Image) -> dict[str, Any]:
         return {
             "id": getattr(image, "id", None),
             "path": str(image.path),
@@ -41,7 +40,7 @@ class Export:
             "error_message": getattr(image, "error_message", "")
         }
 
-    def images_to_dict(self, images: List[Image]) -> Dict[str, Any]:
+    def images_to_dict(self, images: list[Image]) -> dict[str, Any]:
         return {
             img.name: self.image_to_dict(img)
             for img in images
@@ -51,7 +50,7 @@ class Export:
     # EXPORT JSON STRING
     # ─────────────────────────────
 
-    def to_json(self, images: List[Image], indent: int = 2) -> str:
+    def to_json(self, images: list[Image], indent: int = 2) -> str:
         data = self.images_to_dict(images)
         return json.dumps(data, indent=indent, ensure_ascii=False)
 
@@ -61,9 +60,9 @@ class Export:
 
     def export_to_file(
         self,
-        images: List[Image],
+        images: list[Image],
         output_file: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
 
         try:
             output_path = Path(output_file)
@@ -98,8 +97,7 @@ class Export:
 
 
 class ExportDialog(QDialog):
-    """
-    Boîte de dialogue d'export avec choix du mode
+    """Boîte de dialogue d'export avec choix du mode
     """
 
     def __init__(self, parent=None):
@@ -227,7 +225,7 @@ class ExportDialog(QDialog):
             print(f"{tr("Erreur lors de l'export")}: {e}")
             return False
     
-    def get_selected_mode(self) -> Optional[str]:
+    def get_selected_mode(self) -> str | None:
         """Retourne le mode sélectionné"""
         return self.selected_mode
         
@@ -249,15 +247,15 @@ class ExportDialog(QDialog):
 # FONCTION UTILITAIRE POUR UTILISATION RAPIDE
 # ─────────────────────────────────────────────
 
-def show_export_dialog(parent=None) -> Optional[str]:
-    """
-    Affiche la boîte de dialogue d'export
+def show_export_dialog(parent=None) -> str | None:
+    """Affiche la boîte de dialogue d'export
     
     Args:
         parent: Widget parent
         
     Returns:
         str: Mode sélectionné ('simple', 'integral') ou None si annulé
+
     """
     dialog = ExportDialog(parent)
     result = dialog.exec()

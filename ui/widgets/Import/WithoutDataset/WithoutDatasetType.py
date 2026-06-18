@@ -8,7 +8,7 @@ class WithoutDatasetStatus:
 class WithoutDatasetData(TypedDict):
     name: str
     path: str
-    status: Optional[WithoutDatasetStatus]
+    status: WithoutDatasetStatus | None
 
 class WithoutDatasetConfig(TypedDict):
     name: QLineEdit

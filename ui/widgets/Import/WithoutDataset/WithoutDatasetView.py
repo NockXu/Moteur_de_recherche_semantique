@@ -21,7 +21,7 @@ class WithoutDatasetView(QWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.import_mode = "without_dataset_merge"
-        self.config: List[WithoutDatasetConfig] = []
+        self.config: list[WithoutDatasetConfig] = []
         self.merged_input = None
 
         self.setup_ui()

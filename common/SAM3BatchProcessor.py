@@ -3,7 +3,7 @@ import os
 from typing import List, Dict, Any
 import matplotlib.pyplot as plt
 import torch
-from PIL import Image
+from PIL import Image as PILImage
 
 # ----------------------------
 # PATH
@@ -35,6 +35,23 @@ from sam3.eval.postprocessors import PostProcessImage
 from sam3.visualization_utils import plot_results
 
 class SAM3BatchProcessor:
+    """Processor responsible for managing batch inference operations using the SAM3 model.
+
+    This class handles the initialization of the Segment Anything Model 3 (SAM3), 
+    manages dataset prompt preparation (textual and visual), runs batch inferences 
+    with custom hardware performance optimization configurations, and processes/merges 
+    the resulting segmentations.
+
+    Args:
+        sam3_root (str):
+            The root directory path of the SAM3 repository assets. Defaults to "./sam3/sam3".
+        confidence_threshold (float):
+            The minimum score requirement for keeping a detection mask. Defaults to 0.5.
+        device (str):
+            The processing hardware device execution target. Defaults to "cuda".
+
+    """
+    
     def __init__(
         self,
         sam3_root="./sam3/sam3",
@@ -109,14 +126,27 @@ class SAM3BatchProcessor:
     # =========================================================
 
     def create_datapoint(self):
+        """Instantiate an empty placeholder Datapoint structure.
 
+        Returns:
+            An empty Datapoint instance ready to collect query prompts and target images.
+
+        """
         return Datapoint(
             find_queries=[],
             images=[]
         )
 
-    def set_image(self, datapoint, pil_image):
+    def set_image(self, datapoint : Datapoint, pil_image : PILImage):
+        """Bind a target PIL Image data matrix wrapper to an existing Datapoint.
 
+        Args:
+            datapoint (Datapoint):
+                The destination data object structure to update.
+            pil_image (PIL.Image):
+                The source raw PIL Image reference matrix.
+
+        """
         w, h = pil_image.size
 
         datapoint.images = [
@@ -133,10 +163,21 @@ class SAM3BatchProcessor:
 
     def add_text_prompt(
         self,
-        datapoint,
-        text_query,
-    ):
+        datapoint : Datapoint,
+        text_query : str,
+    ) -> int:
+        """Append a textual query descriptor prompt instruction to a target Datapoint.
 
+        Args:
+            datapoint (Datapoint):
+                The data object structure where the text prompt should be added.
+            text_query (str):
+                The semantic search string or keyword representing the object to find.
+
+        Returns:
+            The newly registered unique integer tracking identification number.
+
+        """
         assert len(datapoint.images) == 1
 
         w, h = datapoint.images[0].size
@@ -167,12 +208,27 @@ class SAM3BatchProcessor:
 
     def add_visual_prompt(
         self,
-        datapoint,
-        boxes: List[List[float]],
-        labels: List[bool],
+        datapoint : Datapoint,
+        boxes: list[list[float]],
+        labels: list[bool],
         text_prompt="visual",
-    ):
+    ) -> int:
+        """Append a bounding box context layout visual prompt restriction map to a target Datapoint.
 
+        Args:
+            datapoint (Datapoint):
+                The data object structure where the visual prompt should be added.
+            boxes (List[List[float]]):
+                A nested structure of bounding boxes mapping coordinate fields.
+            labels (List[bool]):
+                A collection of boolean markers validating targeted bounding elements.
+            text_prompt (str):
+                The baseline semantic text tag anchor identifier. Defaults to "visual".
+
+        Returns:
+            The newly registered unique integer tracking identification number.
+
+        """
         assert len(datapoint.images) == 1
         assert len(boxes) > 0
         assert len(boxes) == len(labels)
@@ -222,9 +278,18 @@ class SAM3BatchProcessor:
 
     def process(
         self,
-        datapoints: List[Datapoint],
+        datapoints: list[Datapoint],
     ):
+        """Execute raw model forward pass inference steps across a collection of Datapoints.
 
+        Args:
+            datapoints (List[Datapoint]):
+                A list of loaded context Datapoint collections to feed to the network.
+
+        Returns:
+            The raw structured results dictionary extracted directly from the postprocessor block.
+
+        """
         transformed = [
             self.transform(dp)
             for dp in datapoints
@@ -264,6 +329,16 @@ class SAM3BatchProcessor:
     # =========================================================
 
     def normalize_masks(self, m):
+        """Sanitize raw output masks to guarantee a 3-dimensional tensor layout.
+
+        Args:
+            m (torch.Tensor):
+                The target segmentation mask array structure to reshape.
+
+        Returns:
+            A normalized tensor matching an absolute [N, H, W] dimension shape.
+
+        """
         if not torch.is_tensor(m):
             return None
 
@@ -278,7 +353,16 @@ class SAM3BatchProcessor:
         return m
 
     def merge_sam3_results(self, processed_results):
+        """Concatenate detached batch inference evaluation outputs into shared array maps.
 
+        Args:
+            processed_results (List[dict]):
+                A series of raw individual inference dictionary output blocks.
+
+        Returns:
+            A unified collection map pairing grouped tensors across uniform key definitions.
+
+        """
         merged = {
             "scores": [],
             "boxes": [],
@@ -361,9 +445,18 @@ class SAM3BatchProcessor:
 
     def merge_to_single_object(
         self,
-        processed_results: Dict[int, Dict[str, Any]]
+        processed_results: dict[int, dict[str, Any]]
     ):
+        """Condense scattered multiple target results into an isolated single item representation.
 
+        Args:
+            processed_results (Dict[int, Dict[str, Any]]):
+                An identification-mapped dictionary tracking sub-component metrics.
+
+        Returns:
+            A grouped summary data dictionary holding unified metrics, boxes, and union masks.
+
+        """
         masks = []
         boxes = []
         scores = []
@@ -442,25 +535,40 @@ class SAM3BatchProcessor:
 
     def show(
         self,
-        image,
+        image : PILImage,
         results,
     ):
+        """Render the evaluation output metrics and bounding items over the baseline image.
 
+        Args:
+            image (PIL.Image or numpy.ndarray):
+                The original background target frame content.
+            results (dict):
+                The formatted bounding context layout to render onto the matrix canvas.
+
+        """
         plot_results(image, results)
         plt.show()
 
     def process_prompt_dataset(
         self,
         image_path: str,
-        prompts: List[dict],
+        prompts: list[dict],
     ):
-        """
-        Run SAM3 once with all prompts inside a single Datapoint,
-        then split + filter per prompt after inference.
-        """
+        """Run SAM3 once with all prompts inside a single Datapoint, then split + filter per prompt after inference.
 
+        Args:
+            image_path (str):
+                The disk coordinate target leading to the source image item file.
+            prompts (List[dict]):
+                A list of prompt configuration dictionaries tracking specific search bounds.
+
+        Returns:
+            A post-processed structure list grouping scores, filters, and sorted masks per query block.
+
+        """
         dp = self.create_datapoint()
-        image = Image.open(image_path).convert("RGB")
+        image = PILImage.open(image_path).convert("RGB")
         self.set_image(dp, image)
 
         prompt_index = []

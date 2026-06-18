@@ -13,7 +13,7 @@ class WithoutDatasetModel:
         self.mode: str = "merge"  # "merge" ou "separate"
 
         repository = DatasetRepository(DbService().sqlite)
-        self._datasets_cache : List[Dataset] = repository.get_all()
+        self._datasets_cache : list[Dataset] = repository.get_all()
 
         self.datasets_data : WithoutDatasetData = []
 
@@ -27,7 +27,7 @@ class WithoutDatasetModel:
             else:
                 data["status"] = WithoutDatasetStatus.NOT_EXISTS
 
-    def update(self, datasets_data: List[WithoutDatasetData]):
+    def update(self, datasets_data: list[WithoutDatasetData]):
         """Met à jour le modèle avec les données fournies"""
         self.datasets_data = datasets_data
         self.exist()

@@ -73,7 +73,7 @@ class Sam3Widget(QWidget):
         self._sam3_manager = get_sam3_manager(
             self.sam3_root, self.confidence_threshold, self.device
         )
-        self._current_job_id: Optional[str] = None
+        self._current_job_id: str | None = None
         self.prompt_list: list[tuple[dict, QWidget]] = []
 
         self._init_ui()
@@ -406,8 +406,7 @@ class Sam3Widget(QWidget):
             self._reset_prompts()
 
     def set_results(self, results: list[dict]):
-        """
-        results = résultat de image.get_SAM3_results()
+        """Results = résultat de image.get_SAM3_results()
         """
         if not results:
             self._clear_local_results()
@@ -441,7 +440,6 @@ class Sam3Widget(QWidget):
         
     def _on_language_changed(self, lang_code: str = None) -> None:
         """Met à jour toute l'UI quand la langue change"""
-
         # ----------------------------
         # Labels principaux UI
         # ----------------------------

@@ -54,63 +54,6 @@ STATUS_ICON: dict[ProcessingStatus, str] = {
     ProcessingStatus.ERROR:       "./ui/icon/error.svg",
 }
 
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Pixmap composite (image + overlay + icône) — inchangé
-# ─────────────────────────────────────────────────────────────────────────────
-
-def _build_import_pixmap(source: QPixmap, max_width: int, status: ProcessingStatus) -> QPixmap:
-    scaled = source.scaled(QSize(max_width, max_width),
-                           Qt.AspectRatioMode.KeepAspectRatio,
-                           Qt.TransformationMode.SmoothTransformation)
-
-    result = QPixmap(scaled.width(), scaled.height())
-    result.fill(Qt.GlobalColor.transparent)
-
-    p = QPainter(result)
-    p.setRenderHint(QPainter.RenderHint.Antialiasing)
-    p.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
-    p.drawPixmap(0, 0, scaled)
-
-    overlay_color = STATUS_OVERLAY.get(status, QColor(0, 0, 0, 0))
-    if overlay_color.alpha() > 0:
-        clip = QPainterPath()
-        clip.addRect(0, 0, scaled.width(), scaled.height())
-        p.setClipPath(clip)
-        p.fillPath(clip, QBrush(overlay_color))
-        p.setClipping(False)
-
-        icon_path = STATUS_ICON.get(status, "")
-        icon_color = STATUS_BORDER.get(status, QColor(150, 150, 150))
-
-        if icon_path:
-            icon = QPixmap(icon_path)
-            if not icon.isNull():
-                icon_size = 28
-                icon = icon.scaled(icon_size, icon_size,
-                                   Qt.AspectRatioMode.KeepAspectRatio,
-                                   Qt.TransformationMode.SmoothTransformation)
-
-                colored_icon = QPixmap(icon.size())
-                colored_icon.fill(Qt.GlobalColor.transparent)
-                painter_icon = QPainter(colored_icon)
-                painter_icon.setRenderHint(QPainter.RenderHint.Antialiasing)
-                painter_icon.drawPixmap(0, 0, icon)
-                painter_icon.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
-                painter_icon.fillRect(colored_icon.rect(), icon_color)
-                painter_icon.end()
-
-                cx = scaled.width() // 2
-                cy = scaled.height() // 2
-                r = icon_size // 2 + 6
-                p.setBrush(QBrush(QColor(255, 255, 255, 230)))
-                p.setPen(QPen(icon_color, 2))
-                p.drawEllipse(cx - r, cy - r, r * 2, r * 2)
-                p.drawPixmap(cx - icon_size // 2, cy - icon_size // 2, colored_icon)
-    p.end()
-    return result
-
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Chargement asynchrone — worker annulable (inchangé)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -174,34 +117,24 @@ class _ThumbnailLoader(QRunnable):
             Qt.ConnectionType.QueuedConnection,
         )
 
-
 # ─────────────────────────────────────────────────────────────────────────────
-# Label cliquable — gère sa propre pixmap et son propre scaling
+# Label cliquable — Dessine l'image ET le badge dynamiquement
 # ─────────────────────────────────────────────────────────────────────────────
 
 class _ClickableLabel(QLabel):
-    """
-    Label qui :
-    - détient la pixmap originale (_source_pixmap)
-    - se scale lui-même dans resizeEvent
-    - dessine les résultats SAM dans paintEvent
-    - personne d'autre ne touche à sa pixmap
-    """
     clicked = pyqtSignal()
 
     def __init__(self):
         super().__init__()
-        self._source_pixmap: QPixmap | None = None  # pixmap originale, jamais scalée
+        self._source_pixmap: QPixmap | None = None
         self._results = None
-        self._original_size = None  # taille réelle de l'image source (QSize)
+        self._original_size = None
 
     def set_source_pixmap(self, pixmap: QPixmap):
-        """Seule méthode pour donner une pixmap au label. Jamais setPixmap() directement."""
         self._source_pixmap = pixmap
         self._refresh_display()
 
     def set_image(self, image: Image):
-        """Stocke la taille originale de l'image pour le calcul du ratio des résultats."""
         self._original_size = QImageReader(str(image.path)).size()
 
     def set_results(self, results):
@@ -217,12 +150,10 @@ class _ClickableLabel(QLabel):
             self.clicked.emit()
 
     def resizeEvent(self, event):
-        """Le label se redimensionne lui-même — le widget parent n'a rien à faire."""
         super().resizeEvent(event)
         self._refresh_display()
 
     def _refresh_display(self):
-        """Recalcule et affiche la pixmap scalée à la taille actuelle du label."""
         if self._source_pixmap is None or self._source_pixmap.isNull():
             return
 
@@ -236,39 +167,92 @@ class _ClickableLabel(QLabel):
             Qt.AspectRatioMode.KeepAspectRatio,
             Qt.TransformationMode.SmoothTransformation,
         )
-        # On appelle setPixmap de QLabel ici — c'est le seul endroit autorisé
         super().setPixmap(scaled)
 
     def paintEvent(self, event):
+        # 1. Laisse le QLabel afficher la Pixmap normalement
         super().paintEvent(event)
-
-        if not self._results or not self._original_size:
-            return
 
         current = self.pixmap()
         if not current or current.isNull():
             return
 
-        painter = QPainter(self)
-        label_rect = QRect(0, 0, current.width(), current.height())
-        
-        draw_results(
-            painter,
-            self._results,
-            label_rect,
-            current.size()
-        )
-        
-        painter.end()
+        # Récupération du contexte du parent
+        parent_widget = self.parent()
+        if not parent_widget:
+            return
 
+        show_badge = getattr(parent_widget, "show_status_badge", False)
+        status = getattr(parent_widget, "status", ProcessingStatus.NOT_STARTED)
+
+        painter = QPainter(self)
+        painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+        painter.setRenderHint(QPainter.RenderHint.SmoothPixmapTransform)
+
+        # ─── CALCUL DU RECTANGLE REEL DE L'IMAGE ───
+        # Qt centre l'image dans le label. On calcule exactement où elle s'affiche
+        # pour éviter que l'overlay bave ou s'arrête trop tôt sur le bord droit.
+        label_w = self.width()
+        label_h = self.height()
+        img_w = current.width()
+        img_h = current.height()
+
+        x_offset = (label_w - img_w) // 2
+        y_offset = (label_h - img_h) // 2
+        visible_image_rect = QRect(x_offset, y_offset, img_w, img_h)
+
+        # 3. Dessin des résultats SAM (si présents)
+        if self._results and self._original_size:
+            draw_results(painter, self._results, visible_image_rect, current.size())
+
+        # 4. Rendu dynamique du Badge et de l'Overlay de Statut
+        if show_badge:
+            overlay_color = STATUS_OVERLAY.get(status, QColor(0, 0, 0, 0))
+            if overlay_color.alpha() > 0:
+                # L'overlay épouse désormais PARFAITEMENT les bords visibles de l'image
+                clip = QPainterPath()
+                clip.addRect(x_offset, y_offset, img_w, img_h)
+                painter.setClipPath(clip)
+                painter.fillPath(clip, QBrush(overlay_color))
+                painter.setClipping(False)
+
+                icon_path = STATUS_ICON.get(status, "")
+                icon_color = STATUS_BORDER.get(status, QColor(150, 150, 150))
+
+                if icon_path:
+                    icon = QPixmap(icon_path)
+                    if not icon.isNull():
+                        icon_size = 28
+                        icon = icon.scaled(icon_size, icon_size,
+                                           Qt.AspectRatioMode.KeepAspectRatio,
+                                           Qt.TransformationMode.SmoothTransformation)
+
+                        colored_icon = QPixmap(icon.size())
+                        colored_icon.fill(Qt.GlobalColor.transparent)
+                        painter_icon = QPainter(colored_icon)
+                        painter_icon.setRenderHint(QPainter.RenderHint.Antialiasing)
+                        painter_icon.drawPixmap(0, 0, icon)
+                        painter_icon.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+                        painter_icon.fillRect(colored_icon.rect(), icon_color)
+                        painter_icon.end()
+
+                        # Centrage dynamique au milieu de l'image visible
+                        cx = visible_image_rect.x() + visible_image_rect.width() // 2
+                        cy = visible_image_rect.y() + visible_image_rect.height() // 2
+                        r = icon_size // 2 + 6
+                        painter.setBrush(QBrush(QColor(255, 255, 255, 230)))
+                        painter.setPen(QPen(icon_color, 2))
+                        painter.drawEllipse(cx - r, cy - r, r * 2, r * 2)
+                        painter.drawPixmap(cx - icon_size // 2, cy - icon_size // 2, colored_icon)
+
+        painter.end()
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Widget principal — ne touche plus à la pixmap du label
 # ─────────────────────────────────────────────────────────────────────────────
 
 class ImageThumbnailWidget(QWidget):
-    """
-    Widget thumbnail unifié avec chargement asynchrone.
+    """Widget thumbnail unifié avec chargement asynchrone.
 
     show_status_badge=True  → ImportTool (carte carrée fixe, overlay statut)
     show_status_badge=False → Masonry (hauteur dynamique, pas d'overlay)
@@ -363,15 +347,9 @@ class ImageThumbnailWidget(QWidget):
         self._loader = None
         self._source_pixmap = thumb
 
-        if self.show_status_badge:
-            # Mode badge : le composite est déjà final (taille fixe, overlay inclus)
-            # On bypasse set_source_pixmap et on donne le composite directement à QLabel
-            px = _build_import_pixmap(self._source_pixmap, self.col_width, self.status)
-            self.image_label.setFixedSize(px.width(), px.height())
-            QLabel.setPixmap(self.image_label, px)
-        else:
-            # Mode masonry : le label gère le scaling tout seul
-            self.image_label.set_source_pixmap(self._source_pixmap)
+        self.image_label.setMinimumSize(0, 0)
+        self.image_label.setMaximumSize(16777215, 16777215) # QWIDGETSIZE_MAX
+        self.image_label.set_source_pixmap(self._source_pixmap)
 
     # ─────────────────────────────────────────────────────────────────────────
     # resizeEvent — ne touche PLUS à la pixmap du label
@@ -382,8 +360,7 @@ class ImageThumbnailWidget(QWidget):
         # Rien à faire : _ClickableLabel.resizeEvent s'en charge lui-même
 
     def _update_pixmap_to_label(self):
-        """
-        Stub de compatibilité pour JustifiedGalleryLayout.
+        """Stub de compatibilité pour JustifiedGalleryLayout.
         _ClickableLabel gère son propre scaling via resizeEvent — rien à faire ici.
         """
         self.image_label.update()
@@ -413,10 +390,25 @@ class ImageThumbnailWidget(QWidget):
 
     def set_status(self, status: ProcessingStatus):
         self.status = status
-        if self.show_status_badge and self._source_pixmap:
-            px = _build_import_pixmap(self._source_pixmap, self.col_width, self.status)
-            self.image_label.setFixedSize(px.width(), px.height())
-            QLabel.setPixmap(self.image_label, px)
+
+        if self._source_pixmap:
+            if self.show_status_badge:
+                px = _build_import_pixmap(
+                    self._source_pixmap,
+                    self.col_width,
+                    self.status
+                )
+                self.image_label.setFixedSize(px.width(), px.height())
+                self.image_label.set_source_pixmap(px)
+            else:
+                # Si le badge est désactivé, on libère le layout des contraintes de taille fixe
+                self.image_label.setMinimumSize(0, 0)
+                self.image_label.setMaximumSize(16777215, 16777215)
+                self.image_label.setSizePolicy(
+                    QSizePolicy.Policy.Expanding,
+                    QSizePolicy.Policy.Expanding,
+                )
+                self.image_label.set_source_pixmap(self._source_pixmap)
 
     def get_status(self) -> ProcessingStatus:
         return self.status
