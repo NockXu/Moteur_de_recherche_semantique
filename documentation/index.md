@@ -7,7 +7,7 @@
   - [Description du projet](#description-du-projet)
   - [Installation](#installation)
     - [Prerequis](#prerequis)
-    - [Exemple d'environement avec conda](#exemple-denvironement-avec-conda)
+    - [Exemple d'environnement avec conda](#exemple-denvironnement-avec-conda)
     - [Recuperer le depot github](#recuperer-le-depot-github)
     - [Etape d'installation](#etape-dinstallation)
   - [Lancer le programme](#lancer-le-programme)
@@ -33,7 +33,7 @@ Avant toute chose, je vous recommande d'utiliser un environnement Python dédié
 - Une carte graphique compatible CUDA (pour l'utilisation de GPU)
 - Windows (certaines dépendances sont spécifiques à Windows, mais il devrait exister des équivalents sous Linux).
 
-### Exemple d'environement avec conda
+### Exemple d'environnement avec conda
 
 Si vous voulez utiliser conda, voici les commandes pour mettre en place un environement
 
