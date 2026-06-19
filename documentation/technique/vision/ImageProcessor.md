@@ -1,3 +1,1 @@
-# ImageProcessor
-
-::: vision.ImageProcessor.ImageProcessor
+::: vision.ImageProcessor

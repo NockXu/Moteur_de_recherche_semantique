@@ -1,3 +1,1 @@
-# DbService
-
-::: database.DbService.DbService
+::: database.DbService

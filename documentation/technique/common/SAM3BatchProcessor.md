@@ -1,0 +1,1 @@
+::: common.SAM3BatchProcessor

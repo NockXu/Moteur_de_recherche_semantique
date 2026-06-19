@@ -46,8 +46,43 @@ jobs:
         with:
           path: ./gh_pages
 
+  generate_doc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Requis pour pouvoir push la doc générée sur le dépôt
+      pages: write
+      id-token: write
+    
+    steps:
+      # 1. Récupère le code source du projet
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Installe Python sur la machine virtuelle
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11' # Ajustez la version selon vos besoins
+
+      # 3. Lance votre script de génération de fichiers .md et du sommaire
+      - name: Generate Documentation Files
+        run: |
+          python generate_docs.py
+
+      # 4. Enregistre et push les changements s'il y a de nouveaux fichiers .md
+      - name: Commit and Push generated docs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add documentation/technique/
+          
+          # Le "|| exit 0" évite que le workflow plante s'il n'y a aucun nouveau fichier à commit
+          git commit -m "chore: auto-generate technical documentation" || exit 0
+          git push
+    
+
+
   deploy:
-    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     permissions:
