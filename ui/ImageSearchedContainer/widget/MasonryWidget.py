@@ -3,11 +3,16 @@ from PyQt6.QtCore import Qt, pyqtSignal, QRect, QSize
 
 
 class MasonryLayout(QWidget):
-    """Layout masonry (Pinterest) : colonnes de largeur fixe,
-    hauteur de chaque carte dictée par le ratio réel de l'image.
+    """A Pinterest-style layout that arranges cards in columns with fixed widths.
 
-    Les widgets enfants sont positionnés manuellement via resizeEvent
-    pour éviter les contraintes des QLayout standards.
+    Children widgets are positioned manually to support varying dynamic card heights.
+
+    Signals:
+        image_clicked (pyqtSignal[str]): Emitted when a containing card image is clicked.
+
+    Attributes:
+        COLUMN_WIDTH (int): Target base pixel width for a single column.
+        GAP (int): Pixel spacing between cards horizontally and vertically.
     """
 
     image_clicked = pyqtSignal(str)
@@ -24,8 +29,12 @@ class MasonryLayout(QWidget):
     # API publique
     # ------------------------------------------------------------------
 
-    def set_cards(self, cards: list[QWidget]):
-        """Ajoute de nouvelles cartes sans supprimer les existantes."""
+    def set_cards(self, cards: list[QWidget]) -> None:
+        """Updates the active collection of cards and removes unused widgets.
+
+        Args:
+            cards (list[QWidget]): The new list of widgets to display in the layout.
+        """
         # Créer un set des nouveaux widgets pour comparaison rapide
         new_widgets_set = set(cards)
         
@@ -53,19 +62,25 @@ class MasonryLayout(QWidget):
 
         self._relayout()
 
-    def clear(self):
+    def clear(self) -> None:
+        """Removes and clears all card widgets from the current layout view."""
         self.set_cards([])
 
     # ------------------------------------------------------------------
     # Positionnement
     # ------------------------------------------------------------------
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
+        """Handles widget resizing and recalculates the column grid positions.
+
+        Args:
+            event (QResizeEvent): The internal window geometry resize event data.
+        """
         super().resizeEvent(event)
         self._relayout()
 
-    def _relayout(self):
-        """Calcule la position de chaque carte selon l'algorithme masonry."""
+    def _relayout(self) -> None:
+        """Computes and updates the positions of all cards using a masonry algorithm."""
         if not self._cards:
             self.setMinimumHeight(0)
             return

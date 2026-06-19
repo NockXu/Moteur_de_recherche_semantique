@@ -1,17 +1,18 @@
 {
     "theme": "dark_blue.xml",
-    "import_image_folder": "C:/Users/jeans/Desktop/Stage_3/Moteur_de_recherche_semantique/dataset/Dataset_01",
+    "import_image_folder": "",
     "current_search": {
         "query": "DEFAULT",
         "threashold": 0.5,
         "generation": 0,
-        "index": 0
+        "index": 0,
+        "threshold": 0.5
     },
-    "current_image": 53,
+    "current_image": 0,
     "history_path": "./storage/history",
     "translations": {
         "path": "./storage/translations.json",
-        "current_language": "en",
+        "current_language": "fr",
         "available_languages": [
             "fr",
             "en"

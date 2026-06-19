@@ -6,8 +6,17 @@ import cv2
 from PyQt6.QtGui import QImage
 
 def draw_results(painter: QPainter, results: list[dict], display_rect: QRect, pixmap_size):
-    """Dessine les résultats SAM3 sur n'importe quel painter.
-    Extrait de ImageView.paintEvent — réutilisable partout.
+    """Render SAM3 segmentation masks and bounding boxes onto a targeted canvas surface.
+
+    Extracted from ImageView.paintEvent for cross-component modular reuse across
+    different canvas overlays.
+
+    Args:
+        painter (QPainter): The target active render surface context.
+        results (list[dict]): A collection of dictionaries tracking prediction results, 
+            containing keys such as 'mask', 'box', and 'color'.
+        display_rect (QRect): Bounding viewport layout matching the target canvas location.
+        pixmap_size (QSize): Scale metrics of the texture map layer currently displayed.
     """
     for entry in results:
         mask = entry.get("mask")

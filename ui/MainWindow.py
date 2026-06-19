@@ -5,7 +5,7 @@ from numpy import save
 
 from .ImageAnalysator.ImageAnalysator import ImageAnalysator
 
-# Charger les variables d'environnement depuis le fichier .env
+# Load environment variables from the .env file
 load_dotenv()
 
 from PyQt6.QtWidgets import (
@@ -17,7 +17,7 @@ from PyQt6.QtCore import QTimer, Qt, pyqtSignal
 from PyQt6.QtGui import QPixmap
 
 from qt_material import apply_stylesheet
-# Import des widgets (chemins relatifs à ui/)
+# Widget imports (relative paths to ui/)
 from ui.ImportTool.ImportToolController import ImportToolController
 from ui.ImageSearchedContainer.ImageSearchedContainerController import ImageSearchedContainerController
 from ui.ImagePreview.ImagePreviewController import ImagePreviewController
@@ -30,9 +30,9 @@ from ui.utils.Timer import Timer
 from common.Image_Classes.Image import Image
 from common.History_Classes import HistoryRepository, history, app
 
-# Wrapper pour les controllers
+# Controller wrappers
 from vision.ollama_wrapper import OllamaWrapper
-# Base de données
+# Database service
 from database.DbService import DbService
 
 from ui.utils.i18n import tr, extract_translations, init_translations
@@ -54,24 +54,26 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(tr("Moteur de Recherche Sémantique"))
         self.setMinimumSize(1200, 800)
         
-        # Appliquer le thème d'abord
         app = QApplication.instance()
 
-        # Charger la configuration UI
+        # Load UI configuration and theme properties
         self.config = load_config()
         self.current_theme = self.config.get("theme", "dark_teal.xml")
 
+        # Apply style sheet to the global application instance
         apply_stylesheet(app, theme=self.current_theme)
         
         self.showMaximized()
         
+        # Render the splash loading screen
         self._show_loading_screen()
         
-        # Initialiser les composants lourds en arrière-plan
+        # Synchronously initialize background resources in a stable sequence
         self._initialize_heavy_components()
 
         QTimer.singleShot(0, self._load_all)
         
+        # Extract source dictionary strings in the background
         extract_translations(project_root=".", language_list=["fr", "en"])
 
     def _setup_language(self):
@@ -85,22 +87,22 @@ class MainWindow(QMainWindow):
 
         init_translations(current_language)
         
-        # 1. fenêtre principale
+        # 1. Main Window
         self.setWindowTitle(tr("Moteur de Recherche Sémantique"))
 
-        # 2. tabs
+        # 2. Tabs
         if hasattr(self, "tabs"):
             self.tabs.setTabText(0, tr("Search Results"))
             self.tabs.setTabText(1, tr("History Tree"))
 
-        # 3. docks
+        # 3. Docks
         if hasattr(self, "import_dock"):
             self.import_dock.setWindowTitle(tr("Import d'images"))
 
         if hasattr(self, "preview_dock"):
             self.preview_dock.setWindowTitle(tr("Aperçu"))
         
-        # 4. widgets
+        # 4. Widgets
         if hasattr(self, 'image_preview_controller'):
             self.image_preview_controller.view._on_language_changed()
         if hasattr(self, 'history_tree_controller'):
@@ -116,13 +118,13 @@ class MainWindow(QMainWindow):
 
     def _initialize_heavy_components(self):
         """Initialise les composants lourds"""
-        # Initialise le wrapper avec la configuration
+        # Initialize the wrapper with configuration
         self.wrapper = OllamaWrapper(base_url=self.OLLAMA_BASE_URL, timeout_s=500)
         
-        # Créer les contrôleurs
+        # Create controllers
         QTimer.singleShot(0, self._setup_controllers)
         
-        # Remplacer l'interface de base par l'interface complète
+        # Replace base interface with full interface
         QTimer.singleShot(0, self._setup_complete_ui)
         
     def _show_loading_screen(self):
@@ -138,16 +140,16 @@ class MainWindow(QMainWindow):
 
         self.splash.show()
 
-        # Force l'affichage immédiat
+        # Force immediate display
         QApplication.processEvents()
     
     def _setup_complete_ui(self):
         """Remplace l'interface de base par l'interface complète"""
-        # Remplacer le widget central par l'interface complète
+        # Replace central widget with full interface
         central = QWidget()
         self.setCentralWidget(central)
         
-        # Layout principal pour le widget central
+        # Main layout for the central widget
         main_layout = QVBoxLayout(central)
         main_layout.setContentsMargins(10, 10, 10, 10)
         main_layout.setSpacing(10)
@@ -168,12 +170,12 @@ class MainWindow(QMainWindow):
 
         main_layout.addWidget(self.tabs, 1)
         
-        # Remplacer les docks
+        # Replace docks
         self._replace_docks()
     
     def _replace_docks(self):
         """Remplace les docks temporaires par les vrais widgets"""
-        # Remplacer le dock gauche
+        # Replace left dock
         if hasattr(self, 'import_dock'):
             self.removeDockWidget(self.import_dock)
         
@@ -187,7 +189,7 @@ class MainWindow(QMainWindow):
         self.addDockWidget(Qt.DockWidgetArea.LeftDockWidgetArea, import_dock)
         self.import_dock = import_dock
         
-        # Remplacer le dock droit
+        # Replace right dock
         if hasattr(self, 'preview_dock'):
             self.removeDockWidget(self.preview_dock)
         
@@ -201,19 +203,19 @@ class MainWindow(QMainWindow):
     
     def _setup_controllers(self):
         """Initialise tous les contrôleurs"""
-        # Import Tool (dans un dock) avec wrapper et modèle
+        # Import Tool (in a dock) with wrapper and model
         self.import_tool_controller = ImportToolController(self.wrapper, self.VISION_MODEL, self.theme_changed)
         
-        # Conteneur d'images recherchées (dans un onglet)
+        # Searched image container (in a tab)
         self.image_container_controller = ImageSearchedContainerController(theme_changed=self.theme_changed)
         
-        # Preview d'image (dans un dock)
+        # Image Preview (in a dock)
         self.image_preview_controller = ImagePreviewController(theme_changed=self.theme_changed)
         
-        # History Tree (dans un onglet)
+        # History Tree (in a tab)
         self.history_tree_controller = HistoryTreeController(theme_changed=self.theme_changed)
         
-         # Créer la barre de menu
+        # Create the menu bar
         self.menu_controller = create_menu_bar(self)
         self.setMenuBar(self.menu_controller.get_menu_bar())
 
@@ -236,15 +238,15 @@ class MainWindow(QMainWindow):
     
     def _connect_signals(self):
         """Connecte les signaux entre les widgets"""
-        # Quand une image est cliquée dans le conteneur
+        # When an image is clicked in the container
         self.image_container_controller.view.image_clicked.connect(self._on_image_clicked)
         self.import_tool_controller.view.image_clicked.connect(self._on_image_clicked)
         
-        # Connexion du widget de connexion Ollama
+        # Connect Ollama connection widget
         connection_widget = self.import_tool_controller.view.connection_verificator
         connection_widget.connection_status_changed.connect(self._on_connection_status_changed)
         
-        # Connexion des signaux du menu
+        # Connect menu signals
         self.menu_controller.file_quit_requested.connect(self.close)
         self.menu_controller.file_import_requested.connect(self._on_menu_import)
         self.menu_controller.file_export_requested.connect(self._on_menu_export)
@@ -252,25 +254,25 @@ class MainWindow(QMainWindow):
         self.menu_controller.theme_changed.connect(self._on_theme_changed)
         self.menu_controller.language_changed.connect(self._setup_language)
 
-        # Connection des signaux de la preview
+        # Connect preview signals
         self.image_preview_controller.view.image_analysator.image_view.results_displayed.connect(self.image_container_controller._on_results_displayed)
         self.image_preview_controller.view.image_analysator.sam3_widget.results_cleared.connect(self.image_container_controller._on_results_cleared)
         self.image_preview_controller.view.image_analysator.sam3_widget.multi_prompts_send.connect(self.image_container_controller._on_multi_send)
 
     def _on_theme_changed(self, theme: str):
         """Gère le changement de thème"""
-        # Émettre le signal de changement de thème
+        # Emit theme changed signal
         self.theme_changed.emit(theme)
 
-        # Sauvegarder la configuration
+        # Save configuration
         save_in_config("theme", theme)
     
     def _on_image_clicked(self, img: Image):
         """Gère le clic sur une image"""
-        # Afficher l'image dans le preview
+        # Display image in preview
         self.image_preview_controller.set_image(img)
         
-        # Afficher le dock de preview s'il est caché
+        # Show preview dock if hidden
         if self.preview_dock.isHidden():
             self.preview_dock.show()
     
@@ -286,14 +288,14 @@ class MainWindow(QMainWindow):
             print(f"{tr('Ollama')}: {tr('Non connecté')}")
     def _on_menu_import(self):
         """Gère l'import depuis le menu"""
-        # Le menu gère déjà l'import via handle_import()
-        # On peut rafraîchir l'affichage si nécessaire
+        # The menu already handles import via handle_import()
+        # Refresh display if necessary
         if hasattr(self.import_tool_controller, 'view'):
             self.import_tool_controller.view._refresh_image_display()
     
     def _on_menu_export(self):
         """Gère l'export depuis le menu"""
-        # Le menu gère déjà l'export via handle_export()
+        # The menu already handles export via handle_export()
         pass
     
     def _on_toggle_import_tool(self):
@@ -307,19 +309,19 @@ class MainWindow(QMainWindow):
     def cleanup(self):
         """Nettoie les ressources avant la fermeture"""
         try:
-            # Arrêter proprement tous les contrôleurs avec threads
+            # Clean up all controllers with running threads properly
             if hasattr(self, 'import_tool_controller'):
                 self.import_tool_controller.cleanup()
 
             if hasattr(self, 'image_container_controller'):
                 self.image_container_controller.cleanup()
 
-            # Forcer la fermeture de tous les threads PyQt6
+            # Force shutdown of all PyQt6 threads
             from PyQt6.QtCore import QThreadPool
             pool = QThreadPool.globalInstance()
 
             pool.clear()        # stop new tasks
-            pool.waitForDone()  # attend fin des threads
+            pool.waitForDone()  # wait for thread completion
 
             DbService().faiss.reset()
             
@@ -335,7 +337,7 @@ class MainWindow(QMainWindow):
             event.accept()
         except Exception as e:
             print(f"{tr('Erreur lors de la fermeture')}: {e}")
-            event.accept()  # Forcer la fermeture même en cas d'erreur
+            event.accept()  # Force closure even if errors occur
             
         os._exit(0)
 
@@ -343,20 +345,20 @@ class MainWindow(QMainWindow):
 if __name__ == "__main__":
     import signal
     
-    # Gérer Ctrl+C proprement
+    # Handle Ctrl+C cleanly
     def signal_handler(signum, frame):
         print(f"\n{tr('Interruption détectée, fermeture propre')}...")
         if 'window' in locals():
-            # D'abord nettoyer, puis fermer
+            # Clean up first, then close
             QTimer.singleShot(0, window.cleanup)
             window.close()
         else:
-            # Si la fenêtre n'existe pas encore, juste quitter
+            # If the window does not exist yet, just exit
             app.quit()
     
     signal.signal(signal.SIGINT, signal_handler)
     
-    # Créer et afficher la fenêtre principale
+    # Create and display the main window
     window = MainWindow()
     
     print(f"{tr('Application démarrée')}")

@@ -9,6 +9,12 @@ from ui.widgets.Import.DatasetConfigDataType import DatasetConfigData
 
 
 class WithoutDatasetController:
+    """Controller orchestrating datasets configuration when parsing manifests missing partition schemas.
+
+    Manages dynamic form configurations, directory mapping synchronization loops, and tracks view
+    state integrity flags before committing values onto model layers.
+    """
+    
     def __init__(self):
         self.view = WithoutDatasetView()
         self.model = WithoutDatasetModel()
@@ -23,7 +29,12 @@ class WithoutDatasetController:
         self.on_mode_changed(self.view.get_mode())
 
     def get_all(self) -> list[DatasetConfigData]:
-        """Retourne toutes les données des dossiers"""
+        """Compile and format all active directory parameters into structured config records.
+
+        Returns:
+            list[DatasetConfigData]: Explicit mappings tracking names, paths, and existence statuses.
+
+        """
         datas : list[DatasetConfigData] = []
         for config in self.view.config:
             if config["name"].text() == "" or config["path"].text() == "":
@@ -46,14 +57,33 @@ class WithoutDatasetController:
         return datas
 
     def is_valid(self) -> bool:
+        """Fetch the current form completeness validation state.
+
+        Returns:
+            bool: True if input properties resolve matching layout rules correctly.
+
+        """
         return self.valid
 
     def get_mode(self) -> str:
+        """Fetch the tracking processing distribution mode set inside the model.
+
+        Returns:
+            str: Active operation structural mapping keyword.
+
+        """
         return self.model.mode
 
     # ---------------- MODE ----------------
 
     def on_mode_changed(self, mode: str):
+        """Update system processing schemas when targeting separate or nested dataset targets.
+
+        Args:
+            mode (str):
+                View component classification tracking keyword string.
+
+        """
         self.model.mode = "merge" if mode == "without_dataset_merge" else "separate"
 
         if self.model.mode == "merge":
@@ -64,7 +94,7 @@ class WithoutDatasetController:
     # ---------------- SYNC MODEL ----------------
 
     def sync_model(self):
-        """Met à jour le model depuis la vue"""
+        """Extract configurations from reactive view states and refresh tracked backend model metrics."""
         configs = self.view.config
         datas = []
         valid_configs = []
@@ -123,6 +153,13 @@ class WithoutDatasetController:
     # ---------------- MERGE ----------------
 
     def browse_single(self, line_edit: QLineEdit):
+        """Launch directory search prompts and push selected paths into input lines targets.
+
+        Args:
+            line_edit (QLineEdit):
+                The interactive input field widget target instance being configured.
+
+        """
         folder = QFileDialog.getExistingDirectory(self.view, "Choisir dossier")
         if folder:
             line_edit.setText(folder)
@@ -131,6 +168,7 @@ class WithoutDatasetController:
     # ---------------- SEPARATE ----------------
 
     def add_folder(self):
+        """Trigger row element append sequences inside the interactive viewport."""
         self.view.add_folder()
 
 if __name__ == "__main__":

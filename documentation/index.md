@@ -7,8 +7,10 @@
   - [Description du projet](#description-du-projet)
   - [Installation](#installation)
     - [Prérequis](#prérequis)
-    - [Utilisation de conda](#utilisation-de-conda)
+    - [Exemple d'environement avec conda](#exemple-denvironement-avec-conda)
+    - [Récupérer le dépot github](#récupérer-le-dépot-github)
     - [Etape d'installation](#etape-dinstallation)
+  - [Lancer le programme](#lancer-le-programme)
   - [Documentation](#documentation)
 
 ## Description du projet
@@ -31,7 +33,7 @@ Avant toute chose, je vous recommande d'utiliser un environnement Python dédié
 - Une carte graphique compatible CUDA (pour l'utilisation de GPU)
 - Windows (certaines dépendances sont spécifiques à Windows, mais il devrait exister des équivalents sous Linux).
 
-### Utilisation de conda
+### Exemple d'environement avec conda
 
 Si vous voulez utiliser conda, voici les commandes pour mettre en place un environement
 
@@ -41,6 +43,14 @@ conda create -n MoteurRechercheSementique python=3.12.13
 
 conda activate MoteurRechercheSementique
 
+```
+
+[Lien vers l'installation de miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install/overview)
+
+### Récupérer le dépot github
+
+```powershell
+git clone https://github.com/NockXu/Moteur_de_recherche_semantique.git
 ```
 
 ### Etape d'installation
@@ -111,6 +121,16 @@ Enter your token (input will not be visible):
 [Voir plus sur l'authentication sur hugging face](https://huggingface.co/docs/huggingface_hub/en/quick-start#authentication)
 
 [Voir plus sur l'installation de sam3](https://github.com/facebookresearch/sam3)
+
+## Lancer le programme
+
+Voici la commande pour lancer le programme principale:
+
+```powershell
+python main.py
+```
+
+> commande à réaliser à la racine du projet
 
 ## Documentation
 

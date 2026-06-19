@@ -14,6 +14,17 @@ from ui.ImportTool.widget.ConnectionVerificator.ConnectionVerificatorModel impor
 
 
 class ConnectionVerificatorView(QWidget):
+    """View component displaying the visual connection status of the backend service.
+
+    Renders vector status icons, status descriptions, and retrieved software engine versions 
+    using customized styles and localization translation mechanisms.
+
+    Args:
+        parent (QWidget):
+            Optional parent widget container mapping the layout hierarchy. Defaults to None.
+
+    """
+    
     # Signaux
     status_info_requested = pyqtSignal()
 
@@ -41,7 +52,7 @@ class ConnectionVerificatorView(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
-        """Configure l'interface utilisateur"""
+        """Construct the structural child layout tree and instantiate view presentation subcomponents."""
         layout = QHBoxLayout(self)
         layout.setContentsMargins(8, 6, 8, 6)
         layout.setSpacing(8)
@@ -90,7 +101,18 @@ class ConnectionVerificatorView(QWidget):
         layout.addWidget(self.version_label)
 
     def recolor_svg(self, svg_path: str, color: str) -> QIcon:
-        """Recolorise un SVG en une couleur spécifique et retourne un QIcon"""
+        """Parse vector content to swap base element fill parameters and return a recolored QIcon object.
+
+        Args:
+            svg_path (str):
+                The local file directory location pointing to the targeted SVG source.
+            color (str):
+                The target hexadecimal color token sequence applied onto the asset paths.
+
+        Returns:
+            QIcon: A painted pixmap object container tracking the modified vector layout.
+
+        """
         # Essayer de charger le SVG
         try:
             # Utiliser QSvgRenderer pour une meilleure qualité
@@ -132,7 +154,17 @@ class ConnectionVerificatorView(QWidget):
             return QIcon(pixmap)
 
     def update_status(self, state: State, version: str = "", error_message: str = ""):
-        """Met à jour l'affichage du statut"""
+        """Repaint vector indicators and switch descriptive text definitions to match pipeline states.
+
+        Args:
+            state (State):
+                The verified lifecycle connection state configuration flag target.
+            version (str):
+                The build version string identifier returned by the backend node infrastructure. Defaults to "".
+            error_message (str):
+                The precise exceptional tracking trace logged during processing errors. Defaults to "".
+
+        """
         if state == State.CONNECTED:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['connected'], self.icon_colors['connected']).pixmap(16, 16))
             self.status_label.setText(f"{tr('Connecté')}")
@@ -150,7 +182,13 @@ class ConnectionVerificatorView(QWidget):
             self.version_label.hide()
 
     def set_checking(self, is_checking: bool):
-        """Met à jour l'interface pendant la vérification"""
+        """Toggle processing state graphics indicators and description labels during network queries.
+
+        Args:
+            is_checking (bool):
+                If True, triggers pending status updates across matching view layers.
+
+        """
         if is_checking:
             self.status_indicator.setPixmap(self.recolor_svg(self.icon_paths['checking'], self.icon_colors['checking']).pixmap(16, 16))
             self.status_label.setText(f"{tr('Vérification')}...")
@@ -160,11 +198,16 @@ class ConnectionVerificatorView(QWidget):
             pass
 
     def get_view(self) -> QWidget:
-        """Retourne le widget vue"""
+        """Fetch the self context widget node coordinate system layout reference.
+
+        Returns:
+            QWidget: The current view instance frame context pointer.
+
+        """
         return self
     
     def _on_language_changed(self):
-        """Met à jour les textes lors d'un changement de langue"""
+        """Re-translate string resources across display items dynamically when runtime languages switch."""
         # Texte selon l'état actuel (on doit les recalculer proprement)
         current_text = self.status_label.text()
 

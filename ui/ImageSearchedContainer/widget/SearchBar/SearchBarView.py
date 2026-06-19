@@ -7,6 +7,16 @@ from ui.utils.i18n import tr
 
 
 class SearchBarView(QWidget):
+    """Visual input field component for typing queries and triggering semantic image searches.
+
+    Signals:
+        search_triggered (pyqtSignal[str]): Emitted with text content when a search is executed.
+        search_text_changed (pyqtSignal[str]): Emitted instantly whenever the input text shifts.
+
+    Args:
+        parent (QWidget | None): Optional structural parent widget container. Defaults to None.
+        placeholder_text (str): Transient indicator message for empty states. Defaults to translated text.
+    """
     search_triggered = pyqtSignal(str)
     search_text_changed = pyqtSignal(str)
 
@@ -17,7 +27,12 @@ class SearchBarView(QWidget):
         self.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         self._setup_ui(placeholder_text)
 
-    def _setup_ui(self, placeholder_text: str):
+    def _setup_ui(self, placeholder_text: str) -> None:
+        """Builds structural inner fields and binds activation click shortcuts.
+
+        Args:
+            placeholder_text (str): Visual ghost tip text values for empty text boxes.
+        """
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
@@ -53,25 +68,48 @@ class SearchBarView(QWidget):
         layout.addWidget(self.search_input)
         layout.addWidget(self.search_button)
 
-    def _on_search_clicked(self):
+    def _on_search_clicked(self) -> None:
+        """Handles action prompts and broadcasts current query string parameters."""
         self.search_triggered.emit(self.search_input.text())
     
-    def _on_text_changed(self):
+    def _on_text_changed(self) -> None:
+        """Handles live input changes and fires intermediate text updates."""
         self.search_text_changed.emit(self.search_input.text())
 
     def get_text(self) -> str:
+        """Retrieves raw content characters typed inside the active entry bar.
+
+        Returns:
+            The raw string text currently filled inside the inner text box.
+        """
         return self.search_input.text()
 
-    def set_text(self, text: str):
+    def set_text(self, text: str) -> None:
+        """Updates the inner search text box display values.
+
+        Args:
+            text (str): Incoming characters or keywords data sequence.
+        """
         self.search_input.setText(text)
 
-    def clear(self):
+    def clear(self) -> None:
+        """Purges written query keywords out of the input widget view fields."""
         self.search_input.clear()
 
-    def set_placeholder(self, placeholder: str):
+    def set_placeholder(self, placeholder: str) -> None:
+        """Alters target descriptive tips displayed inside empty tracking fields.
+
+        Args:
+            placeholder (str): Temporary prompt message lines.
+        """
         self.search_input.setPlaceholderText(placeholder)
 
-    def set_enabled(self, enabled: bool):
+    def set_enabled(self, enabled: bool) -> None:
+        """Toggles interactive capability states across entry fields and submit buttons.
+
+        Args:
+            enabled (bool): Interaction block toggle flag configuration.
+        """
         self.search_input.setEnabled(enabled)
         self.search_button.setEnabled(enabled)
 

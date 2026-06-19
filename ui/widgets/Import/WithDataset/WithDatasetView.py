@@ -5,6 +5,12 @@ from PyQt6.QtCore import pyqtSignal
 from .DatasetType import DatasetConfig
 
 class WithDatasetView(QWidget):
+    """UI View component managing path configurations for pre-partitioned dataset entries.
+
+    Displays dynamically generated configuration fields for each detected partition label 
+    found inside the loaded catalog metadata.
+    """
+    
     dataset_path_changed = pyqtSignal(dict, str)
     
     def __init__(self):
@@ -15,7 +21,7 @@ class WithDatasetView(QWidget):
         self.setup_ui()
 
     def setup_ui(self):
-        """Configure l'interface utilisateur"""
+        """Configure and position the static base window layout layout panels."""
         layout = QVBoxLayout()
         
         # Label d'instruction
@@ -29,7 +35,12 @@ class WithDatasetView(QWidget):
         self.setLayout(layout)
 
     def add_dataset_field(self, dataset_name: str):
-        """Ajoute un champ de configuration pour un dataset"""
+        """Append an interactive row layout block allocated to a specific dataset designation token.
+
+        Args:
+            dataset_name (str): The logical catalog mapping identification string.
+
+        """
         h_layout = QHBoxLayout()
         v_layout = QVBoxLayout()
         
@@ -71,17 +82,34 @@ class WithDatasetView(QWidget):
         )
 
     def browse_dataset_folder(self, config: DatasetConfig):
-        """Parcourt pour sélectionner un dossier de dataset"""
+        """Open a system folder dialog overlay to select absolute dataset directories locations.
+
+        Args:
+            config (DatasetConfig): Row dictionary containing target text box fields to update.
+
+        """
         folder = QFileDialog.getExistingDirectory(self, f"Sélectionner le dossier pour le dataset")
         if folder:
             config["line_edit"].setText(folder)
             
     def _on_dataset_path_changed(self, config : DatasetConfig, dataset_name: str):
-        """Gère le changement de chemin d'un dataset"""
+        """Internal intercept routine to broadcast user path inputs to the controller layer.
+
+        Args:
+            config (DatasetConfig): Modified UI subfield configuration components dictionary.
+            dataset_name (str): Label matching the row record being configured.
+
+        """
         self.dataset_path_changed.emit(config, dataset_name)
 
     def exist(self, name: str, exists: bool):
-        """Affiche si un dataset existe"""
+        """Update and display localized text tracking hints reflecting database cache matches.
+
+        Args:
+            name (str): Target dictionary configuration key lookup reference identifier.
+            exists (bool): Flag tracking if data already lives within indexed storage.
+
+        """
         label = self.datasets_config[name]["status_label"]
 
         if exists:

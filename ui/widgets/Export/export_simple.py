@@ -16,8 +16,9 @@ from database.DbService import DbService
 
 
 class ExportSimple:
-    """Export simple des images au format JSON
-    Structure:
+    """Handles basic image metadata records serialization into standard JSON format.
+
+    Output Schema Structure:
     {
         "<name>": {
             "id": <name>,
@@ -31,17 +32,20 @@ class ExportSimple:
     """
 
     def __init__(self):
-        """Initialise le service d'export simple"""
+        """Initialize the simplified metadata extraction export service layer."""
         self.db_service = DbService()
 
     def export_images(self, file_path: str) -> dict[str, Any]:
-        """Exporte toutes les images vers un fichier JSON
-        
+        """Serialize and save all image registry properties directly to a local JSON file.
+
         Args:
-            file_path: Chemin du fichier de sortie
-            
+            file_path (str): The absolute or relative target path for the generated output file.
+
         Returns:
-            Dict: Les images exportées
+            dict[str, Any]: The fully compiled image data records written to disk.
+
+        Raises:
+            Exception: If an error occurs during data extraction or file system write routines.
 
         """
         try:
@@ -58,7 +62,12 @@ class ExportSimple:
             raise
 
     def _get_all_images(self) -> dict[str, Any]:
-        """Récupère toutes les images et les formate selon la structure demandée"""
+        """Query data repositories to map all active image objects into the target dictionary schema.
+
+        Returns:
+            dict[str, Any]: Formatted data records mapped using unique image file names as keys.
+
+        """
         try:
             # Récupérer toutes les images via ImageRepository
             from common.Image_Classes.ImageRepository import ImageRepository
@@ -83,7 +92,16 @@ class ExportSimple:
             return {}
 
     def _write_json_file(self, file_path: str, data: dict[str, Any]) -> None:
-        """Écrit les données dans un fichier JSON"""
+        """Write structured metadata dictionary payloads to a targeted physical disk file.
+
+        Args:
+            file_path (str): Destination path string on the filesystem.
+            data (dict[str, Any]): Dictionary schema payload block to serialize.
+
+        Raises:
+            Exception: If structural directory creation fails or writing access is denied.
+
+        """
         try:
             # Créer le répertoire si nécessaire
             Path(file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -99,10 +117,13 @@ class ExportSimple:
             raise
 
     def export_to_string(self) -> str:
-        """Exporte toutes les images vers une chaîne JSON
-        
+        """Compile image metadata logs and output them into a structured, serialized text string.
+
         Returns:
-            str: Les images au format JSON
+            str: Normalized human-readable image catalog parameters formatted as a JSON string.
+
+        Raises:
+            Exception: If system data formatting or memory serialization workflows fail.
 
         """
         try:
@@ -122,13 +143,13 @@ class ExportSimple:
 # ─────────────────────────────────────────────
 
 def export_images_file(file_path: str) -> dict[str, Any]:
-    """Fonction utilitaire pour exporter rapidement toutes les images
-    
+    """Utility wrapper to instantly serialize and output all active image metrics to a disk file.
+
     Args:
-        file_path: Chemin du fichier de sortie
-        
+        file_path (str): Target physical disk storage path.
+
     Returns:
-        Dict: Les images exportées
+        dict[str, Any]: The finalized collection properties schema block written to storage.
 
     """
     exporter = ExportSimple()
@@ -136,10 +157,10 @@ def export_images_file(file_path: str) -> dict[str, Any]:
 
 
 def export_images_string() -> str:
-    """Fonction utilitaire pour exporter rapidement les images en string
-    
+    """Utility wrapper to instantly dump all image registries properties directly into a text string.
+
     Returns:
-        str: Les images au format JSON
+        str: Serialized image database records translated into a JSON string block.
 
     """
     exporter = ExportSimple()

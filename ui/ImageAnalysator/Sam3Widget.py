@@ -20,17 +20,25 @@ from ui.utils.i18n import tr
 # ------------------------------------------------------------------ #
 
 class AutoElideLabel(QLabel):
+    """Text label component that automatically cuts and elides long paths or text inputs."""
+    
     def __init__(self, text="", parent=None):
         super().__init__(parent)
         self._full_text = text
         self.setToolTip(text)
 
-    def setFullText(self, text: str):
+    def setFullText(self, text: str) -> None:
+        """Assigns the complete string sequence and updates structural text metrics.
+
+        Args:
+            text (str): Incoming raw sentence characters.
+        """
         self._full_text = text
         self.setToolTip(text)
         self.update()
 
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:
+        """Intercepts paint routines to squeeze matching text blocks inside borders."""
         metrics = QFontMetrics(self.font())
         width = self.contentsRect().width()
         if width <= 0:
@@ -45,18 +53,32 @@ class AutoElideLabel(QLabel):
 
 
 class ClickableRow(QWidget):
+    """Custom wrapper row container allowing direct layout click event captures."""
     clicked = pyqtSignal()
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
+        """Captures press gestures to fire custom interaction signals."""
         self.clicked.emit()
         super().mousePressEvent(event)
 
 
 # ------------------------------------------------------------------ #
-#  Sam3Widget                                                         #
+#  Sam3Widget                                                        #
 # ------------------------------------------------------------------ #
 
 class Sam3Widget(QWidget):
+    """Interactive control dock managing multi-prompt segmentation setups powered by SAM3 AI models.
+
+    Signals:
+        prompt_selected (pyqtSignal[dict]): Broadcasts parameters of the active configured prompt.
+        results_displayed (pyqtSignal[object]): Fires details about selected output mask layers.
+        results_cleared (pyqtSignal[list]): Announces manual purge events targeting localized image logs.
+        multi_prompts_send (pyqtSignal[list]): Transfers clean text queries across global project scopes.
+
+    Args:
+        sam3_root (str): Execution root directory for runtime model assets. Defaults to target path.
+        device (str): Compute layer architecture hardware binding flag. Defaults to "cuda".
+    """
     prompt_selected   = pyqtSignal(dict)
     results_displayed = pyqtSignal(object)
     results_cleared = pyqtSignal(list)
@@ -84,7 +106,8 @@ class Sam3Widget(QWidget):
     #  Modèle                                                             #
     # ------------------------------------------------------------------ #
 
-    def _connect_sam3_manager(self):
+    def _connect_sam3_manager(self) -> None:
+        """Binds localized thread processors to global background async response managers."""
         self._sam3_manager.ready.connect(self._on_model_ready)
         self._sam3_manager.result.connect(self._on_sam3_result)
         self._sam3_manager.error.connect(self._on_sam3_error)
@@ -92,7 +115,8 @@ class Sam3Widget(QWidget):
         if self._sam3_manager.is_ready:
             self._on_model_ready()
 
-    def _on_model_ready(self):
+    def _on_model_ready(self) -> None:
+        """Unlocks submission UI pathways once core model weights are fully mapped."""
         self.send_btn.setEnabled(True)
         self.send_btn.setText(tr("RECHERCHER"))
 
@@ -100,7 +124,8 @@ class Sam3Widget(QWidget):
     #  UI                                                                 #
     # ------------------------------------------------------------------ #
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
+        """Initializes internal segmentation dock dimensions and builds widget frames."""
         self.main_layout = QVBoxLayout()
         self.setLayout(self.main_layout)
         self.setMinimumWidth(300)
@@ -111,11 +136,13 @@ class Sam3Widget(QWidget):
         self._init_prompt_entry()
         self._init_footer()
 
-    def _init_header(self):
+    def _init_header(self) -> None:
+        """Builds regional layouts reserved for handling top-aligned parameters."""
         self.header_layout = QVBoxLayout()
         self.main_layout.addLayout(self.header_layout)
 
-    def _init_prompt_entry(self):
+    def _init_prompt_entry(self) -> None:
+        """Assembles prompt tracking scroll structures and operational add/reset toggles."""
         self.prompt_layout = QVBoxLayout()
         self.main_layout.addLayout(self.prompt_layout)
 
@@ -142,7 +169,8 @@ class Sam3Widget(QWidget):
         self.prompt_entry_scroll_area.setWidget(self.scroll_widget)
         self.prompt_layout.addWidget(self.prompt_entry_scroll_area)
 
-    def _init_footer(self):
+    def _init_footer(self) -> None:
+        """Initializes processing triggers, multi-mode drop menus, and the masking results view."""
         self.footer_layout = QVBoxLayout()
         self.footer_layout.setAlignment(Qt.AlignmentFlag.AlignBottom)
         self.main_layout.addLayout(self.footer_layout)
@@ -188,7 +216,8 @@ class Sam3Widget(QWidget):
 
         self.footer_layout.addWidget(self.results_widget)
 
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
+        """Binds interface button clicks and row selection outputs directly to slot callbacks."""
         self.add_btn.clicked.connect(self._add_prompt)
         self.reset_btn.clicked.connect(self._reset_prompts)
         self.results_widget.result_selected.connect(self.on_result_row_selected)
@@ -197,7 +226,8 @@ class Sam3Widget(QWidget):
     #  Prompts                                                            #
     # ------------------------------------------------------------------ #
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
+        """Tracks open clicks outside rows to easily clear highlighted configurations."""
         child = self.childAt(event.pos())
         if child:
             parent = child
@@ -208,7 +238,14 @@ class Sam3Widget(QWidget):
         self.prompt_selected.emit({})
         return super().mousePressEvent(event)
 
-    def _add_prompt(self, data: dict = None):
+    def _add_prompt(self, data: dict | bool | None = None) -> None:
+        """Launches editing wizard dialogues and creates a summary row tracking prompts inside lists.
+
+        Args:
+            data (dict | bool | None): Existing configurations to load, fallback, or replace.
+        """
+        
+        # Their was instance were data wad a bool and was crashing the app so this is a countermesure
         if isinstance(data, bool):
             data = None
         if data is None:
@@ -302,7 +339,13 @@ class Sam3Widget(QWidget):
         edit_btn.clicked.connect(edit)
         del_btn.clicked.connect(remove)
 
-    def _refresh_label(self, label: AutoElideLabel, data: dict):
+    def _refresh_label(self, label: AutoElideLabel, data: dict) -> None:
+        """Formats the text block inside prompt rows summarizing parameters and box scores.
+
+        Args:
+            label (AutoElideLabel): Target row visual label text.
+            data (dict): Query dictionary holding parameter variables.
+        """
         boxes     = data.get("boxes", [])
         labels    = data.get("labels", [])
         prompt    = data.get("prompt", "")
@@ -313,12 +356,19 @@ class Sam3Widget(QWidget):
             f"{threshold * 100:.0f}% | {prompt} {len(boxes)} boîte(s)  ✔{pos} ✖{neg}"
         )
 
-    def _remove_prompt(self, data: dict, container: QWidget):
+    def _remove_prompt(self, data: dict, container: QWidget) -> None:
+        """Purges a single tracked query block and cleans up associated UI row sub-elements.
+
+        Args:
+            data (dict): Reference prompt item being deleted.
+            container_row (QWidget): Visual layout wrapper hosting the targets.
+        """
         self.prompt_list = [(d, w) for d, w in self.prompt_list if d is not data]
         self.scroll_layout.removeWidget(container)
         container.deleteLater()
 
-    def _reset_prompts(self):
+    def _reset_prompts(self) -> None:
+        """Clears out all existing summary tracking elements out of prompt display docks."""
         for _, widget in self.prompt_list:
             self.scroll_layout.removeWidget(widget)
             widget.deleteLater()
@@ -328,7 +378,8 @@ class Sam3Widget(QWidget):
     #  Envoi & résultats                                                  #
     # ------------------------------------------------------------------ #
 
-    def _send_prompts(self):
+    def _send_prompts(self) -> None:
+        """Packages localized parameter structures and offloads computation requests to background queues."""
         if self._current_job_id is not None:
             return
 
@@ -348,7 +399,14 @@ class Sam3Widget(QWidget):
             str(self.image_path), prompts
         )
 
-    def _on_sam3_result(self, job_id: str, image_path: str, results):
+    def _on_sam3_result(self, job_id: str, image_path: str, results: list) -> None:
+        """Applies received model segmentation overlays on database entries when IDs line up.
+
+        Args:
+            job_id (str): Background tracking ID token generated at launch.
+            image_path (str): Target filesystem image location string.
+            results (list): Parsed model response overlay coordinates.
+        """
         if job_id != self._current_job_id:
             return
 
@@ -359,7 +417,13 @@ class Sam3Widget(QWidget):
 
         self.image.set_SAM3_results(self.results_widget.get_results())
 
-    def _on_sam3_error(self, job_id: str, error: str):
+    def _on_sam3_error(self, job_id: str, error: str) -> None:
+        """Catches job task runtime failures and reverts lock buttons to matching base states.
+
+        Args:
+            job_id (str): Unique processing execution identification hash.
+            error (str): System message detailing reasons for task execution failures.
+        """
         if job_id and job_id != self._current_job_id:
             return
 
@@ -368,10 +432,16 @@ class Sam3Widget(QWidget):
         self.send_btn.setText(tr("RECHERCHER"))
         QMessageBox.warning(self, tr("Erreur SAM3"), error)
 
-    def _send_to_all(self):
+    def _send_to_all(self) -> None:
+        """Broadcasts current prompt configurations over global data pipes."""
         self.multi_prompts_send.emit(self.get_prompts_for_all())
 
-    def get_prompts_for_all(self):
+    def get_prompts_for_all(self) -> list[dict]:
+        """Filters complex graphical coordinates down to basic search text data items.
+
+        Returns:
+            A clean list containing keyword phrases paired with accuracy margins.
+        """
         prompts: list[dict] = []
 
         for prompt in self.get_prompts():
@@ -382,10 +452,16 @@ class Sam3Widget(QWidget):
         
         return prompts
 
-    def _deselect_all_results(self):
+    def _deselect_all_results(self) -> None:
+        """Clears highlighted row references out of table displays."""
         self.results_widget.clear_selection()
 
-    def on_result_row_selected(self, result):
+    def on_result_row_selected(self, result: dict) -> None:
+        """Dispatches parameters matching selected tabular entries back out to listeners.
+
+        Args:
+            result (dict): Data slice identifying the selected segment row properties.
+        """
         self.results_displayed.emit(result)
 
     # ------------------------------------------------------------------ #
@@ -393,9 +469,19 @@ class Sam3Widget(QWidget):
     # ------------------------------------------------------------------ #
 
     def get_prompts(self) -> list[dict]:
+        """Extracts data dictionaries out of currently tracked input rows.
+
+        Returns:
+            The complete list of query parameter specifications.
+        """
         return [data for data, _ in self.prompt_list]
 
     def set_image(self, image: Image) -> None:
+        """Binds a fresh image object and re-populates preexisting analysis rows.
+
+        Args:
+            image (Image): The new target tracking asset model to show.
+        """
         self.image = image
         self.image_path = image.path
         results = self.image.get_SAM3_results()
@@ -405,8 +491,11 @@ class Sam3Widget(QWidget):
             self._clear_local_results()
             self._reset_prompts()
 
-    def set_results(self, results: list[dict]):
-        """Results = résultat de image.get_SAM3_results()
+    def set_results(self, results: list[dict]) -> None:
+        """Loads cached analytical outputs into result boxes and reconstructs prompt rows.
+
+        Args:
+            results (list[dict]): Saved segment coordinates metadata.
         """
         if not results:
             self._clear_local_results()
@@ -431,15 +520,21 @@ class Sam3Widget(QWidget):
 
             self._add_prompt(prompt_data)
 
-    def clear_results(self):
+    def clear_results(self) -> None:
+        """Purges active display data lists and broadcasts local path deletion keys."""
         self._clear_local_results()
         self.results_cleared.emit([str(self.image_path)])
 
-    def _clear_local_results(self):
+    def _clear_local_results(self) -> None:
+        """Resets the core results matrix layout frame."""
         self.results_widget.clear()
         
-    def _on_language_changed(self, lang_code: str = None) -> None:
-        """Met à jour toute l'UI quand la langue change"""
+    def _on_language_changed(self, lang_code: str | None = None) -> None:
+        """Refreshes all displayed interface text lines whenever active system translation keys change.
+
+        Args:
+            lang_code (str | None): Target language code abbreviation string. Defaults to None.
+        """
         # ----------------------------
         # Labels principaux UI
         # ----------------------------

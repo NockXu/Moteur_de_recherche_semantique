@@ -18,7 +18,11 @@ from ui.ImageAnalysator.ImageAnalysator import ImageAnalysator
 from ui.utils.i18n import tr
 
 class ImagePreviewView(QWidget):
-    """Vue preview stable (type inspector panel)
+    """Side inspector panel view displaying details, metadata, and tags for a selected image.
+
+    Signals:
+        image_clicked (pyqtSignal): Emitted when the user interacts with the preview image area.
+        reload_requested (pyqtSignal): Emitted when an explicit preview reload event is requested.
     """
 
     image_clicked = pyqtSignal()
@@ -33,8 +37,8 @@ class ImagePreviewView(QWidget):
     # UI
     # ─────────────────────────────
 
-    def _setup_ui(self):
-
+    def _setup_ui(self) -> None:
+        """Initializes structural sidebar components and binds layout scroll boundaries."""
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         self.setMinimumWidth(450)
@@ -171,11 +175,23 @@ class ImagePreviewView(QWidget):
 
         main_layout.addStretch()
         
-    def _attach_scroll(self, container):
+    def _attach_scroll(self, container) -> None:
+        """Binds the main container widget instance inside the global scroll viewport view.
+
+        Args:
+            container (QWidget): The inner scroll wrapper layout widget.
+        """
         self.scroll.setWidget(container)
 
     def _create_info_group(self, title: str) -> tuple[QWidget, QLabel]:
-        """Crée un groupe d'informations avec un titre."""
+        """Creates a labelled container block used to isolate unified structural details rows.
+
+        Args:
+            title (str): Bold uppercase row header descriptor text.
+
+        Returns:
+            A tuple pairing the wrapping widget with its descriptive label header.
+        """
         group = QWidget()
         group.setStyleSheet("QWidget { background: transparent; }")
         layout = QVBoxLayout(group)
@@ -194,7 +210,12 @@ class ImagePreviewView(QWidget):
     # API
     # ─────────────────────────────
 
-    def display_image(self, image: Image | None):
+    def display_image(self, image: Image | None) -> None:
+        """Pushes data properties from an image file structure directly onto panel displays.
+
+        Args:
+            image (Image | None): Selected database image asset entity.
+        """
         self._current_image = image
 
         # Masquer l'empty state
@@ -270,7 +291,8 @@ class ImagePreviewView(QWidget):
             no_tags.setStyleSheet("QLabel { background: transparent; color: rgba(0,0,0,0.4); font-style: italic; }")
             self.tags_layout.addWidget(no_tags)
 
-    def _clear(self):
+    def _clear(self) -> None:
+        """Blanks all context properties and shows the fallback unselected message prompt."""
         # Afficher l'empty state
         self.empty.show()
         
@@ -289,7 +311,8 @@ class ImagePreviewView(QWidget):
     # THEME
     # ═══════════════════════════════════════════════════════════
 
-    def _on_theme_changed(self):
+    def _on_theme_changed(self) -> None:
+        """Refreshes structural color styling rules matching system environment updates."""
         self.separator1.setStyleSheet(f"QFrame {{ background: transparent; border: none; border-top: 1px solid {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; }}")
         self.info_section.setStyleSheet(f"QWidget {{ background: {os.environ["QTMATERIAL_SECONDARYLIGHTCOLOR"]}; padding: 10px 10px 10px 10px; }}")
         self.path_title.setStyleSheet(f"QLabel[class='title'] {{ background: transparent; color: {os.environ["QTMATERIAL_PRIMARYCOLOR"]}; letter-spacing: 1px; }}")
@@ -302,8 +325,12 @@ class ImagePreviewView(QWidget):
     # LANGUAGE
     # ═══════════════════════════════════════════════════════════
 
-    def _on_language_changed(self, lang_code: str = None):
-        """Refresh complet de l'UI lors du changement de langue"""
+    def _on_language_changed(self, lang_code: str | None = None) -> None:
+        """Forces complete translations updates across static framework interface strings.
+
+        Args:
+            lang_code (str | None): Target localization shorthand code parameter. Defaults to None.
+        """
         # -----------------------------
         # Labels statiques (UI fixe)
         # -----------------------------
@@ -326,8 +353,8 @@ class ImagePreviewView(QWidget):
         # -----------------------------
         self.update()
         
-    def _refresh_image_texts(self):
-        """Met à jour uniquement les textes dépendants de l'image"""
+    def _refresh_image_texts(self) -> None:
+        """Updates dictionary text attributes relying exclusively on live image fields."""
         image = self._current_image
         
         # Image analysator

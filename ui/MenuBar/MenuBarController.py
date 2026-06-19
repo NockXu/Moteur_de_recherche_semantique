@@ -1,6 +1,6 @@
 import sys
 import os
-from typing import Dict, List
+from typing import Dict, List, Optional
 from collections.abc import Callable
 
 from PyQt6.QtWidgets import QMenuBar, QMessageBox, QFileDialog
@@ -9,6 +9,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QListWidget,
     QListWidgetItem,
+    QWidget
 )
 from PyQt6.QtCore import QObject, pyqtSignal
 from PyQt6.QtGui import QAction, QActionGroup
@@ -27,12 +28,17 @@ from qt_material import apply_stylesheet, list_themes
 
 
 class MenuBarController(QObject):
-    """Contrôleur pour la barre de menu principale de l'application.
+    """Controller for the application's main menu bar.
     
-    Architecture MVC :
-    - Model : MenuModel (structure des menus)
-    - View : MenuBarView (création des widgets)
-    - Controller : MenuBarController (logique métier)
+    MVC Architecture:
+    - Model: MenuModel (menu structures)
+    - View: MenuBarView (widget rendering)
+    - Controller: MenuBarController (business logic)
+    
+    Args:
+            parent (QWidget, optional):
+                The parent widget for the menu bar layout hierarchy. Defaults to None.
+
     """
     
     # Signaux pour les actions du menu
@@ -67,8 +73,8 @@ class MenuBarController(QObject):
         
         self._setup_language_menu()
     
-    def _setup_handlers(self):
-        """Configure les handlers pour les actions"""
+    def _setup_handlers(self) -> None:
+        """Configure business handlers for menu action triggers."""
         self.handlers = {
             tr("Importer"): self.handle_import,
             f"{tr("Exporter")}...": self.handle_export,
@@ -77,63 +83,106 @@ class MenuBarController(QObject):
             tr("Sélection du thème"): self.open_style_selector
         }
         
-    def _setup_signals(self):
-        """Configure les signaux dans le modèle"""
-        # Associer les signaux aux actions du modèle (uniquement pour ceux qui n'ont pas de handler direct)
+    def _setup_signals(self) -> None:
+        """Bind underlying architecture signals to core module model actions."""
         for menu_name, actions in self.model.menus.items():
             for action in actions:
                 if action.name == tr("Quitter"):
                     action.signal = self.file_quit_requested
                 elif action.name == tr("Outil d'importation d'image"):
                     action.signal = self.toggle_import_tool
-                # Importer et Exporter utilisent les handlers directs, pas besoin de signal
     
-    def _setup_menu_bar(self):
-        """Crée la barre de menu avec le système MVC"""
+    def _setup_menu_bar(self) -> None:
+        """Build the runtime window menu bar instance tracking components."""
         self.menu_bar = self.view.create_menu_bar(self.model.menus, self.handlers)
     
     # ─────────────────────────────────────────────
     # API PUBLIQUE
     # ─────────────────────────────────────────────
     
-    def add_menu(self, menu_name: str, actions: list[MenuAction]):
-        """Ajoute dynamiquement un nouveau menu"""
+    def add_menu(self, menu_name: str, actions: list[MenuAction]) -> None:
+        """Dynamically append a new categorical layout tab to the active structures.
+
+        Args:
+            menu_name (str):
+                The unique identifier text label of the category.
+            actions (list[MenuAction]):
+                Collection of internal items to add down the column.
+
+        """
         self.model.add_menu(menu_name, actions)
         self._setup_menu_bar()  # Recréer la barre
     
-    def addAction(self, menu_name: str, action: MenuAction):
-        """Ajoute dynamiquement une action à un menu"""
+    def addAction(self, menu_name: str, action: MenuAction) -> None:
+        """Dynamically inject an individual entry element directly onto a menu column.
+
+        Args:
+            menu_name (str):
+                The target identifier category entry string.
+            action (MenuAction):
+                The precise structural properties defining the new action.
+
+        """
         self.model.add_action(menu_name, action)
         self._setup_menu_bar()  # Recréer la barre
     
-    def remove_menu(self, menu_name: str):
-        """Supprime un menu entier"""
+    def remove_menu(self, menu_name: str) -> None:
+        """Purge an entire tab section from the live visual layouts.
+
+        Args:
+            menu_name (str):
+                The identifier text key target to completely remove.
+
+        """
         self.model.remove_menu(menu_name)
         self._setup_menu_bar()
     
-    def remove_action(self, menu_name: str, action_name: str):
-        """Supprime une action spécifique"""
+    def remove_action(self, menu_name: str, action_name: str) -> None:
+        """Erase a single action line configuration item from a structural category.
+
+        Args:
+            menu_name (str):
+                The target parent column dictionary key.
+            action_name (str):
+                The specific entry display text identifier to purge.
+
+        """
         self.model.remove_action(menu_name, action_name)
         self._setup_menu_bar()
     
     def get_menu_bar(self) -> QMenuBar:
-        """Retourne la barre de menu créée"""
+        """Retrieve the primary structural menu bar visual widget element.
+
+        Returns:
+            The running operational QMenuBar instance object.
+
+        """
         return self.menu_bar
     
     def get_model(self) -> MenuModel:
-        """Retourne le modèle pour manipulation directe"""
+        """Retrieve the underlying dataset structure model for manual modifications.
+
+        Returns:
+            The raw data tracking MenuModel instance reference.
+
+        """
         return self.model
     
     def get_view(self) -> MenuBarView:
-        """Retourne la vue pour manipulation directe"""
+        """Retrieve the rendering view abstraction instance frame.
+
+        Returns:
+            The layout generation MenuBarView instance handler.
+
+        """
         return self.view
     
     # ─────────────────────────────────────────────
     # HANDLERS
     # ─────────────────────────────────────────────
 
-    def open_style_selector(self):
-        """Affiche une boîte de dialogue de sélection des thèmes."""
+    def open_style_selector(self) -> None:
+        """Display an application dialogue window tracking available GUI skin themes."""
         dialog = QDialog(self.parent)
         dialog.setWindowTitle(tr("Sélection du thème"))
 
@@ -159,8 +208,14 @@ class MenuBarController(QObject):
 
         dialog.exec()
 
-    def apply_theme(self, theme: str):
-        """Applique un thème qt-material."""
+    def apply_theme(self, theme: str) -> None:
+        """Apply a selected qt-material theme package across application boundaries.
+
+        Args:
+            theme (str):
+                The string identification file properties target to parse.
+
+        """
         if theme == "default":
             self.parent.setStyleSheet("")
             return
@@ -173,28 +228,25 @@ class MenuBarController(QObject):
 
         self.theme_changed.emit(theme)
     
-    def handle_import(self):
-        """Gère l'import depuis un fichier JSON."""
-        # Utiliser le nouveau dialogue d'importation avancée
+    def handle_import(self) -> None:
+        """Trigger an advanced ingest pipeline view modal tracking local metadata files."""
         self.import_dialog = AdvancedImportDialog(self.parent)
         result = self.import_dialog.exec()
         
-        if result == 1:  # QDialog.Accepted
-            # L'importation a été effectuée, rafraîchir l'interface
+        if result == 1:
             self.file_import_requested.emit()
     
-    def handle_export(self):
-        """Gère l'export avec choix du mode via la boîte de dialogue."""
-        # Utiliser la nouvelle boîte de dialogue d'export
+    def handle_export(self) -> None:
+        """Launch an operational dialog box to export system catalog indices out."""
         export_dialog = ExportDialog(self.parent)
         export_dialog.exec()
     
-    def handle_toggle_import_tool(self):
-        """Gère l'affichage/masquage de l'Import Tool."""
+    def handle_toggle_import_tool(self) -> None:
+        """Toggle visibility bounds of the data-ingestion docking layout panels."""
         self.toggle_import_tool.emit()
     
-    def cleanup(self):
-        """Nettoie les ressources."""
+    def cleanup(self) -> None:
+        """Safely destroy processing resources and drop hanging dialog context references."""
         if self.import_dialog:
             self.import_dialog.close()
             self.import_dialog = None
@@ -203,10 +255,10 @@ class MenuBarController(QObject):
     # LANGUAGE MENU
     # ─────────────────────────────────────────────
     
-    def open_language_dialog(self):
-        """Affiche une fenêtre pour choisir la langue"""
+    def open_language_dialog(self) -> None:
+        """Launch a systematic modal dialog tracking localization dictionary bundles."""
         dialog = QDialog(self.parent)
-        dialog.setWindowTitle("Sélection de la langue")
+        dialog.setWindowTitle(tr("Sélection de la langue"))
         dialog.resize(300, 400)
 
         layout = QVBoxLayout(dialog)
@@ -230,7 +282,7 @@ class MenuBarController(QObject):
         layout.addWidget(list_widget)
 
         # double clic = validation
-        def on_select(item):
+        def on_select(item: QListWidgetItem) -> None:
             lang_code = item.text()
             self.set_language(lang_code)
             dialog.accept()
@@ -239,8 +291,8 @@ class MenuBarController(QObject):
 
         dialog.exec()
 
-    def _setup_language_menu(self):
-        """Ajoute une entrée de menu pour ouvrir le sélecteur de langue"""
+    def _setup_language_menu(self) -> None:
+        """Inject translation settings shortcuts directly inside running layouts."""
         if not self.translations_config:
             return
 
@@ -252,8 +304,14 @@ class MenuBarController(QObject):
             )
         ])
         
-    def set_language(self, lang_code: str):
-        """Change la langue active de l'application"""
+    def set_language(self, lang_code: str) -> None:
+        """Switch active localized indexing across core visual text elements.
+
+        Args:
+            lang_code (str):
+                The standardized short format string name target (e.g., 'fr', 'en').
+
+        """
         if lang_code not in self.translations_config.get("available_languages", []):
             return
 
@@ -264,7 +322,8 @@ class MenuBarController(QObject):
 
         self.language_changed.emit()
         
-    def _on_language_changed(self):
+    def _on_language_changed(self) -> None:
+        """Re-compile all active items to dynamically pick up context translations changes."""
         self._setup_handlers()   # ← recréer les clés avec les nouveaux tr()
         self.model = MenuModel() # ← recréer le modèle avec les nouveaux tr()
         self._setup_signals()
@@ -275,31 +334,33 @@ class MenuBarController(QObject):
 # EXEMPLES D'UTILISATION
 # ─────────────────────────────────────────────
 
-def add_preferences_action(controller):
-    """Exemple d'ajout d'une action Préférences"""
+def add_preferences_action(controller: MenuBarController) -> None:
+    """Example function showing how to append custom preferences actions dynamically.
+
+    Args:
+        controller (MenuBarController):
+            The target menu management instance layer to modify.
+
+    """
     prefs_action = MenuAction(
-        name="Préférences...",
-        tooltip="Ouvrir les préférences de l'application",
+        name=f"{tr("Préférences")}...",
+        tooltip=f"{tr("Ouvrir les préférences de l'application")}",
         handler=lambda: print("Ouvrir préférences"),
         separator_before=True
     )
     controller.addAction("Fichier", prefs_action)
 
 
-def create_menu_bar(parent=None):
-    """Fonction factory pour créer une barre de menu.
+def create_menu_bar(parent : Optional[QWidget] =None) -> MenuBarController:
+    """Factory layout utility building a ready-configured MenuBar component pipeline.
     
     Args:
-        parent: Widget parent de la barre de menu
+        parent (QWidget, optional):
+            The parent layout host matching system constraints. Defaults to None.
         
     Returns:
-        MenuBarController: Contrôleur de la barre de menu
+        MenuBarController: Orchestration controller engine ready for main systems linking.
 
     """
-    controller = MenuBarController(parent)
-    
-    # Exemple d'utilisation:
-    # add_edit_menu(controller)
-    # add_preferences_action(controller)
-    
+    controller = MenuBarController(parent) 
     return controller

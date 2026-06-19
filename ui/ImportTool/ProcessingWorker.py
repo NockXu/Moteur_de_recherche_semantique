@@ -11,22 +11,41 @@ from vision.ollama_wrapper import OllamaWrapper
 from vision.ImageProcessor import ImageProcessor
 from common.Image_Classes.Image import ProcessingStatus, Image
 from common.Image_Classes.ImageRepository import ImageRepository
+from common.Dataset_Classes.Dataset import Dataset
 from database.DbService import DbService
 
 from ui.utils.i18n import tr
 
 
 class ProcessingWorker(QThread):
+    """Worker thread responsible for processing a folder of images asynchronously.
+
+    This class handles multi-threaded image processing, including generating
+    descriptions via Ollama and text embeddings, and updating the database.
+
+    Args:
+        folder_path (Path):
+            Path to the directory containing images to process.
+        existing_paths (set[str]):
+            Set of image file paths already existing in the database to be skipped.
+        dataset (Dataset):
+            The Dataset instance linked to this processing pipeline.
+        model (str):
+            The name of the vision model to use for analysis. Defaults to "qwen2.5vl:7b".
+
+    """
+    
     progress_updated = pyqtSignal(str, ProcessingStatus)
     image_processed = pyqtSignal(str, str, list)
     image_error = pyqtSignal(str, str)
     processing_complete = pyqtSignal()
     processing_stopped = pyqtSignal()
 
-    def __init__(self, folder_path: Path, existing_paths: set[str], model: str = "qwen2.5vl:7b"):
+    def __init__(self, folder_path: Path, existing_paths: set[str], dataset : Dataset, model: str = "qwen2.5vl:7b"):
         super().__init__()
         self.folder_path = folder_path
         self.existing_paths = existing_paths  # Les chemins déjà en BDD pour un skip instantané
+        self.dataset = dataset
         self.model = model
         self.ollama_wrapper = OllamaWrapper()
 
@@ -44,15 +63,19 @@ class ProcessingWorker(QThread):
     # MAIN LOOP
     # ─────────────────────────────
     def run(self):
+        """Execute the main processing loop over the target image folder.
+
+        Iterates through valid image files, checks for exclusions, extracts descriptions 
+        and embeddings, and updates progress indicators.
+
+        """
         self._is_running = True
         self._current_index = 0
         stopped_manually = False
 
-        # Extensions acceptées (évite d'importer ImageScanService dans le thread)
         valid_exts = {'.jpg', '.jpeg', '.png', '.bmp', '.webp', '.tiff'}
 
         try:
-            # 1. Récupération rapide des fichiers (générateur léger)
             files = [f for f in self.folder_path.iterdir() if f.is_file() and f.suffix.lower() in valid_exts]
             total_images = len(files)
 
@@ -64,14 +87,12 @@ class ProcessingWorker(QThread):
                 self._current_index = i
                 img_path_str = str(file_path.resolve())
 
-                # SKIP ultra-rapide si le chemin est déjà connu dans le set des existants
                 if img_path_str in self.existing_paths:
                     continue
 
-                # Création de l'objet Image léger uniquement pour celle qu'on traite MAINTENANT
-                image = Image(path=file_path)
+                # FIX ICI : Utilise le dataset lié à ce traitement
+                image = Image(path=file_path, dataset=self.dataset)
                 
-                # Notification de progression globale à l'UI
                 progress_text = f"{i+1}/{total_images} - {file_path.name}"
                 self.progress_updated.emit(progress_text, ProcessingStatus.IN_PROGRESS)
 
@@ -92,6 +113,13 @@ class ProcessingWorker(QThread):
     # PROCESS SINGLE IMAGE
     # ─────────────────────────────
     def _process_single_image(self, image: Image):
+        """Process a single Image object through description, embedding, and storage steps.
+
+        Args:
+            image (Image):
+                The image instance to be processed and saved.
+
+        """
         if not self._is_running:
             return
 
@@ -126,20 +154,39 @@ class ProcessingWorker(QThread):
     # STOP SAFE (IMPORTANT FIX)
     # ─────────────────────────────
     def stop(self):
+        """Safely request the processing loop to stop execution."""
         self._is_running = False
 
     # ─────────────────────────────
     # STATE
     # ─────────────────────────────
     def is_running(self) -> bool:
+        """Check if the worker thread is actively processing.
+
+        Returns:
+            True if the worker loop is running, otherwise False.
+
+        """
         return self._is_running
 
     def get_progress(self) -> float:
+        """Calculate the current processing progress.
+
+        Returns:
+            The completion ratio between 0.0 and 1.0.
+
+        """
         if not self.images:
             return 1.0
         return min(1.0, self._current_index / len(self.images))
 
     def get_current_image(self) -> str | None:
+        """Retrieve the file path string of the image currently being processed.
+
+        Returns:
+            The absolute path of the image as a string, or None if out of bounds.
+
+        """
         if 0 <= self._current_index < len(self.images):
             return str(self.images[self._current_index].path)
         return None
@@ -150,6 +197,16 @@ class ProcessingWorker(QThread):
 # ─────────────────────────────────────────────────────────────────────────────
 
 class BatchProcessingManager:
+    """Manager responsible for controlling batch image processing workflows.
+
+    Coordinates the creation, monitoring, and lifecycle of the underlying 
+    ProcessingWorker thread.
+
+    Args:
+        ollama_wrapper (OllamaWrapper):
+            Optional Ollama API abstraction instance. Defaults to None.
+
+    """
 
     def __init__(self, ollama_wrapper: OllamaWrapper = None):
         self.ollama_wrapper = ollama_wrapper
@@ -159,6 +216,7 @@ class BatchProcessingManager:
         self,
         folder_path: Path,
         existing_paths: set[str],
+        dataset: Dataset,
         on_progress: Callable = None,
         on_image_processed: Callable = None,
         on_image_error: Callable = None,
@@ -166,11 +224,37 @@ class BatchProcessingManager:
         on_stopped: Callable = None,
         model: str = "qwen2.5vl:7b"
     ) -> ProcessingWorker:
+        """Initialize and start a new batch processing worker thread.
 
+        Args:
+            folder_path (Path):
+                Directory containing images to process.
+            existing_paths (set[str]):
+                Set of strings representing file paths already processed.
+            dataset (Dataset):
+                Target dataset mapping for the images.
+            on_progress (Callable):
+                Callback triggered when individual image progress updates. Defaults to None.
+            on_image_processed (Callable):
+                Callback triggered when an image is successfully processed. Defaults to None.
+            on_image_error (Callable):
+                Callback triggered when an error occurs during image processing. Defaults to None.
+            on_complete (Callable):
+                Callback triggered when the entire batch finishes successfully. Defaults to None.
+            on_stopped (Callable):
+                Callback triggered when processing is aborted manually. Defaults to None.
+            model (str):
+                Name of the model to use for visual extraction. Defaults to "qwen2.5vl:7b".
+
+        Returns:
+            The instantiated and running ProcessingWorker instance.
+
+        """
         if self.current_worker and self.current_worker.isRunning():
             raise RuntimeError(tr("Traitement déjà en cours"))
 
-        self.current_worker = ProcessingWorker(folder_path, existing_paths, model)
+        # MODIFICATION ICI : On transmet le dataset au ProcessingWorker
+        self.current_worker = ProcessingWorker(folder_path, existing_paths, dataset, model)
 
         # signaux
         if on_progress:
@@ -195,20 +279,46 @@ class BatchProcessingManager:
         return self.current_worker
 
     def _clear_worker(self, worker: ProcessingWorker):
+        """Clean up the internal reference and memory footprint of a finished worker.
+
+        Args:
+            worker (ProcessingWorker):
+                The worker instance to discard.
+
+        """
         if self.current_worker is worker:
             self.current_worker = None
         worker.deleteLater()
 
     def stop_current_processing(self, wait: bool = False):
+        """Clean up the internal reference and memory footprint of a finished worker.
+
+        Args:
+            worker (ProcessingWorker):
+                The worker instance to discard.
+
+        """
         if self.current_worker and self.current_worker.isRunning():
             self.current_worker.stop()
             if wait:
                 self.current_worker.wait()
 
     def is_processing(self) -> bool:
+        """Determine whether a batch process is currently active.
+
+        Returns:
+            True if a worker exists and is executing, otherwise False.
+
+        """
         return self.current_worker is not None and self.current_worker.isRunning()
 
     def get_current_progress(self) -> float:
+        """Fetch the tracking progression from the current worker.
+
+        Returns:
+            The progress ratio between 0.0 and 1.0, or 1.0 if no worker is running.
+
+        """
         if self.current_worker:
             return self.current_worker.get_progress()
         return 1.0

@@ -3,6 +3,12 @@ from PyQt6.QtCore import QRect, QSize, Qt
 
 
 class JustifiedGalleryLayout(QLayout):
+    """Custom geometry manager enforcing a justified grid presentation for child widgets.
+
+    Dynamically standardizes row heights while altering image widths based on native 
+    aspect ratios to completely flush-fill continuous horizontal container boundaries.
+    """
+    
     def __init__(self, parent=None, margin=0, spacing=8):
         super().__init__(parent)
 
@@ -43,6 +49,7 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def setGeometry(self, rect: QRect):
+        """Linearly partition tracking item queues into filled rows matching width thresholds."""
         super().setGeometry(rect)
 
         items = self._visible_items if self._visible_items is not None else self._item_list
@@ -116,8 +123,7 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def _layout_row(self, row, row_width, rect_x, y, max_width, target_height, spacing):
-        """Étire une ligne pour remplir toute la largeur.
-        """
+        """Stretch and adjust internal image dimensions to fully flush-fill the layout horizontal space."""
         if not row:
             return
 
@@ -142,8 +148,7 @@ class JustifiedGalleryLayout(QLayout):
             x += w + spacing
 
     def _compute_scale(self, row_width, max_width, n_items, spacing):
-        """Calcule le facteur d'étirement pour remplir la ligne.
-        """
+        """Calculate the precision scaling matrix needed to perfectly justify row properties blocks."""
         total_spacing = spacing * (n_items - 1)
         if row_width + total_spacing == 0:
             return 1.0
@@ -155,6 +160,7 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def clear(self):
+        """Safely isolate, pop, and detach all tracking widgets mapped inside the layout hierarchy."""
         while self._item_list:
             item = self._item_list.pop()
             if item.widget():
@@ -165,7 +171,11 @@ class JustifiedGalleryLayout(QLayout):
     # ----------------------------
 
     def set_visible_items(self, items: list[QLayoutItem]):
-        """Définit les items réellement affichés (ordre + filtre).
+        """Explicitly override the structural layout tracking scope to enforce sorting and filter passes.
+
+        Args:
+            items (list[QLayoutItem]): Array containing subset items targeted for visualization.
+
         """
         self._visible_items = items
         self.invalidate()

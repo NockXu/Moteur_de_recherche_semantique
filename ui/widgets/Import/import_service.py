@@ -14,6 +14,18 @@ from common.Dataset_Classes.DatasetRepository import DatasetRepository
 
 
 class ImportService:
+    """Service class handling the backend orchestration of catalog data imports.
+
+    Manages system disk lookups, structures internal directory maps via persistent caching, 
+    and converts JSON manifest inputs into processing-eligible Image and Dataset repositories objects.
+
+    Args:
+        configs (list[DatasetConfigData]):
+            A sequence of configuration mappings detailing disk target folders and tracking names.
+        mode (str):
+            Operational context routing indicator (e.g., "with_dataset").
+
+    """
 
     def __init__(self, configs: list[DatasetConfigData], mode : str):
         self.image_repo = ImageRepository(DbService().sqlite, DbService().faiss)
@@ -23,8 +35,14 @@ class ImportService:
         self.path_cache = self._build_path_cache()
 
     def _build_path_cache(self) -> dict[str, tuple[str, str]]:
-        """Scanne tous les dossiers UNE SEULE FOIS au démarrage
-        Retourne: {nom_fichier: (chemin_complet, nom_dataset)}
+        """Scan all assigned directory folders exactly once at operational initialization.
+
+        Builds an optimized lookup system to avoid iterative sequential IO disk traversal operations 
+        during active row mapping phases.
+
+        Returns:
+            dict[str, tuple[str, str]]: A file lookup index structured as {filename: (full_path, dataset_name)}.
+
         """
         cache = {}
         
@@ -48,6 +66,16 @@ class ImportService:
     # LOAD JSON
     # -------------------------
     def load_file(self, file_path: str) -> dict[str, list[Image] | list[Dataset]]:
+        """Parse structured catalog data manifest files based on active mode routing.
+
+        Args:
+            file_path (str):
+                The local disk directory system reference to the input data manifest file.
+
+        Returns:
+            dict[str, list[Image] | list[Dataset]]: A dictionary storing extracted images and datasets lists.
+
+        """
         if self.mode != "with_dataset":
             return self.load_file_without_dataset(file_path)
         
@@ -93,7 +121,16 @@ class ImportService:
     # LOAD JSON WITHOUT DATASET SECTION
     # -------------------------
     def load_file_without_dataset(self, file_path: str) -> dict[str, list[Image] | list[Dataset]]:
-        """Pour les JSON qui n'ont pas de section datasets"""
+        """Parse structural manifest definitions missing standard dataset grouping partitions.
+
+        Args:
+            file_path (str):
+                The local disk directory system reference to the input legacy file.
+
+        Returns:
+            dict[str, list[Image] | list[Dataset]]: Data collections routed under unified tracking categories.
+
+        """
         with open(file_path, encoding="utf-8") as f:
             data = json.load(f)
 
@@ -123,7 +160,16 @@ class ImportService:
     # PATH RESOLUTION
     # -------------------------
     def resolve_path(self, image: Image) -> str | None:
-        """Résout le chemin INSTANTANÉMENT via le cache"""
+        """Resolve full physical storage locations instantaneously leveraging internal lookup maps.
+
+        Args:
+            image (Image):
+                The tracking baseline object tracking row details missing absolute structural indicators.
+
+        Returns:
+            str | None: The absolute physical path string if located inside mapped indices, otherwise None.
+
+        """
         if image.name in self.path_cache:
             full_path, dataset_name = self.path_cache[image.name]
             image.dataset_name = dataset_name

@@ -16,6 +16,14 @@ from PyQt6.QtWidgets import (
 from ui.utils.i18n import tr
 
 class ColorDot(QPushButton):
+    """Circular color picker node allowing real-time mask layer overlay color modifications.
+
+    Signals:
+        colorChanged (pyqtSignal): Triggered immediately following a valid color update.
+
+    Args:
+        color (QColor | None): Initial default hex layout setup template block. Defaults to None.
+    """
 
     colorChanged = pyqtSignal()
 
@@ -35,9 +43,15 @@ class ColorDot(QPushButton):
         self._refresh()
 
     def color(self) -> QColor:
+        """Retrieves the active assigned color property instance.
+
+        Returns:
+            The primary QColor configuration object.
+        """
         return self._color
 
-    def _pick_color(self):
+    def _pick_color(self) -> None:
+        """Displays native system palette dialog fields and refreshes sheets on user selection."""
 
         color = QColorDialog.getColor(self._color, self)
 
@@ -46,7 +60,8 @@ class ColorDot(QPushButton):
             self._refresh()
             self.colorChanged.emit()
 
-    def _refresh(self):
+    def _refresh(self) -> None:
+        """Applies updated background styles mirroring local color settings into visual assets."""
         self.setStyleSheet(f"""
             QPushButton#ColorDot {{
                 background-color: {self._color.name()};
@@ -56,6 +71,11 @@ class ColorDot(QPushButton):
         """)
 
 class ResultsTable(QWidget):
+    """Tabular presentation canvas handling model confidence matrix readings and grouping mask layers.
+
+    Signals:
+        result_selected (pyqtSignal[list]): Dispatches active collection references to scene managers.
+    """
 
     result_selected = pyqtSignal(list)
 
@@ -100,7 +120,8 @@ class ResultsTable(QWidget):
     # CLEARS
     # =========================
 
-    def clear_selection(self):
+    def clear_selection(self) -> None:
+        """Wipes matching target lists and cleans highlighting layers off active tables."""
 
         self.selected.clear()
         self.table.clearSelection()
@@ -109,7 +130,8 @@ class ResultsTable(QWidget):
         if __name__ == "__main__":
             print("CLEAR ALL")
 
-    def clear(self):
+    def clear(self) -> None:
+        """Flushes storage sequences, index references, and table layouts entirely."""
         self.clear_selection()
         self._all_results_cache.clear()
         self._row_dot.clear()
@@ -120,7 +142,12 @@ class ResultsTable(QWidget):
     # LOAD DATA
     # =========================
 
-    def load_results(self, processed_results: list[dict[str, Any]]):
+    def load_results(self, processed_results: list[dict[str, Any]]) -> None:
+        """Groups multi-prompt matrix tensors and structures visual result items.
+
+        Args:
+            processed_results (list[dict[str, Any]]): Unformatted segmentation responses containing tensors.
+        """
         from collections import defaultdict
         import torch # type: ignore
 
@@ -274,7 +301,13 @@ class ResultsTable(QWidget):
     # CLICK HANDLER
     # =========================
 
-    def _on_cell_clicked(self, row, col):
+    def _on_cell_clicked(self, row: int, col: int) -> None:
+        """Routes targeted mouse actions into specialized category handler structures.
+
+        Args:
+            row (int): Target table index item vertical position coordinate.
+            col (int): Horizontal cell column tracking coordinate.
+        """
 
         item = self.table.item(row, 0)
 
@@ -298,7 +331,12 @@ class ResultsTable(QWidget):
     # TOGGLE RESULT
     # =========================
 
-    def _toggle_result(self, data):
+    def _toggle_result(self, data: dict) -> None:
+        """Inverts tracking configurations for independent rows upon manual cell select actions.
+
+        Args:
+            data (dict): Reference slice specifying target item data blocks.
+        """
 
         exists = any(
             x["type"] == "result"
@@ -334,7 +372,12 @@ class ResultsTable(QWidget):
     # TOGGLE PROMPT GROUP
     # =========================
 
-    def _toggle_prompt(self, data):
+    def _toggle_prompt(self, data: dict) -> None:
+        """Swaps multi-selection states across entire subgroups belonging to the clicked keyword parameter.
+
+        Args:
+            data (dict): Reference block identifying the target parent text line.
+        """
 
         prompt = data["prompt"]
 
@@ -378,17 +421,8 @@ class ResultsTable(QWidget):
     # VISUAL FEEDBACK
     # =========================
 
-    def _refresh_visuals(self):
-        """Colore les lignes selon leur état de sélection.
-
-        Lignes résultat sélectionnées :
-          - fond teinté avec la couleur du dot (alpha SEL_BG_ALPHA)
-          - barre gauche (colonne 0) en couleur pleine du dot
-          - texte en blanc gras
-        Lignes résultat non sélectionnées → reset
-        Lignes prompt → teinte bleue si au moins un enfant sélectionné,
-                         teinte complète si tous sélectionnés.
-        """
+    def _refresh_visuals(self) -> None:
+        """Updates tabular sheet formatting attributes matching selection records and fires updates."""
         # Index des résultats sélectionnés pour lookup rapide
         sel_keys = {
             (s["prompt"], s["index"])
@@ -468,7 +502,8 @@ class ResultsTable(QWidget):
     # CLICK OUTSIDE TABLE
     # =========================
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
+        """Resets layout highlights whenever users perform clicks inside blank margins."""
 
         index = self.table.indexAt(event.pos())
 
@@ -504,8 +539,8 @@ class ResultsTable(QWidget):
             for prompt, data in grouped.items()
         ]
         
-    def refresh_ui_language(self):
-        """Met à jour tous les textes de l'UI après changement de langue"""
+    def refresh_ui_language(self) -> None:
+        """Updates horizontal headers and compound text strings across prompt labels on locale updates."""
         # -------------------------
         # Header table
         # -------------------------

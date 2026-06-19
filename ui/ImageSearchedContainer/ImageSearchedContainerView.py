@@ -23,6 +23,18 @@ from ui.utils.i18n import tr
 # ─────────────────────────────────────────────
 
 class LazyImageCard:
+    """Container tracking object for managing deferred image asset loading states.
+
+    Args:
+        image (Image): The image domain object tracked by this lazy card wrapper.
+
+    Attributes:
+        image (Image): The underlying Image entity.
+        widget (ImageThumbnailWidget | None): The associated thumbnail widget component.
+        is_visible (bool): Viewport visibility status tracking flag.
+        _loaded (bool): Internal loading state tracking variable.
+
+    """
     def __init__(self, image: Image):
         self.image = image
         self.widget: ImageThumbnailWidget | None = None
@@ -30,7 +42,13 @@ class LazyImageCard:
         self._loaded = False
 
     @property
-    def is_loaded(self):
+    def is_loaded(self) -> bool:
+        """Boolean status flag indicating if the underlying pixmap buffer is initialized.
+
+        Returns:
+            True if the asset has been fully loaded, False otherwise.
+
+        """
         return self._loaded
 
 
@@ -39,6 +57,20 @@ class LazyImageCard:
 # ─────────────────────────────────────────────
 
 class ImageSearchedContainerView(QWidget):
+    """Main view container managing the justified gallery layout and deferred loading pipelines.
+
+    Signals:
+        image_clicked (pyqtSignal[Image]): Emitted when an individual thumbnail is clicked.
+        load_more_requested (pyqtSignal): Emitted when user scroll position demands lazy loading pagination.
+        reload_requested (pyqtSignal): Emitted when the refresh toggle is activated.
+        search_requested (pyqtSignal[str, list]): Emitted when a multi-modal query execution is triggered.
+        threshold_changed (pyqtSignal[float]): Emitted when the validation score configuration slider shifts.
+
+    Args:
+        parent (QWidget | None): Optional structural owner component reference. Defaults to None.
+        enable_lazy_loading (bool): Toggle indicating if async rendering steps are active. Defaults to True.
+
+    """
 
     image_clicked = pyqtSignal(Image)
     load_more_requested = pyqtSignal()
@@ -75,7 +107,13 @@ class ImageSearchedContainerView(QWidget):
     # UI
     # ─────────────────────────────────────────────
 
-    def _setup_ui(self):
+    def _setup_ui(self) -> None:
+        """Construct the structural widget hierarchy, layouts, and interactive controls.
+
+        Returns:
+            None
+
+        """
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
 
@@ -153,10 +191,28 @@ class ImageSearchedContainerView(QWidget):
     # SCROLL / LOAD MORE
     # ─────────────────────────────────────────────
 
-    def set_image_count(self, count: int):
+    def set_image_count(self, count: int) -> None:
+        """Update the configuration spinbox constraint value.
+
+        Args:
+            count (int): The target limit value for display results.
+
+        Returns:
+            None
+
+        """
         self.image_count_spinbox.setValue(count)
 
-    def _on_scroll(self, value: int):
+    def _on_scroll(self, value: int) -> None:
+        """Handle scroll event triggers for lazy render detection and pagination fetching.
+
+        Args:
+            value (int): Current raw slider coordinate index position.
+
+        Returns:
+            None
+
+        """
         if self._lazy_enabled:
             self._check_visible_cards()
 
@@ -170,7 +226,13 @@ class ImageSearchedContainerView(QWidget):
             self._loading = True
             QTimer.singleShot(100, self._emit_load_more)
 
-    def _emit_load_more(self):
+    def _emit_load_more(self) -> None:
+        """Emit the pagination signal after clearing the loading gate lock.
+
+        Returns:
+            None
+
+        """
         self._loading = False
         self.load_more_requested.emit()
 
@@ -178,7 +240,13 @@ class ImageSearchedContainerView(QWidget):
     # LAZY CORE
     # ─────────────────────────────────────────────
 
-    def _check_visible_cards(self):
+    def _check_visible_cards(self) -> None:
+        """Scan active viewport window for cards requiring rendered pixel maps.
+
+        Returns:
+            None
+
+        """
         if not self._lazy_enabled:
             return
 
@@ -210,7 +278,13 @@ class ImageSearchedContainerView(QWidget):
         if self._render_queue and not self._lazy_timer.isActive():
             self._lazy_timer.start()
 
-    def _lazy_render_batch(self):
+    def _lazy_render_batch(self) -> None:
+        """Execute periodic batch processing to hydrate pending widget thumbnails.
+
+        Returns:
+            None
+
+        """
         if not self._render_queue:
             self._lazy_timer.stop()
             return
@@ -225,10 +299,15 @@ class ImageSearchedContainerView(QWidget):
         if not self._render_queue:
             self._lazy_timer.stop()
 
-    def _load_thumbnail(self, card: LazyImageCard):
-        """Déclenche le chargement async du widget.
-        card._loaded sera mis à True via le signal image_loaded,
-        PAS ici — le chargement est asynchrone.
+    def _load_thumbnail(self, card: LazyImageCard) -> None:
+        """Trigger asynchronous pixmap fetching on the target widget component.
+
+        Args:
+            card (LazyImageCard): The target thumbnail asset metadata handler wrapper.
+
+        Returns:
+            None
+
         """
         if not card.widget:
             return
@@ -243,7 +322,17 @@ class ImageSearchedContainerView(QWidget):
     # API
     # ─────────────────────────────────────────────
 
-    def display_images(self, image_data: list[Image], total_count: int):
+    def display_images(self, image_data: list[Image], total_count: int) -> None:
+        """Inject image objects into the gallery list and initialize widget cards.
+
+        Args:
+            image_data (list[Image]): The raw domain dataset list containing asset info.
+            total_count (int): Upper bound threshold limit number expected.
+
+        Returns:
+            None
+
+        """
         for image in image_data:
             lazy_card = LazyImageCard(image)
 
@@ -270,16 +359,32 @@ class ImageSearchedContainerView(QWidget):
 
         self._update_filter_ui_visibility()
 
-    def _on_image_loaded(self, card: LazyImageCard):
-        """Appelé quand le widget a vraiment fini de charger sa pixmap.
-        C'est ici qu'on marque la card comme loaded.
+    def _on_image_loaded(self, card: LazyImageCard) -> None:
+        """Lifecycle hook triggered upon successful widget pixmap hydration.
+
+        Args:
+            card (LazyImageCard): The associated tracker card marking completed pipeline steps.
+
+        Returns:
+            None
+
         """
         card._loaded = True
         self._total_loaded += 1
         self.gallery_layout.update()
         self.masonry.update()
 
-    def update_images(self, images_results: dict[str, list[dict]]):
+    def update_images(self, images_results: dict[str, list[dict]]) -> None:
+        """Map cross-referenced search result packets back onto local widget instances.
+
+        Args:
+            images_results (dict[str, list[dict]]): Map pairing absolute string filepaths 
+                to structural computer vision segmentation payloads.
+
+        Returns:
+            None
+
+        """
         widgets = {
             str(c.image.path): c.widget
             for c in self._cards
@@ -293,7 +398,16 @@ class ImageSearchedContainerView(QWidget):
 
         self._update_filter_ui_visibility()
 
-    def clear_results(self, images_paths: list[str]):
+    def clear_results(self, images_paths: list[str]) -> None:
+        """Clear cached inference result properties from internal widgets.
+
+        Args:
+            images_paths (list[str]): List of absolute identifier path string entries to clear.
+
+        Returns:
+            None
+
+        """
         widgets = {
             str(c.image.path): c.widget
             for c in self._cards
@@ -308,6 +422,16 @@ class ImageSearchedContainerView(QWidget):
         self._update_filter_ui_visibility()
     
     def get_widgets(self, sam3_result: bool = False) -> list[ImageThumbnailWidget] | None:
+        """Fetch active managed gallery widgets with optionally filtered criteria.
+
+        Args:
+            sam3_result (bool): Flag to return only elements possessing valid 
+                segmentation context results. Defaults to False.
+
+        Returns:
+            A compiled widget list subset, or None.
+
+        """
         if sam3_result:
             return [
                 c.widget
@@ -322,6 +446,15 @@ class ImageSearchedContainerView(QWidget):
         ]
 
     def show_only(self, widgets: list[ImageThumbnailWidget]) -> None:
+        """Apply temporary visibility masks to widgets not matching input whitelist.
+
+        Args:
+            widgets (list[ImageThumbnailWidget]): Whitelist matching item instances to maintain visible.
+
+        Returns:
+            None
+
+        """
         widgets_set = set(widgets)
 
         for card in self._cards:
@@ -334,7 +467,13 @@ class ImageSearchedContainerView(QWidget):
         self.gallery_layout.invalidate()
         QTimer.singleShot(0, self.gallery_layout.update)
 
-    def _gallery_apply_visibility(self):
+    def _gallery_apply_visibility(self) -> None:
+        """Apply current filtering mask states to the gallery geometry manager.
+
+        Returns:
+            None
+
+        """
         for card in self._cards:
             if not card.widget:
                 continue
@@ -350,7 +489,13 @@ class ImageSearchedContainerView(QWidget):
     # CLEAR
     # ─────────────────────────────────────────────
 
-    def clear(self):
+    def clear(self) -> None:
+        """Purge all gallery assets, reset tracking flags, and orphan child widgets.
+
+        Returns:
+            None
+
+        """
         self._cards.clear()
         self._render_queue.clear()
         self._lazy_timer.stop()
@@ -364,7 +509,13 @@ class ImageSearchedContainerView(QWidget):
         self._total_loaded = 0
         self._loading = False
 
-    def clear_filters(self):
+    def clear_filters(self) -> None:
+        """Reset filtering states to display all available gallery items.
+
+        Returns:
+            None
+
+        """
         self._active_widgets.clear()
 
         for card in self._cards:
@@ -381,31 +532,79 @@ class ImageSearchedContainerView(QWidget):
     # CONFIG
     # ─────────────────────────────────────────────
 
-    def set_lazy_batch_size(self, size: int):
+    def set_lazy_batch_size(self, size: int) -> None:
+        """Adjust the render throttle batch sizing parameter.
+
+        Args:
+            size (int): Max allocation count to load simultaneously in one window loop step.
+
+        Returns:
+            None
+
+        """
         self._max_renders_per_batch = size
 
-    def enable_lazy_loading(self, enabled: bool):
+    def enable_lazy_loading(self, enabled: bool) -> None:
+        """Toggle asynchronous asset loading engine state.
+
+        Args:
+            enabled (bool): Boolean target condition state.
+
+        Returns:
+            None
+
+        """
         self._lazy_enabled = enabled
 
-    def _on_threshold_changed(self, value: int):
+    def _on_threshold_changed(self, value: int) -> None:
+        """Handle slider interaction signal to update threshold property labels.
+
+        Args:
+            value (int): Integer scale percentage factor from 0 to 100.
+
+        Returns:
+            None
+
+        """
         self.threshold_value_label.setText(f"{value}%")
         self.threshold_changed.emit(value / 100.0)
 
-    def _apply_styles(self):
+    def _apply_styles(self) -> None:
+        """Resolve theme-aware icon assets for tool buttons.
+
+        Returns:
+            None
+
+        """
         self.reload_button.setIcon(
             colored_icon("./ui/Icon/refresh.svg",
                          os.environ["QTMATERIAL_PRIMARYCOLOR"],
                          64)
         )
 
-    def _on_theme_changed(self):
+    def _on_theme_changed(self) -> None:
+        """Handle global theme switch notifications.
+
+        Returns:
+            None
+
+        """
         self._apply_styles()
 
     # ─────────────────────────────────────────────
     # FILTER
     # ─────────────────────────────────────────────
 
-    def _on_filter_changed(self, _=None):
+    def _on_filter_changed(self, _=None) -> None:
+        """Bridge filter selection signals to the core sorting algorithm.
+
+        Args:
+            _ (Any, optional): Discarded text signal payload value parameter. Defaults to None.
+
+        Returns:
+            None
+
+        """
         mode = self.filter_combo.currentData()
 
         if mode is None:
@@ -414,7 +613,13 @@ class ImageSearchedContainerView(QWidget):
         self._filter_mode = mode
         self.apply_sam3_filter()
 
-    def _update_filter_ui_visibility(self):
+    def _update_filter_ui_visibility(self) -> None:
+        """Update toggle button visibility based on detection status.
+
+        Returns:
+            None
+
+        """
         has_results = any(
             c.widget and (c.widget.image_label._results or c.widget._pending_results)
             for c in self._cards
@@ -422,11 +627,29 @@ class ImageSearchedContainerView(QWidget):
 
         self.filter_combo.setVisible(has_results)
 
-    def set_filter_mode(self, mode: str):
+    def set_filter_mode(self, mode: str) -> None:
+        """Manually define active filtering sort mode.
+
+        Args:
+            mode (str): Sorting key method specifier flag string.
+
+        Returns:
+            None
+
+        """
         self._filter_mode = mode
         self.apply_sam3_filter()
 
-    def apply_sam3_filter(self, min_score: float = 0.0):
+    def apply_sam3_filter(self, min_score: float = 0.0) -> None:
+        """Apply sort criteria and visibility masking for semantic analysis items.
+
+        Args:
+            min_score (float): Lower bound filter cutoff constraint value. Defaults to 0.0.
+
+        Returns:
+            None
+
+        """
         if self._filter_mode == "none":
             for card in self._cards:
                 if card.widget:
@@ -499,7 +722,15 @@ class ImageSearchedContainerView(QWidget):
         self.gallery_layout.set_visible_items(layout_items)
         
     def _on_language_changed(self, lang_code: str = None) -> None:
-        """Met à jour tous les textes UI de la galerie"""
+        """Update localized UI labels and control strings upon language configuration change.
+
+        Args:
+            lang_code (str | None): Optional target country identifier string context. Defaults to None.
+
+        Returns:
+            None
+
+        """
         # -----------------------------
         # HEADER
         # -----------------------------

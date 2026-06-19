@@ -10,8 +10,15 @@ from common.Dataset_Classes.DatasetRepository import DatasetRepository
 from ui.utils.i18n import tr
 
 class ImportRunner:
-    """Wrapper async propre autour de ImportService
-    (aucune dépendance PyQt ici)
+    """A clean asynchronous wrapper around ImportService handling background data execution operations.
+
+    Maintains complete separation from GUI framework dependencies by utilizing standard threading loops 
+    and invocation callbacks.
+
+    Args:
+        service (ImportService):
+            The targeted application service instance responsible for underlying persistence logic.
+
     """
 
     def __init__(self, service: ImportService):
@@ -29,6 +36,19 @@ class ImportRunner:
         on_done: Callable[[int, int], None],
         on_error: Callable[[str], None]
     ):
+        """Spin up a background thread task to load and parse catalog information records.
+
+        Args:
+            file_path (str):
+                The local absolute disk path targeting the input JSON data manifest file.
+            on_progress (Callable[[str], None]):
+                Status text tracing callback function to output runtime information messages.
+            on_done (Callable[[int, int], None]):
+                Completion event function reporting successful totals versus targeted rows.
+            on_error (Callable[[str], None]):
+                Exceptional signal routing fallback function triggered by internal failures.
+
+        """
         if self._running:
             on_error(tr("Import already running"))
             return
@@ -36,6 +56,7 @@ class ImportRunner:
         self._running = True
 
         def task():
+            """Internal sequential worker routine executed inside the detached concurrent thread layer."""
             data = self.service.load_file(file_path)
             images = data["images"]
             total_images = len(images)
@@ -111,4 +132,5 @@ class ImportRunner:
     # CANCEL
     # -----------------------
     def cancel(self):
+        """Set execution control state loops flags to gracefully request loop cancellations."""
         self._running = False

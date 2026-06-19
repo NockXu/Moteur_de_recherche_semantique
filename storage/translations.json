@@ -681,6 +681,18 @@
     },
     "Scan complet initialisé": {
         "fr": "Scan complet initialisé",
-        "en": ""
+        "en": "Complete scan initialise"
+    },
+    "Sélection de la langue": {
+        "fr": "Sélection de la langue",
+        "en": "Language selection"
+    },
+    "Préférences": {
+        "fr": "Préférences",
+        "en": "Preferences"
+    },
+    "Ouvrir les préférences de l'application": {
+        "fr": "Ouvrir les préférences de l'application",
+        "en": "Open the application preferences"
     }
 }

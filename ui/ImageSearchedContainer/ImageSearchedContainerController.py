@@ -25,6 +25,13 @@ from ui.ImageSearchedContainer.SAM3ProgressWindow import SAM3ProgressWindow
 # STATE
 # =========================
 class SearchState:
+    """Stores the tracking state of the current image search session.
+
+    Attributes:
+        query (str | None): The current search text prompt.
+        cursor (tuple[float, int] | None): Pagination markers for database retrieval.
+        has_more (bool): Indicates if there are additional matching results to load.
+    """
     def __init__(self):
         self.query: str | None = None
         self.cursor: tuple[float, int] | None = None
@@ -34,7 +41,16 @@ class SearchState:
 # CONTROLLER
 # =========================
 class ImageSearchedContainerController(QObject):
+    """Coordinates search input, asynchronous AI processing, and gallery display updates.
 
+    Signals:
+        images_loaded (pyqtSignal[int]): Emitted with the count of successfully processed images.
+
+    Args:
+        thumbnail_size (int): Default display height for gallery images. Defaults to 150.
+        theme_changed (pyqtSignal | None): Optional signal to broadcast visual UI theme updates.
+    """
+    
     images_loaded = pyqtSignal(int)
 
     def __init__(self, thumbnail_size: int = 150, theme_changed: pyqtSignal | None = None):
@@ -72,7 +88,8 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # SIGNALS
     # ─────────────────────────────
-    def _connect_signals(self):
+    def _connect_signals(self) -> None:
+        """Connects UI component actions and background worker signals to internal slots."""
         self.view.image_clicked.connect(self._on_image_clicked)
         self.view.load_more_requested.connect(self.load_more_images)
         self.view.reload_requested.connect(self.reload_images)
@@ -84,7 +101,12 @@ class ImageSearchedContainerController(QObject):
         history.current_search_updated.connect(self.search)
         self.view.image_count_spinbox.valueChanged.connect(self._on_image_count_changed)
         
-    def _on_image_count_changed(self, value: int):
+    def _on_image_count_changed(self, value: int) -> None:
+        """Handles changes in the target image count and restarts the search.
+
+        Args:
+            value (int): The new maximum number of search results requested.
+        """
         self.research.k = value
         self.embedding_manager.start_search(
             query=self.state.query,
@@ -93,30 +115,32 @@ class ImageSearchedContainerController(QObject):
             auto_research=self.research
         )
 
-    def _on_results_displayed(self, results: dict[str, list[dict]]):
-        """Slot connecté à Image Preview
-
-        Reçoit la liste de dicts :
+    def _on_results_displayed(self, results: dict[str, list[dict]]) -> None:
+        """Updates thumbnails with segmented coordinates and prediction scores.
+        
+        reiceve :
             [{"type":"result", "prompt":str, "index":int,
               "score":float, "box":[x1,y1,x2,y2],
               "color": QColor, ...}, ...]
 
-        Quand la liste contient tous les résultats (aucune sélection),
-        ResultsTable les émet tous — on les affiche tous normalement.
+        Args:
+            results (dict[str, list[dict]]): A dictionary mapping image paths to their overlay data.
         """
         self.view.update_images(results)
 
-    def _on_results_cleared(self, image_paths: list[str]):
-        """Slot connecté à Image Preview
+    def _on_results_cleared(self, image_paths: list[str]) -> None:
+        """Clears temporary prediction results from the specified images.
 
-        Quand les résultats sont effacés, on met à jour la vue.
+        Args:
+            image_paths (list[str]): Filepaths of images that need their results cleared.
         """
         self.view.clear_results(image_paths)
 
-    def _on_multi_send(self, prompts: list[dict]):
-        """Slot connecté à SAM3Widget
+    def _on_multi_send(self, prompts: list[dict]) -> None:
+        """Sends multi-modal text prompts to the SAM3 model for batch image analysis.
 
-        Reçoit la liste de prompts et les envoie à l'embedding manager.
+        Args:
+            prompts (list[dict]): A list of point coordinates or label options.
         """
         if not prompts:
             return
@@ -145,7 +169,14 @@ class ImageSearchedContainerController(QObject):
             image.set_prompts(prompts)
             self._sam3_jobs[job_id] = image
 
-    def _on_sam3_image_finished(self, job_id: str, image_path: str, results):
+    def _on_sam3_image_finished(self, job_id: str, image_path: str, results) -> None:
+        """Receives completed segmentation data for a single image job.
+
+        Args:
+            job_id (str): Unique tracking identifier for the completed worker thread.
+            image_path (str): The file system location of the handled image.
+            results (list[dict]): Raw detection layer information.
+        """
         image = self._sam3_jobs.pop(job_id, None)
         if image is None:
             return
@@ -164,7 +195,13 @@ class ImageSearchedContainerController(QObject):
         if not self._sam3_jobs:
             self._sam3_progress_window.finish()
 
-    def _on_sam3_image_error(self, job_id: str, error: str):
+    def _on_sam3_image_error(self, job_id: str, error: str) -> None:
+        """Handles an error encountered during the segmentation process of an image.
+
+        Args:
+            job_id (str): Unique tracking identifier for the failed job.
+            error (str): Text message detailing the processing failure.
+        """
         if not job_id or job_id not in self._sam3_jobs:
             return
 
@@ -176,7 +213,14 @@ class ImageSearchedContainerController(QObject):
             self._sam3_progress_window.finish()
 
     def _convert_sam3_results(self, results: list[dict]) -> list[dict]:
-        """Convertit le format brut SAM3 en format attendu par draw_results."""
+        """Converts raw SAM3 data structures into standard display formatting.
+
+        Args:
+            results (list[dict]): Raw multidimensional tensor bounding fields from the model.
+
+        Returns:
+            A clean list of dictionaries formatted for rendering overlays on images.
+        """
         from PyQt6.QtGui import QColor
 
         COLORS = [
@@ -214,7 +258,8 @@ class ImageSearchedContainerController(QObject):
 
         return display
 
-    def _on_sam3_cancelled(self):
+    def _on_sam3_cancelled(self) -> None:
+        """Aborts all currently running image segmentation tasks."""
         self.sam3_manager.cancel_all()
         self._sam3_jobs.clear()
         self._sam3_progress_window.reset()
@@ -222,7 +267,12 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # SEARCH ENTRY POINT
     # ─────────────────────────────
-    def _on_search_triggered(self, search_text: str):
+    def _on_search_triggered(self, search_text: str) -> None:
+        """Clears old states and runs a brand new asynchronous semantic search.
+
+        Args:
+            search_text (str): Raw string keywords typed by the user.
+        """
         if self._sam3_jobs:
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
@@ -250,7 +300,8 @@ class ImageSearchedContainerController(QObject):
             auto_research=self.research
         )
 
-    def search(self):
+    def search(self) -> None:
+        """Runs a search based on the current history log selection context."""
         if self._sam3_jobs:
             self.sam3_manager.cancel_all()
             self._sam3_jobs.clear()
@@ -286,7 +337,12 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # SEARCH CALLBACK
     # ─────────────────────────────
-    def _on_search_finished(self, result):
+    def _on_search_finished(self, result) -> None:
+        """Processes and displays the results after a search finishes.
+
+        Args:
+            result (dict): Data dictionary containing image entities and total results count.
+        """
         self._loading = False
 
         if result is None:
@@ -296,18 +352,32 @@ class ImageSearchedContainerController(QObject):
         self.model.append_results({'images': result.get('images', []), 'k': result.get('k', 200)})
         self._update_view()
 
-    def _on_search_error(self, error: str):
+    def _on_search_error(self, error: str) -> None:
+        """Logs search processing exceptions received from background handlers.
+
+        Args:
+            error (str): Error message string describing why the query failed.
+        """
         self._loading = False
         print(f"{tr('[Search ERROR]')} {error}")
 
-    def _on_threshold_changed(self, threshold: float):
-        """Appelé quand le threshold change depuis la vue"""
+    def _on_threshold_changed(self, threshold: float) -> None:
+        """Updates the internal minimum similarity threshold filter.
+
+        Args:
+            threshold (float): Similarity percentage value limit between 0.0 and 1.0.
+        """
         self.model.set_threshold(threshold)
 
     # ─────────────────────────────
     # LOAD MORE (INFINITE SCROLL)
     # ─────────────────────────────
-    def load_more_images(self, reset: bool = False):
+    def load_more_images(self, reset: bool = False) -> None:
+        """Fetches the next batch of images for infinite scrolling.
+
+        Args:
+            reset (bool): Unused cleanup indicator flag placeholder. Defaults to False.
+        """
         if self._loading:
             return
         
@@ -340,7 +410,8 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # VIEW UPDATE
     # ─────────────────────────────
-    def _update_view(self):
+    def _update_view(self) -> None:
+        """Pushes active visible data models into the gallery view component."""
         self.view.display_images(
             image_data=self.model.get_visible_images(),
             total_count=len(self.model.images),
@@ -350,25 +421,42 @@ class ImageSearchedContainerController(QObject):
     # CLICK
     # ─────────────────────────────
     def _on_image_clicked(self, image: Image | None) -> None:
+        """Triggers the registered click callback when an image thumbnail is selected.
+
+        Args:
+            image (Image | None): The specific image instance that was clicked.
+        """
         if self.image_click_callback and image:
             self.image_click_callback(image)
 
     # ─────────────────────────────
     # PUBLIC API
     # ─────────────────────────────
-    def get_view(self):
+    def get_view(self) -> ImageSearchedContainerView:
+        """Returns the main visual widget managed by this controller.
+
+        Returns:
+            The underlying image gallery view instance.
+        """
         return self.view
 
-    def set_image_click_callback(self, callback: Callable[[Image], None]):
+    def set_image_click_callback(self, callback: Callable[[Image], None]) -> None:
+        """Registers a callback function to handle image thumbnail click events.
+
+        Args:
+            callback (Callable[[Image], None]): Function triggered upon image selection.
+        """
         self.image_click_callback = callback
 
-    def clear_images(self):
+    def clear_images(self) -> None:
+        """Resets the internal model cache and purges all displayed images."""
         self._sam3_jobs.clear()
         self.model.reset()
         self.state = SearchState()
         self._update_view()
 
-    def reload_images(self):
+    def reload_images(self) -> None:
+        """Reloads and refreshes the current batch of display elements from scratch."""
         self._sam3_jobs.clear()
         self.model.reset()
         self.view.clear()
@@ -380,16 +468,27 @@ class ImageSearchedContainerController(QObject):
     # ─────────────────────────────
     # CONFIG
     # ─────────────────────────────
-    def set_thumbnail_size(self, size: int):
+    def set_thumbnail_size(self, size: int) -> None:
+        """Changes the scale dimensions of image thumbnails in the gallery.
+
+        Args:
+            size (int): Target pixel scale size value constraints.
+        """
         self.thumbnail_size = size
         self._update_view()
 
-    def set_threshold(self, value: float):
+    def set_threshold(self, value: float) -> None:
+        """Sets the search validation score filter value and updates the UI sliders.
+
+        Args:
+            value (float): Percentage factor threshold rating value.
+        """
         self.model.set_threshold(value)
         self.view.threshold_slider.setValue(int(value * 100))
         self.view.threshold_value_label.setText(f"{int(value * 100)}%")
 
-    def load(self):
+    def load(self) -> None:
+        """Restores the previous query prompt text and configurations from local files."""
         search = load_from_config("current_search")
         if search:
             self.view.search_controller.set_text(search.get("query", ""))
@@ -397,10 +496,12 @@ class ImageSearchedContainerController(QObject):
 
             history.set_current_search(history.current_search)
 
-    def cleanup(self):
+    def cleanup(self) -> None:
+        """Safely stops active search worker threads before closing the component."""
         self.embedding_manager.stop_search()
 
-    def save_search(self):
+    def save_search(self) -> None:
+        """Saves current search parameters into configuration records and updates history."""
         data = HistoryData(self.state.query, self.model.threshold)
 
         if data:

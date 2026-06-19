@@ -18,6 +18,12 @@ BOX_COLORS = [
 
 
 class ImageView(QLabel):
+    """Canvas interactif gérant l'affichage d'images, le tracé de boîtes et la superposition de masques SAM3.
+
+    Args:
+        parent (QWidget | None): Widget parent de l'instance. Defaults to None.
+        selectable (bool): Active l'interaction à la souris pour dessiner ou modifier des boîtes. Defaults to False.
+    """
     selection_finished = pyqtSignal()
     box_changed = pyqtSignal(int, QRect)
     results_displayed = pyqtSignal(dict)
@@ -67,6 +73,11 @@ class ImageView(QLabel):
 
     @property
     def selectable(self) -> bool:
+        """Indique si le dessin et le redimensionnement interactifs sont actifs.
+
+        Returns:
+            bool:
+        """
         return self._selectable
 
     @selectable.setter
@@ -79,7 +90,12 @@ class ImageView(QLabel):
     #  Chargement de l'image                                               #
     # ------------------------------------------------------------------ #
 
-    def setImage(self, image_path: Path | None):
+    def setImage(self, image_path: Path | str | None):
+        """Met à jour le pixmap source à partir d'un chemin de fichier cible.
+
+        Args:
+            image_path (Path | str | None): Chemin système vers l'image.
+        """
         if image_path is None:
             self._image_path = None
             self._pixmap = None
@@ -93,11 +109,17 @@ class ImageView(QLabel):
     #  Redimensionnement du widget                                         #
     # ------------------------------------------------------------------ #
 
-    def resizeEvent(self, event):
+    def resizeEvent(self, event) -> None:
+        """Intercepte les redimensionnements du widget pour mettre à l'échelle la texture.
+
+        Args:
+            event (QResizeEvent): Métadonnées de l'événement système.
+        """
         super().resizeEvent(event)
         self.updateScaledPixmap()
 
-    def updateScaledPixmap(self):
+    def updateScaledPixmap(self) -> None:
+        """Calcule le ratio d'aspect de l'image et centre le rectangle de rendu."""
         if self._pixmap is None:
             return
 
@@ -125,6 +147,14 @@ class ImageView(QLabel):
     # ------------------------------------------------------------------ #
 
     def image_to_widget_rect(self, rect: QRect) -> QRect:
+        """Transpose les dimensions depuis le repère image vers le repère widget.
+
+        Args:
+            rect (QRect): Zone d'origine en pixels image.
+
+        Returns:
+            QRect:
+        """
         sx = self._display_rect.width() / self._pixmap.width()
         sy = self._display_rect.height() / self._pixmap.height()
 
@@ -136,6 +166,14 @@ class ImageView(QLabel):
         return QRect(int(x), int(y), int(w), int(h))
 
     def widget_to_image_rect(self, rect: QRect) -> QRect:
+        """Transpose les dimensions depuis le repère widget vers le repère image.
+
+        Args:
+            rect (QRect): Zone d'origine en pixels widget.
+
+        Returns:
+            QRect:
+        """
         sx = self._pixmap.width() / self._display_rect.width()
         sy = self._pixmap.height() / self._display_rect.height()
 
@@ -146,7 +184,12 @@ class ImageView(QLabel):
 
         return QRect(int(x), int(y), int(w), int(h))
 
-    def paintEvent(self, event):
+    def paintEvent(self, event) -> None:
+        """Gère le rendu des couches d'images, des overlays utilisateur et des masques.
+
+        Args:
+            event (QPaintEvent): Événement de mise à jour graphique.
+        """
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
 
@@ -247,7 +290,9 @@ class ImageView(QLabel):
                 painter.setPen(Qt.GlobalColor.white)
                 painter.drawText(label_x + 5, label_y + th - 5, text)
 
-    def _draw_mask(self, painter, mask, color, rect):
+    def _draw_mask(self, painter : QPainter, mask, color : QColor, rect) -> None:
+        """Convertit un tenseur/matrice numpy de masque et le plaque sur le canevas."""
+        m = mask
         if mask is None:
             return
 
@@ -285,16 +330,11 @@ class ImageView(QLabel):
     #  API publique — résultats ResultsTable                              #
     # ------------------------------------------------------------------ #
 
-    def set_active_results(self, results: list[dict]):
-        """Slot connecté à ResultsTable.result_selected.
+    def set_active_results(self, results: list[dict]) -> None:
+        """Injecte les données de segmentation actives pour forcer la mise à jour visuelle.
 
-        Reçoit la liste de dicts :
-            [{"type":"result", "prompt":str, "index":int,
-              "score":float, "box":[x1,y1,x2,y2],
-              "color": QColor, ...}, ...]
-
-        Quand la liste contient tous les résultats (aucune sélection),
-        ResultsTable les émet tous — on les affiche tous normalement.
+        Args:
+            results (list[dict]): Liste de dictionnaires contenant boîtes, scores et masques.
         """
         if results not in [None, False]:
             self._active_results = results or []
@@ -302,8 +342,8 @@ class ImageView(QLabel):
             image_result = {self._image_path: results}
             self.results_displayed.emit(image_result)
 
-    def clear_results(self):
-        """Efface tous les résultats affichés."""
+    def clear_results(self) -> None:
+        """Réinitialise et efface l'affichage de tous les masques calculés."""
         self._active_results = []
         self.update()
 
@@ -311,7 +351,12 @@ class ImageView(QLabel):
     #  Événements souris                                                 #
     # ------------------------------------------------------------------ #
 
-    def mousePressEvent(self, event):
+    def mousePressEvent(self, event) -> None:
+        """Gère l'initialisation des tracés utilisateur et la capture des poignées de redimensionnement.
+
+        Args:
+            event (QMouseEvent): Contient la position du curseur souris.
+        """
         if not self._selectable:
             return super().mousePressEvent(event)
 
@@ -346,7 +391,12 @@ class ImageView(QLabel):
         self._current_rect = QRect(pos, QSize())
         self._is_drawing = True
 
-    def mouseMoveEvent(self, event):
+    def mouseMoveEvent(self, event) -> None:
+        """Met à jour dynamiquement les dimensions de la boîte ciblée (tracé ou étirement).
+
+        Args:
+            event (QMouseEvent): Position mise à jour du curseur.
+        """
         if not self._selectable:
             return super().mouseMoveEvent(event)
 
@@ -368,7 +418,12 @@ class ImageView(QLabel):
             self._current_rect = QRect(self._origin, pos).normalized()
             self.update()
 
-    def mouseReleaseEvent(self, event):
+    def mouseReleaseEvent(self, event) -> None:
+        """Clôture l'opération courante de mutation géométrique et émet les signaux de notification.
+
+        Args:
+            event (QMouseEvent): Événement de relâchement du bouton souris.
+        """
         if not self._selectable:
             return super().mouseReleaseEvent(event)
 
@@ -398,17 +453,20 @@ class ImageView(QLabel):
     # ------------------------------------------------------------------ #
 
     def get_selection_rect(self) -> QRect | None:
-        """Retourne le QRect de la sélection courante (tracée à la souris),
-        ou None si aucune sélection n'est en cours / disponible.
-        La boîte est visible à l'écran en pointillés pendant son tracé.
+        """Fournit le rectangle en cours de tracé dans le référentiel du widget.
+
+        Returns:
+            QRect | None:
         """
         if self._current_rect is None:
             return None
         return self._current_rect.normalized()
 
     def get_selection_rect_image_coords(self) -> QRect | None:
-        """Retourne la sélection dans les coordonnées
-        de l'image originale.
+        """Fournit le rectangle courant converti dans le repère en pixels réels de l'image.
+
+        Returns:
+            QRect | None:
         """
         rect = self.get_selection_rect()
 
@@ -432,6 +490,11 @@ class ImageView(QLabel):
         )
 
     def apply_selection(self) -> int | None:
+        """Valide la sélection pointillée courante et l'ajoute au catalogue interne.
+
+        Returns:
+            int | None:
+        """
         rect = self.get_selection_rect()
 
         if rect is None:
@@ -456,7 +519,8 @@ class ImageView(QLabel):
 
         return idx
 
-    def _stretch_box(self, pos: QPoint):
+    def _stretch_box(self, pos: QPoint) -> None:
+        """Modifie les dimensions de la boîte sélectionnée à partir de la poignée saisie."""
         if self._resize_index is None or self._resize_initial_rect is None:
             return
 
@@ -478,8 +542,13 @@ class ImageView(QLabel):
         self.box_changed.emit(self._resize_index, QRect(r))  # <-- IMPORTANT
 
     def delete_box(self, index: int) -> bool:
-        """Supprime la boîte identifiée par *index*.
-        Retourne True si elle existait, False sinon.
+        """Supprime l'élément correspondant à l'index donné s'il existe.
+
+        Args:
+            index (int): Identifiant unique de la boîte.
+
+        Returns:
+            bool:
         """
         if index not in self._boxes:
             return False
@@ -488,21 +557,36 @@ class ImageView(QLabel):
         return True
 
     def get_box_color(self, index: int) -> QColor | None:
-        """Retourne la QColor associée à la boîte *index*, ou None.
+        """Renvoie la couleur associée à un identifiant donné.
+
+        Args:
+            index (int): Clé de recherche de la boîte.
+
+        Returns:
+            QColor | None:
         """
         box = self._boxes.get(index)
         return QColor(box["color"]) if box else None
 
     def get_all_boxes(self) -> dict[int, dict]:
-        """Retourne une copie du dictionnaire de toutes les boîtes :
-        {index: {"rect": QRect, "color": QColor}}
+        """Génère un dictionnaire découplé de l'ensemble des boîtes enregistrées.
+
+        Returns:
+            dict[int, dict]:
         """
         return {
             idx: {"rect": QRect(b["rect"]), "color": QColor(b["color"])}
             for idx, b in self._boxes.items()
         }
 
-    def load_boxes(self, boxes=None, labels=None, colors=None):
+    def load_boxes(self, boxes: list[list[int]] | None = None, labels : list[bool] | None = None, colors : list[QColor] | None = None) -> None:
+        """Écrase la configuration actuelle et injecte de nouveaux lots de données externes.
+
+        Args:
+            boxes (list[list[int]] | None): Liste de coordonnées [x1, y1, x2, y2]. Defaults to None.
+            labels (list[bool] | None): Polarités associées (Positif/Négatif). Defaults to None.
+            colors (list[QColor] | None): Couleurs prédéfinies à affecter. Defaults to None.
+        """
         self._boxes.clear()
         self._next_index = 0
 
@@ -532,11 +616,22 @@ class ImageView(QLabel):
     # ------------------------------------------------------------------ #
 
     def _next_box_color(self) -> QColor:
-        """Retourne la prochaine couleur dans la palette cyclique."""
+        """Renvoie la couleur cyclique suivante basée sur l'index incrémental.
+
+        Returns:
+            QColor:
+        """
         return BOX_COLORS[self._next_index % len(BOX_COLORS)]
 
     def _handle_positions(self, rect: QRect) -> list[tuple[int, int]]:
-        """Retourne les 4 coins (tl, tr, bl, br) d'un QRect pour les poignées."""
+        """Calcule les 4 coins cardinaux d'une boîte normalisée.
+
+        Args:
+            rect (QRect): Rectangle source dans le repère image.
+
+        Returns:
+            list[tuple[int, int]]:
+        """
         r = rect.normalized()
         return [
             (r.left(), r.top()),      # tl

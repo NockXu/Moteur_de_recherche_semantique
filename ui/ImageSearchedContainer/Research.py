@@ -19,6 +19,12 @@ from common.WeightCalculator import get_weight_function_by_expr, WeightFunction
 import numpy as np
 
 class Research:
+    """Core search coordinator engine orchestrating vectorized multi-modal database lookups.
+
+    Integrates semantic local text embeddings generation via Ollama with fast, high-dimensional
+    vector index querying managed by FAISS data banks.
+    """
+    
     def __init__(self, repository : ImageRepository) -> None:
         self.image_repository = repository
         self.embedding_wrapper = OllamaWrapper()
@@ -29,6 +35,16 @@ class Research:
         query: str | None = None,
         threshold: float = 0.5,
     ) -> SearchResults | None:
+        """Query the asset indexing registers to find vector neighbors matching structural inputs.
+
+        Args:
+            query (str | None): Target text descriptor phrase, or None/DEFAULT to list baseline contents.
+            threshold (float): Minimum cosine distance similarity filter constraints.
+
+        Returns:
+            SearchResults | None: Matching output dataset arrays, or None if embeddings loops abort.
+
+        """
         # -------------------------
         # ALL IMAGES MODE
         # -------------------------
@@ -71,6 +87,12 @@ class Research:
     def multi_find(
         self
     ) -> list[SearchResults | None]:
+        """Traverse historical search lineage nodes to compute unified, cross-weighted similarity scores.
+
+        Returns:
+            list[SearchResults | None]: Consolidated tracking payload mapping accumulated item properties scores.
+
+        """
 
         research_history = history.current_search.get_all_ancestors()
         query_embeds = []

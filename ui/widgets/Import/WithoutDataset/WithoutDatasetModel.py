@@ -8,6 +8,11 @@ from database.DbService import DbService
 
 @dataclass
 class WithoutDatasetModel:
+    """Data model managing dataset verification and status tracking for unstructured imports.
+
+    Maintains a pre-cached collection of existing database dataset records to perform
+    instantaneous validation lookup checks without polling physical storage sequentially.
+    """
 
     def __init__(self):
         self.mode: str = "merge"  # "merge" ou "separate"
@@ -20,7 +25,11 @@ class WithoutDatasetModel:
     # ---------------- logique simple ----------------
 
     def exist(self) -> None:
-        """Vérifie si le modèle est valide"""
+        """Evaluate input record names against preloaded tracking caches to append status flags.
+
+        Updates internal mapping configurations states to determine if a target collection
+        requires automatic database generation or allows structural merging.
+        """
         for data in self.datasets_data:
             if any(dataset.name == data["name"] for dataset in self._datasets_cache):
                 data["status"] = WithoutDatasetStatus.EXISTS
@@ -28,7 +37,13 @@ class WithoutDatasetModel:
                 data["status"] = WithoutDatasetStatus.NOT_EXISTS
 
     def update(self, datasets_data: list[WithoutDatasetData]):
-        """Met à jour le modèle avec les données fournies"""
+        """Refresh configuration attributes layers and trigger layout dependency lookups.
+
+        Args:
+            datasets_data (list[WithoutDatasetData]):
+                A structured collection representing user input parameters extracted from visual fields.
+
+        """
         self.datasets_data = datasets_data
         self.exist()
         

@@ -9,6 +9,22 @@ from ui.widgets.ImageThumbnailWidget import ImageThumbnailWidget as BaseImageThu
 from common.Image_Classes.Image import Image, ProcessingStatus
 
 class ImageThumbnailWidget(BaseImageThumbnailWidget):
+    """Custom view component for displaying paginated image thumbnails with lifecycle status overlays.
+
+    Extends BaseImageThumbnailWidget to support asynchronous lazy loading, embedding scoring overlays,
+    and rendering pending pipeline evaluation metrics.
+
+    Args:
+        image (Image | None):
+            The custom image model structure containing layout metrics and metadata.
+        col_width (int):
+            The standardized display width sizing constraint. Defaults to 200.
+        status (ProcessingStatus):
+            The initial processing lifecycle state mapping. Defaults to ProcessingStatus.IN_PROGRESS.
+        lazy (bool):
+            If True, delays file reading routines until explicitly requested. Defaults to False.
+
+    """
 
     image_loaded = pyqtSignal()
 
@@ -47,19 +63,39 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
     @property
     def aspect_ratio(self):
+        """Fetch the original picture proportional aspect metric.
+
+        Returns:
+            The raw float aspect value stored in the image structure.
+
+        """
         return self._image.aspect_ratio
 
     @property
     def is_loaded(self):
+        """Check if pixel arrays are available in system memory.
+
+        Returns:
+            True if pixmaps are successfully loaded, otherwise False.
+
+        """
         return self._is_loaded
 
     def load_image(self):
+        """Trigger the asynchronous loading routine if lazy constraints are satisfied."""
         if self._is_loaded or not self._lazy_mode:
             return
         self._start_async_load()
 
     @pyqtSlot(QPixmap)
     def _on_pixmap_loaded(self, thumb: QPixmap):
+        """Handle worker callback values upon successful asynchronous background reading.
+
+        Args:
+            thumb (QPixmap):
+                The valid image pixel matrix loaded from disk storage.
+
+        """
         self._loader = None
         # On assigne la pixmap à la fois à la variable locale et à celle de la classe mère
         self._source_pixmap = thumb 
@@ -70,11 +106,19 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self._try_render()
 
     def _apply_pending_results(self):
+        """Inject queued evaluation metrics onto the visual display layers."""
         if self._pending_results is not None:
             self.image_label.set_results(self._pending_results)
             self.image_label.repaint()
 
     def set_result(self, result):
+        """Queue extraction outputs for rendering onto the canvas interface layer.
+
+        Args:
+            result (Any):
+                The analytical tracking values or metrics data packet.
+
+        """
         if not result:
             return
         
@@ -84,6 +128,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             QTimer.singleShot(0, self._apply_pending_results)
 
     def unload_image(self):
+        """Flush heavy canvas pixel structures to release internal UI memory allocations."""
         if self._is_loaded and self._lazy_mode:
             self.image_label.set_source_pixmap(QPixmap())
             self._is_loaded = False
@@ -91,6 +136,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
     @pyqtSlot()
     def _show_error(self):
+        """Render a fallback graphic configuration on the grid to signify disk reading failures."""
         error_pixmap = QPixmap(200, 200)
         error_pixmap.fill(QColor(255, 200, 200))
         painter = QPainter(error_pixmap)
@@ -103,6 +149,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self.image_loaded.emit()
 
     def _customize_title_layout(self):
+        """Swap standard title structures with multi-column widgets displaying file names and match scores."""
         if not hasattr(self, 'title_label'):
             return
 
@@ -135,17 +182,27 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             parent_layout.addLayout(title_layout)
 
     def clear_results(self):
+        """Flush evaluation contexts and remove text tags from the rendering layout nodes."""
         self.image_label.clear_results()
         self._pending_results = None
 
     def set_status(self, status: ProcessingStatus):
+        """Apply an updated lifecycle state value and repaint dependent status badges.
+
+        Args:
+            status (ProcessingStatus):
+                The updated lifecycle target state configuration.
+
+        """
         self._status = status
+        super().set_status(status)
         self._try_render()
-        
+            
     def _try_render(self):
+        """Repaint visual components and broadcast completion signals once data nodes are ready."""
         if not self._source_pixmap:
             return
-        
         self._pixmap_ready = True
         self._is_loaded = True
+        self.update()
         self.image_loaded.emit()

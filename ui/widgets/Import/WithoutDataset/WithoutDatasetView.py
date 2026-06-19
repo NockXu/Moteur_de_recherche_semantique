@@ -11,7 +11,10 @@ from typing import List
 from .WithoutDatasetType import WithoutDatasetConfig
 
 class WithoutDatasetView(QWidget):
-    """Vue uniquement (UI pure)"""
+    """Pure UI View component handling layout arrangements for unstructured datasets imports.
+
+    Provides modular interaction controls supporting both consolidation merges or split mappings.
+    """
 
     config_changed = pyqtSignal()
     mode_changed = pyqtSignal(str)
@@ -29,6 +32,7 @@ class WithoutDatasetView(QWidget):
     # ---------------- UI ----------------
 
     def setup_ui(self):
+        """Construct static layout panels, radio selections, and dynamic scrollable slots."""
         self.mainlayout = QVBoxLayout()
         self.mainlayout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.second_layout = QVBoxLayout()
@@ -56,6 +60,12 @@ class WithoutDatasetView(QWidget):
         self.setLayout(self.mainlayout)
 
     def setup_options(self, parent):
+        """Build radio selection buttons tracking data categorization strategies.
+
+        Args:
+            parent (QVBoxLayout): Main layout layout panel destination.
+
+        """
         self.mode_group = QButtonGroup()
 
         self.merge_radio = QRadioButton("Fusionner dans un dataset")
@@ -71,12 +81,14 @@ class WithoutDatasetView(QWidget):
     # ---------------- EVENTS ----------------
 
     def emit_mode(self):
+        """Purge configurations state caches and broadcast mode updates upon layout toggles."""
         mode = "without_dataset_merge" if self.merge_radio.isChecked() else "without_dataset_separate"
         self.config = []
         self.import_mode = mode
         self.mode_changed.emit(mode)
 
     def clear_dynamic(self):
+        """Safely destroy layout components mapped inside the dynamic scrolling layout."""
         while self.scroll_layout.count():
             item = self.scroll_layout.takeAt(0)
 
@@ -85,6 +97,12 @@ class WithoutDatasetView(QWidget):
                 widget.deleteLater()    
 
     def _clear_layout(self, layout):
+        """Recursively clear elements and destroy widgets nested within specific layout trees.
+
+        Args:
+            layout (QLayout): Targeted layout hierarchy container to purge.
+
+        """
         while layout.count():
             item = layout.takeAt(0)
 
@@ -98,6 +116,7 @@ class WithoutDatasetView(QWidget):
                 sublayout.deleteLater()
 
     def clear_header(self):
+        """Safely clear layout containers placed inside the top header viewport."""
         while self.header_layout.count():
             item = self.header_layout.takeAt(0)
             widget = item.widget()
@@ -107,6 +126,7 @@ class WithoutDatasetView(QWidget):
     # ---------------- MERGE ----------------
 
     def build_merge(self):
+        """Construct the layout context mapping multiple inputs onto a single dataset target."""
         self.clear_dynamic()
         self.clear_header()
 
@@ -138,7 +158,7 @@ class WithoutDatasetView(QWidget):
         self.merge_name_config = name_line_edit
 
     def add_merge_folder(self):
-        """Ajoute un dossier source pour le mode merge (utilise le nom global)"""
+        """Append a source directory lookup row linked to the unified merge tracking target."""
         h_layout = QHBoxLayout()
 
         # Pas de nom pour les dossiers sources en mode merge
@@ -184,6 +204,7 @@ class WithoutDatasetView(QWidget):
     # ---------------- SEPARATE ----------------
 
     def build_separate(self):
+        """Construct layout contexts splitting every folder into an independent dataset category."""
         self.clear_dynamic()
         self.clear_header()
 
@@ -198,6 +219,7 @@ class WithoutDatasetView(QWidget):
         self.header_layout.addWidget(add_btn)
 
     def add_folder(self):
+        """Append an unlinked row container handling independent tracking labels and folder path inputs."""
         h_layout = QHBoxLayout()
 
         name = QLineEdit()
@@ -247,7 +269,12 @@ class WithoutDatasetView(QWidget):
         self.scroll_layout.addWidget(container)
 
     def _browse_multiple_paths(self, paths_input: QLineEdit):
-        """Ouvre un dialogue pour sélectionner plusieurs dossiers sources"""
+        """Launch directory dialog prompts supporting selection of multiple storage endpoints.
+
+        Args:
+            paths_input (QLineEdit): Destination edit box receiving text sequences.
+
+        """
         from PyQt6.QtWidgets import QFileDialog
         
         folders = QFileDialog.getExistingDirectories(
@@ -262,7 +289,13 @@ class WithoutDatasetView(QWidget):
             paths_input.setText(paths_text)
 
     def _browse_pair(self, path_edit, name_edit):
-        """Ouvre un dialogue pour sélectionner un dossier"""
+        """Launch standard directory selection popups and update associated layout fields.
+
+        Args:
+            path_edit (QLineEdit): Target row edit field receiving absolute path selections.
+            name_edit (QLineEdit, optional): Linked text box auto-inheriting folder node names.
+
+        """
         folder = QFileDialog.getExistingDirectory(
             self,
             "Sélectionner un dossier",
@@ -277,6 +310,13 @@ class WithoutDatasetView(QWidget):
             self.config_changed.emit()
 
     def _delete_folder(self, widget, config):
+        """Purge specific structured configurations blocks from the layout hierarchy views.
+
+        Args:
+            widget (QWidget): Container control node scheduled for cleanup removal.
+            config (WithoutDatasetConfig): Associated tracking dictionaries reference.
+
+        """
         if config in self.config:
             self.config.remove(config)
 
@@ -288,6 +328,12 @@ class WithoutDatasetView(QWidget):
     # ---------------- DATA ----------------
 
     def get_mode(self):
+        """Fetch the active functional categorization indicator set inside the interface views.
+
+        Returns:
+            str: Active operation structural mapping mode string.
+
+        """
         return self.import_mode
 
 if __name__ == "__main__":

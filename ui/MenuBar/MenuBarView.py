@@ -12,15 +12,38 @@ from .MenuModel import MenuAction
 
 
 class MenuBarView:
-    """Vue pour la barre de menu"""
+    """View responsible for rendering and styling the main application menu bar.
+
+    This class instantiates a QMenuBar instance and dynamically populates it 
+    with menus and sub-actions based on a provided configuration map.
+
+    Args:
+        parent (QWidget, optional):
+            The parent widget layout containing this top menu bar. Defaults to None.
+
+    """
     
     def __init__(self, parent=None):
         self.parent = parent
         self.menu_bar = QMenuBar()
         self.menu_bar.setFont(QFont("Segoe UI", 10))
     
-    def create_menu_bar(self, menu_structure: dict[str, list[MenuAction]], handlers: dict[str, Callable]):
-        """Crée la barre de menu à partir de la structure et des handlers"""
+    def create_menu_bar(self, menu_structure: dict[str, list[MenuAction]], handlers: dict[str, Callable]) -> QMenuBar:
+        """Populate and structure the window menu bar using configuration maps.
+
+        This clears any existing menu tabs before compiling actions and 
+        binding event triggers in their sequential layout.
+
+        Args:
+            menu_structure (dict[str, list[MenuAction]]):
+                A map dictionary defining category names linked to item definitions.
+            handlers (dict[str, Callable]):
+                Fallback callback mappings referenced using action name strings.
+
+        Returns:
+            The fully built and connected QMenuBar instance framework.
+
+        """
         self.menu_bar.clear()
         
         for menu_name, actions in menu_structure.items():
@@ -55,14 +78,25 @@ class MenuBarView:
         
         return self.menu_bar
     
-    def get_menu_bar(self):
-        """Retourne la barre de menu créée"""
+    def get_menu_bar(self) -> QMenuBar:
+        """Retrieve the primary menu bar visual widget element.
+
+        Returns:
+            The underlying QMenuBar object instance.
+
+        """
         return self.menu_bar
     
-    def clear(self):
-        """Vide la barre de menu"""
+    def clear(self) -> None:
+        """Purge all active categories and action objects from the menu layouts."""
         self.menu_bar.clear()
     
-    def set_font(self, font: QFont):
-        """Définit la police de la barre de menu"""
+    def set_font(self, font: QFont) -> None:
+        """Apply a customized font typography configuration profile to the component.
+
+        Args:
+            font (QFont):
+                The typography configuration description object to use.
+
+        """
         self.menu_bar.setFont(font)

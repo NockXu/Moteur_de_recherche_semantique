@@ -18,7 +18,7 @@ from vision.ollama_wrapper import OllamaWrapper, OllamaConnectionError, OllamaRe
 from ui.utils.i18n import tr
 
 class State(Enum):
-    """États de connexion possibles"""
+    """Enumeration mapping of all possible backend server communication connection states."""
 
     DISCONNECTED = "non_connecté"
     CONNECTED = "connecté"
@@ -26,6 +26,16 @@ class State(Enum):
 
 
 class ConnectionVerificatorModel:
+    """Model tracking server communication parameters, response payloads, and exception state caches.
+
+    Args:
+        base_url (str):
+            The targeted endpoint link network directory string. Defaults to None.
+        timeout_s (float):
+            Network verification expiration threshold limitation duration given in seconds. Defaults to 10.0.
+
+    """
+    
     def __init__(self, base_url: str = None, timeout_s: float = 10.0):
         # Utiliser la variable d'environnement si base_url n'est pas fourni
         if base_url is None:
@@ -39,24 +49,39 @@ class ConnectionVerificatorModel:
         
     @property
     def state(self) -> State:
-        """Retourne l'état actuel de la connexion"""
+        """Fetch the active monitoring connection status tracking flag.
+
+        Returns:
+            The current communication enum State context tracker.
+
+        """
         return self._state
     
     @property
     def error_message(self) -> str:
-        """Retourne le message d'erreur si l'état est ERROR"""
+        """Fetch saved network diagnostic exception traces recorded if operational errors occurred.
+
+        Returns:
+            The raw error logging message content.
+
+        """
         return self._error_message
     
     @property
     def version(self) -> str:
-        """Retourne la version du serveur si connecté"""
+        """Fetch the firmware engine version string returned by successfully established server connections.
+
+        Returns:
+            The compiled build metadata sequence identifier.
+
+        """
         return self._version
     
     def check_connection(self) -> State:
-        """Vérifie la connexion au serveur Ollama et met à jour l'état
+        """Query endpoints to update target status logs and record interface response versions.
         
         Returns:
-            State: Le nouvel état de connexion
+            State: The newly verified lifecycle monitoring evaluation state.
 
         """
         try:
@@ -92,24 +117,34 @@ class ConnectionVerificatorModel:
         return self._state
     
     def is_connected(self) -> bool:
-        """Retourne True si la connexion est active"""
+        """Check if socket lines to remote backend listeners are open and active.
+
+        Returns:
+            True if variables register a completely successful connected property, otherwise False.
+
+        """
         return self._state == State.CONNECTED
     
     def has_error(self) -> bool:
-        """Retourne True si il y a une erreur de connexion"""
+        """Check if operational failure traces have locked standard connection execution routes.
+
+        Returns:
+            True if variables match fault descriptions, otherwise False.
+
+        """
         return self._state == State.ERROR
     
     def reset(self) -> None:
-        """Réinitialise l'état à DISCONNECTED"""
+        """Revert local instance tracking metrics back to default uninitialized values."""
         self._state = State.DISCONNECTED
         self._error_message = ""
         self._version = ""
     
     def get_status_info(self) -> dict:
-        """Retourne un dictionnaire avec toutes les informations de statut
+        """Compile an analytical metrics dictionary holding configuration values and trace information.
         
         Returns:
-            dict: Informations sur l'état de connexion
+            dict: An information metadata mapping tracking model system state attributes.
 
         """
         return {

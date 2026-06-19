@@ -21,7 +21,11 @@ from database.DbService import DbService
 
 
 class AdvancedImportDialog(QDialog):
-    """Boîte de dialogue d'import propre (UI + orchestration uniquement)"""
+    """Advanced configuration dialog for orchestrated image data catalog importations.
+
+    Handles high-level workflow state coordination between selected data profile schemas, 
+    background runtime worker instances, and sub-controller interface panels.
+    """
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -45,6 +49,7 @@ class AdvancedImportDialog(QDialog):
     # UI
     # -------------------------
     def setup_ui(self):
+        """Build layout panels, interactive controllers, and standard logging boxes."""
         layout = QVBoxLayout()
 
         # FILE
@@ -118,6 +123,7 @@ class AdvancedImportDialog(QDialog):
     # FILE
     # -------------------------
     def browse_file(self):
+        """Launch native file select dialog prompts targeting JSON data catalog formats."""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
             tr("Sélectionner un fichier JSON"),
@@ -131,6 +137,7 @@ class AdvancedImportDialog(QDialog):
             self.analyze_file()
 
     def analyze_file(self):
+        """Parse the input configuration manifest safely to pre-classify nested datasets properties."""
         try:
             with open(self.file_path, encoding="utf-8") as f:
                 data = json.load(f)
@@ -160,12 +167,14 @@ class AdvancedImportDialog(QDialog):
     # MODE / WIDGET
     # -------------------------
     def on_mode_changed(self):
+        """Trigger configuration subsection switches when toggling structural processing modes."""
         if not self.file_path:
             return
 
         self.replace_config_widget()
 
     def replace_config_widget(self):
+        """Purge stale dynamic control views and insert targeted subset settings configurations."""
         # cleanup ancien widget
         if self.current_config_widget:
             self.config_layout.removeWidget(self.current_config_widget)
@@ -198,6 +207,7 @@ class AdvancedImportDialog(QDialog):
     # IMPORT
     # -------------------------
     def start_import(self):
+        """Validate input forms parameters and spin up concurrent thread runner background services."""
         if not self.validate():
             return
 
@@ -229,6 +239,12 @@ class AdvancedImportDialog(QDialog):
     # VALIDATION
     # -------------------------
     def validate(self):
+        """Verify the integrity parameters of selection parameters and subcomponent configurations.
+
+        Returns:
+            bool: True if file path links are assigned and sub-view verification checks clear successfully.
+
+        """
         return (
             self.file_path is not None
             and self.current_controller is not None
@@ -239,18 +255,42 @@ class AdvancedImportDialog(QDialog):
     # CALLBACKS
     # -------------------------
     def log(self, msg):
+        """Append historical tracking descriptions out onto the visible output logging console.
+
+        Args:
+            msg (any):
+                The status update log message payload entry.
+
+        """
         self.log_text.append(str(msg))
 
     def on_done(self, success, total):
+        """Receive task completion reports from execution workers and reset input permissions.
+
+        Args:
+            success (int):
+                The total number of catalog records parsed without failures.
+            total (int):
+                The total processing target metrics queued at instantiation.
+
+        """
         self.log(f"{tr("Terminé")}: {success}/{total}")
         self.import_btn.setEnabled(True)
 
     def cancel_import(self):
+        """Request premature safe cancellation structural routines against operational runners."""
         if self.runner:
             self.runner.cancel()
             self.log(f"{tr("annulé")}")
             
     def _on_language_changed(self, lang_code: str = None) -> None:
+        """Translate structural text properties across native controls and downstream nested containers.
+
+        Args:
+            lang_code (str, optional):
+                Target internationalization language token. Defaults to None.
+
+        """
         # --- STATIC UI ---
         self.setWindowTitle(tr("Importation Avancée"))
 

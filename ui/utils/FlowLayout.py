@@ -7,6 +7,12 @@ from PyQt6.QtCore import Qt, QMargins, QPoint, QRect, QSize
 from PyQt6.QtWidgets import QApplication, QLayout, QPushButton, QSizePolicy, QWidget
 
 class FlowLayout(QLayout):
+    """Custom geometry layout manager engine providing left-to-right wrapping profiles.
+
+    Automatically calculates dimensions boundaries to align flowing child element rows
+    centered within the allocated bounding parent surface context.
+    """
+    
     def __init__(self, parent=None):
         super().__init__(parent)
 
@@ -65,6 +71,16 @@ class FlowLayout(QLayout):
         return size
 
     def _do_layout(self, rect, test_only):
+        """Execute element coordinates allocations over dynamic fluid bounding surfaces.
+
+        Args:
+            rect (QRect): Target boundary box container geometry.
+            test_only (bool): If True, computes layout height without repositioning widgets.
+
+        Returns:
+            int: Total computed layout height requirements across columns structures.
+
+        """
         x = rect.x()
         y = rect.y()
         line_height = 0

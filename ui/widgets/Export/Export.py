@@ -17,10 +17,10 @@ from ui.utils.i18n import tr
 
 
 class Export:
-    """Service d'export des images (clean version)
-    - pas de DB coupling direct
-    - pas de print
-    - output structuré
+    """Decoupled serialization data service handling Image mapping conversions.
+
+    Eliminates direct storage engine dependencies and console stream pollution
+    to output normalized object dictionary transformations.
     """
 
     # ─────────────────────────────
@@ -28,6 +28,15 @@ class Export:
     # ─────────────────────────────
 
     def image_to_dict(self, image: Image) -> dict[str, Any]:
+        """Convert a standalone Image object tracking instance into a standard key-value map.
+
+        Args:
+            image (Image): Target entity model containing processing attributes.
+
+        Returns:
+            dict[str, Any]: Flat dictionary representation of the asset properties.
+
+        """
         return {
             "id": getattr(image, "id", None),
             "path": str(image.path),
@@ -41,6 +50,15 @@ class Export:
         }
 
     def images_to_dict(self, images: list[Image]) -> dict[str, Any]:
+        """Map a collection list of Image models into a nested dictionary indexed by unique file names.
+
+        Args:
+            images (list[Image]): Collection array containing model entries.
+
+        Returns:
+            dict[str, Any]: Map index tracking individual image data dictionaries.
+
+        """
         return {
             img.name: self.image_to_dict(img)
             for img in images
@@ -51,6 +69,16 @@ class Export:
     # ─────────────────────────────
 
     def to_json(self, images: list[Image], indent: int = 2) -> str:
+        """Serialize a collection list of Image tracks into an indented human-readable text string.
+
+        Args:
+            images (list[Image]): Array tracking active data objects.
+            indent (int): Visual indentation space spacing format width.
+
+        Returns:
+            str: Normalized data structure block encoded as a JSON text string.
+
+        """
         data = self.images_to_dict(images)
         return json.dumps(data, indent=indent, ensure_ascii=False)
 
@@ -63,7 +91,16 @@ class Export:
         images: list[Image],
         output_file: str
     ) -> dict[str, Any]:
+        """Commit structural object configurations sequences down onto a targeted local storage file.
 
+        Args:
+            images (list[Image]): Payload array tracking model nodes.
+            output_file (str): Absolute destination path matching local storage devices.
+
+        Returns:
+            dict[str, Any]: Execution validation metadata tracking completion parameters.
+
+        """
         try:
             output_path = Path(output_file)
             output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -89,6 +126,15 @@ class Export:
     # ─────────────────────────────
 
     def export_single(self, image: Image) -> str:
+        """Convert a solitary target image element into a standalone string block.
+
+        Args:
+            image (Image): Selected singular tracking reference block.
+
+        Returns:
+            str: Serialized image model string segment.
+
+        """
         return json.dumps(
             self.image_to_dict(image),
             indent=2,
@@ -97,8 +143,7 @@ class Export:
 
 
 class ExportDialog(QDialog):
-    """Boîte de dialogue d'export avec choix du mode
-    """
+    """Modal UI selection pop-up wrapper letting users pick simple or full file layout extraction formulas."""
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -113,7 +158,7 @@ class ExportDialog(QDialog):
         self._setup_connections()
     
     def _setup_ui(self):
-        """Configure l'interface utilisateur"""
+        """Construct static layout containers and format local text label strings descriptions."""
         layout = QVBoxLayout(self)
         layout.setSpacing(15)
         
@@ -164,12 +209,12 @@ class ExportDialog(QDialog):
         layout.addStretch()
     
     def _setup_connections(self):
-        """Configure les connexions des signaux"""
+        """Map core interactive widget click signals straight into tracking handler callback logic pools."""
         self.export_button.clicked.connect(self._on_export_clicked)
         self.cancel_button.clicked.connect(self.reject)
     
     def _on_export_clicked(self):
-        """Gère le clic sur le bouton Exporter"""
+        """Intercept validation clicks, launch folder file explorers, and trigger data writes pipelines."""
         # Déterminer le mode sélectionné
         if self.radio_simple.isChecked():
             self.selected_mode = "simple"
@@ -208,7 +253,15 @@ class ExportDialog(QDialog):
                 )
     
     def _perform_export(self, file_path: str) -> bool:
-        """Effectue l'export selon le mode sélectionné"""
+        """Import modular script plugins at runtime to dump file structures safely based on flags.
+
+        Args:
+            file_path (str): Targeted storage location string matching absolute directories.
+
+        Returns:
+            bool: True if writing pipelines finalize cleanly without raising core exceptions.
+
+        """
         try:
             if self.selected_mode == "simple":
                 from .export_simple import export_images_file
@@ -226,10 +279,16 @@ class ExportDialog(QDialog):
             return False
     
     def get_selected_mode(self) -> str | None:
-        """Retourne le mode sélectionné"""
+        """Fetch the tracking string key defining the type of structural extraction selected.
+
+        Returns:
+            str | None: Active formulation key flag string ('simple', 'integral'), or None if aborted.
+
+        """
         return self.selected_mode
         
     def _on_language_changed(self):
+        """Refresh static localized dictionary context lookups upon tracking environment switches."""
         self.setWindowTitle(tr("Exporter les données"))
 
         self.findChild(QLabel).setText(tr("Choisir le mode d'export"))
@@ -248,13 +307,13 @@ class ExportDialog(QDialog):
 # ─────────────────────────────────────────────
 
 def show_export_dialog(parent=None) -> str | None:
-    """Affiche la boîte de dialogue d'export
-    
+    """Launch the modal layout selector window and retrieve user choice settings tokens.
+
     Args:
-        parent: Widget parent
-        
+        parent (QWidget, optional): Layout container hosting dialog child view nodes.
+
     Returns:
-        str: Mode sélectionné ('simple', 'integral') ou None si annulé
+        str | None: Mode flag string character arrays selected ('simple', 'integral') or None if cancelled.
 
     """
     dialog = ExportDialog(parent)

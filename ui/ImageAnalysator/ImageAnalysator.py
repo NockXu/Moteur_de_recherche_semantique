@@ -9,7 +9,16 @@ from .ImageView import ImageView
 from common.Image_Classes.Image import Image
 from common.Dataset_Classes.Dataset import Dataset
 
+from typing import Any
+
 class ImageAnalysator(QWidget):
+    """Master component orchestrating the rendering canvas (ImageView) and the segmentation control panel (Sam3Widget).
+
+    Args:
+        image (Image | None): Custom image entity instance. Defaults to None.
+        theme_changed (Any | None): Optional callback triggered on UI theme updates. Defaults to None.
+    """
+    
     def __init__(self, image: Image = None, theme_changed=None):
         super().__init__()
 
@@ -30,14 +39,20 @@ class ImageAnalysator(QWidget):
         self.sam3_widget.prompt_selected.connect(self.on_prompt_selected)
         self.sam3_widget.results_displayed.connect(self.image_view.set_active_results)
 
-    def set_image(self, image: Image):
+    def set_image(self, image: Image) -> None:
+        """Injects a new Image entity and synchronizes all sub-widgets.
+
+        Args:
+            image (Image): The new image data structure to analyze.
+        """
         self.image_path = image.path
         self.clear()
         self.image_view.setImage(image.path)
         self.image_view.updateScaledPixmap()
         self.sam3_widget.set_image(image)
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
+        """Builds the widget tree and configures the layout geometry."""
         self.layout = QVBoxLayout(self)
         self.setMinimumWidth(400)
 
@@ -57,7 +72,8 @@ class ImageAnalysator(QWidget):
         self.sam3_widget = Sam3Widget()
         self.sam3_visible = False
 
-    def toggle_sam3(self):
+    def toggle_sam3(self) -> None:
+        """Dynamically toggles the insertion state of the SAM3 panel inside the vertical layout."""
         if not self.sam3_visible:
             self.layout.addWidget(self.sam3_widget, stretch=1)
             self.sam3_btn.setText(f"{tr('Masquer SAM3')} ▲")
@@ -68,7 +84,8 @@ class ImageAnalysator(QWidget):
             self.sam3_btn.setText(f"{tr('Afficher SAM3')} ▼")
             self.sam3_visible = False
 
-    def load_image(self):
+    def load_image(self) -> None:
+        """Triggers a system file dialog to manually import an image file."""
         path, _ = QFileDialog.getOpenFileName(
             self,
             tr("Choisir une image"),
@@ -79,17 +96,24 @@ class ImageAnalysator(QWidget):
         if path:
             self.set_image(Image(path, Dataset(0, "default")))
 
-    def on_prompt_selected(self, data):
+    def on_prompt_selected(self, data : dict[str, Any]) -> None:
+        """Forwards bounding boxes and labels updates to the rendering canvas layer.
+
+        Args:
+            data (dict[str, Any]): Dictionary containing 'boxes' and 'labels' keys.
+        """
         boxes = data.get("boxes", [])
         labels = data.get("labels", [])
 
         self.image_view.load_boxes(boxes, labels)
 
-    def clear(self):
+    def clear(self) -> None:
+        """Clears all displayed results, masks, and local inference caches."""
         self.image_view.clear_results()
         self.sam3_widget._clear_local_results()
         
     def _on_language_changed(self) -> None:
+        """Forces re-evaluation of translated i18n strings on global language switch."""
         self.sam3_btn.setText(f"{tr('Afficher SAM3')} ▼" if not self.sam3_visible else f"{tr('Masquer SAM3')} ▲")
         self.sam3_widget._on_language_changed()
         

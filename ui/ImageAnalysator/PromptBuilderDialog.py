@@ -12,8 +12,15 @@ from .ImageView import ImageView
 from ui.utils.i18n import tr
 
 class BoxRow(QWidget):
-    """Widget représentant une boîte dans le scroll.
-    Affiche : [couleur] [coords] [bouton +/-] [supprimer]
+    """Widget representing a single selection box row entry within the scroll viewport list.
+
+    Displays a layout combination containing: [color indicator] [coordinates text] [toggle button] [delete button].
+
+    Args:
+        box_index (int): Unique incremental ID associated with the corresponding image box overlay.
+        coords (list[float]): Coordinate bounds array defined in order as [x1, y1, x2, y2].
+        color (QColor): Custom aesthetic overlay display color property instance.
+        parent (QWidget | None): Parent container element instance reference layout. Defaults to None.
     """
 
     def __init__(self, box_index: int, coords: list[float], color: QColor, parent=None):
@@ -59,10 +66,12 @@ class BoxRow(QWidget):
         self.setStyleSheet("BoxRow { border-bottom: 1px solid #2a2a2a; }")
 
     def _toggle_label(self):
+        """Inverts the binary target value status between positive inclusion and negative exclusion."""
         self.label = not self.label
         self._refresh_toggle()
 
     def _refresh_toggle(self):
+        """Applies distinct visual styles to the toggle element reflecting inclusion properties."""
         if self.label:
             self.toggle_btn.setText("✔")
             self.toggle_btn.setStyleSheet(
@@ -76,21 +85,25 @@ class BoxRow(QWidget):
                 "border-radius: 4px; font-size: 12px; padding: 2px 6px;"
             )
 
-    def update_coords(self, coords: list[float]):
+    def update_coords(self, coords: list[float]) -> None:
+        """Overwrites local boundaries data properties and redraws textual list descriptions.
+
+        Args:
+            coords (list[float]): Updated boundary positions sequence shaped as [x1, y1, x2, y2].
+        """
         self.coords = coords
 
         x1, y1, x2, y2 = [int(v) for v in coords]
         self.coords_label.setText(f"#{self.box_index}  [{x1}, {y1}, {x2}, {y2}]")
 
 class PromptBuilderDialog(QDialog):
-    """Dialog pour construire un visual_prompt SAM3.
-    Contient un ImageView intégré pour dessiner des boîtes à la souris.
+    """Interactive overlay workspace dialog box built for constructing multimodal visual SAM3 prompt criteria.
 
-    result : {
-        "type": "visual",
-        "boxes": [[x1,y1,x2,y2], ...],
-        "labels": [True/False, ...]
-    }
+    Features a specialized embedded canvas viewport accommodating hand-drawn mouse coordinate extractions.
+
+    Args:
+        parent (QWidget | None): Main framework parent context window node pointer object. Defaults to None.
+        image_path (str | None): Optional directory pointer indicating target resource images. Defaults to None.
     """
 
     def __init__(self, parent=None, image_path: str | None = None):
@@ -112,7 +125,8 @@ class PromptBuilderDialog(QDialog):
     #  Construction de l'UI                                              #
     # ------------------------------------------------------------------ #
 
-    def _init_ui(self):
+    def _init_ui(self) -> None:
+        """Configures nested visual tree components and wires communication handles."""
         root = QVBoxLayout(self)
         root.setSpacing(8)
         root.setContentsMargins(10, 10, 10, 10)
@@ -242,12 +256,21 @@ class PromptBuilderDialog(QDialog):
     #  API publique                                                      #
     # ------------------------------------------------------------------ #
 
-    def load_image(self, image_path: str):
-        """Charge une image dans l'ImageView intégré."""
+    def load_image(self, image_path: str) -> None:
+        """Loads and reads disk asset images inside the active embedded viewer panel resource context.
+
+        Args:
+            image_path (str): Target filesystem system resource destination directory location string.
+        """
         self._image_view.setImage(image_path)
 
-    def add_box(self, box_index: int, coords: list[float], color: QColor | None = None):
-        """Ajoute manuellement une boîte dans la liste (sans passer par l'ImageView).
+    def add_box(self, box_index: int, coords: list[float], color: QColor | None = None) -> None:
+        """Inserts a predefined box configuration item entry programmatically directly into list frames.
+
+        Args:
+            box_index (int): Destination unique tracking tracking key block reference identifier.
+            coords (list[float]): Bounding positional values mapping sequence shaped as [x1, y1, x2, y2].
+            color (QColor | None): Display appearance fill overlay properties. Defaults to None.
         """
         if color is None:
             color = self._image_view._next_box_color()
@@ -259,9 +282,11 @@ class PromptBuilderDialog(QDialog):
         self._scroll_layout.addWidget(row)
         self._refresh_empty()
 
-    def add_boxes_from_view(self, image_view: ImageView):
-        """Importe toutes les boîtes validées depuis un ImageView externe.
-        Vide la liste existante et synchronise l'ImageView interne.
+    def add_boxes_from_view(self, image_view: ImageView) -> None:
+        """Imports bounding datasets across alternative separate active panel views and overrides current states.
+
+        Args:
+            image_view (ImageView): Target host layout item view structure carrying source box items.
         """
         self._clear_rows()
         for idx, box in image_view.get_all_boxes().items():
@@ -286,8 +311,8 @@ class PromptBuilderDialog(QDialog):
     #  Sélection depuis l'ImageView interne                              #
     # ------------------------------------------------------------------ #
 
-    def _apply_selection(self):
-        """Valide la sélection courante de l'ImageView et l'ajoute à la liste."""
+    def _apply_selection(self) -> None:
+        """Validates current marquee canvas selections and translates dimensions into programmatic lines."""
         rect = self._image_view.get_selection_rect_image_coords()
         idx = self._image_view.apply_selection()
 
@@ -311,7 +336,15 @@ class PromptBuilderDialog(QDialog):
 
         self._add_row_from_image_box(idx, coords, color)
 
-    def _add_row_from_image_box(self, idx: int, coords: list[float], color: QColor, label : bool = True):
+    def _add_row_from_image_box(self, idx: int, coords: list[float], color: QColor, label : bool = True) -> None:
+        """Builds row widgets linked with canvas overlays and connects custom teardown signals.
+
+        Args:
+            idx (int): Global structural overlay tracker identification identifier mapping key.
+            coords (list[float]): Calculated pixel grid position layout settings mapping as [x1, y1, x2, y2].
+            color (QColor): Custom overlay rendering configuration tracking token instance.
+            label (bool): Determines initial interaction status polarity mapping configurations. Defaults to True.
+        """
         row = BoxRow(idx, coords, color, parent=self._scroll_content)
         if not label:
             row._toggle_label()
@@ -330,7 +363,13 @@ class PromptBuilderDialog(QDialog):
     #  Redimensionnement des boîtes                                      #
     # ------------------------------------------------------------------ #
 
-    def _on_box_changed(self, idx, rect):
+    def _on_box_changed(self, idx : int, rect : QRect) -> None:
+        """Synchronizes altered box dimensions from visual handles to programmatic list listings.
+
+        Args:
+            idx (int): Target row mapping element key descriptor identification token.
+            rect (QRect): Updated geographical dimensions profile metadata structure instance.
+        """
         coords = [
             rect.x(),
             rect.y(),
@@ -347,7 +386,8 @@ class PromptBuilderDialog(QDialog):
     #  Chargement image via dialog fichier                               #
     # ------------------------------------------------------------------ #
 
-    def _open_image_dialog(self):
+    def _open_image_dialog(self) -> None:
+        """Launches file selection overlays for targeting compatible asset resources across local storage."""
         from PyQt6.QtWidgets import QFileDialog
         path, _ = QFileDialog.getOpenFileName(
             self, f"{tr('Ouvrir une image')}", "",
@@ -360,30 +400,38 @@ class PromptBuilderDialog(QDialog):
     #  Logique interne                                                   #
     # ------------------------------------------------------------------ #
 
-    def _remove_row(self, row: BoxRow):
+    def _remove_row(self, row: BoxRow) -> None:
+        """Destroys a designated list line record and disposes memory assets completely.
+
+        Args:
+            row (BoxRow): Active view panel control row row reference structure.
+        """
         if row in self._rows:
             self._rows.remove(row)
         self._scroll_layout.removeWidget(row)
         row.deleteLater()
         self._refresh_empty()
 
-    def _clear_rows(self):
+    def _clear_rows(self) -> None:
+        """Wipes tracking entries out of visual lists and re-initializes tracking lists."""
         for row in list(self._rows):
             self._scroll_layout.removeWidget(row)
             row.deleteLater()
         self._rows.clear()
         self._refresh_empty()
 
-    def _clear_all(self):
-        """Supprime toutes les boîtes (liste + ImageView)."""
+    def _clear_all(self) -> None:
+        """Flushes matching list items and corresponding interactive canvas layers simultaneously."""
         for row in list(self._rows):
             self._image_view.delete_box(row.box_index)
         self._clear_rows()
 
-    def _refresh_empty(self):
+    def _refresh_empty(self) -> None:
+        """Toggles structural visibility layers formatting fallback instructions on unpopulated list conditions."""
         self._empty_label.setVisible(len(self._rows) == 0)
 
-    def _build_result(self):
+    def _build_result(self) -> None:
+        """Aggregates contextual configurations into a unified properties collection block and flags approval."""
         prompt = self._prompt_edit.text().strip()
 
         if not prompt:

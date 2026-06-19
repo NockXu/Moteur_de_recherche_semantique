@@ -6,7 +6,10 @@ from ui.utils.i18n import tr
 
 
 class SAM3ProgressWindow(QWidget):
-    """Fenêtre flottante non-bloquante affichant la progression du traitement SAM3 multi-images.
+    """Floating non-blocking progress dialog monitoring multi-image SAM3 prediction pipelines.
+
+    Maintains visual trackers, processing percentages, and handles interactive execution 
+    aborts using custom asynchronous signals.
     """
 
     cancelled = pyqtSignal()
@@ -21,6 +24,7 @@ class SAM3ProgressWindow(QWidget):
         self._setup_ui()
 
     def _setup_ui(self):
+        """Construct structural container boxes and instantiate layout visualization nodes."""
         layout = QVBoxLayout(self)
         layout.setContentsMargins(16, 16, 16, 16)
         layout.setSpacing(10)
@@ -49,6 +53,13 @@ class SAM3ProgressWindow(QWidget):
         layout.addLayout(footer)
 
     def start(self, total: int, initial_done: int = 0):
+        """Initialize pipeline constraints parameters and bring the view container overlay to top.
+
+        Args:
+            total (int): Total number of targeted file assets to parse.
+            initial_done (int): Number of items already completed before this invocation baseline.
+
+        """
         self._total = total
         self._done = initial_done
         pct = int(initial_done / total * 100) if total > 0 else 0
@@ -60,6 +71,13 @@ class SAM3ProgressWindow(QWidget):
         self.raise_()
 
     def update_progress(self, done: int, image_name: str = ""):
+        """Increment current milestones progress indicators and refresh the text overlay layout properties.
+
+        Args:
+            done (int): Cumulative count of finalized records.
+            image_name (str, optional): Target file identifier token that completed processing.
+
+        """
         self._done = done
         pct = int(done / self._total * 100) if self._total > 0 else 0
         self.progress_bar.setValue(pct)
@@ -68,6 +86,7 @@ class SAM3ProgressWindow(QWidget):
             self.status_label.setText(f"✓ {image_name}")
 
     def finish(self):
+        """Transition interface variables towards completed states and schedule an automated window hide."""
         self.progress_bar.setValue(100)
         self.count_label.setText(f"{self._total} / {self._total}")
         self.status_label.setText(f"{tr('Traitement terminé')}.")
@@ -75,11 +94,13 @@ class SAM3ProgressWindow(QWidget):
         QTimer.singleShot(1500, self.hide)
 
     def _on_cancel(self):
+        """Intercept user abort execution interactions and broadcast termination requests signals."""
         self.cancel_btn.setEnabled(False)
         self.status_label.setText(f"{tr('Annulation en cours')}...")
         self.cancelled.emit()
 
     def reset(self):
+        """Purge stored trackers metric layers data to restore base initialization profiles states."""
         self.hide()
         self._total = 0
         self._done = 0
@@ -89,7 +110,12 @@ class SAM3ProgressWindow(QWidget):
         self.cancel_btn.setEnabled(True)
         
     def _on_language_changed(self, lang_code: str = None) -> None:
-        """Met à jour les textes de la fenêtre de progression SAM3"""
+        """Refresh structural dictionary context lookups upon tracking system localization switches.
+
+        Args:
+            lang_code (str, optional): Target environment localization shorthand symbol token.
+
+        """
         # -----------------------------
         # TITRE DE FENÊTRE
         # -----------------------------

@@ -8,11 +8,26 @@ from .DatasetType import DatasetStatus, DatasetData
 from database.DbService import DbService
 
 class WithDatasetModel:
+    """Data model managing identification verification for structured dataset imports.
+
+    Maintains execution context configurations and leverages runtime database lookup
+    caches to append state indicators to tracking tokens.
+    """
+    
     def __init__(self):
         self.datasets_data : dict[DatasetData] = {}
         self._datasets_cache : list[Dataset] | None = None
 
     def update(self, name : str) -> DatasetData | None:
+        """Evaluate a dataset classification string and update the tracked configuration state.
+
+        Args:
+            name (str): The logical alphanumeric label of the target dataset.
+
+        Returns:
+            DatasetData | None: Updated data descriptor object, or None if validation fails.
+
+        """
         # Cas invalide
         if not self.is_valid(name):
             return None
@@ -29,7 +44,15 @@ class WithDatasetModel:
             return self.datasets_data[name]
 
     def exists(self, dataset_name: str) -> bool:
-        """Vérifie si un dataset existe déjà dans la base de données"""
+        """Query storage tracking files to verify if a dataset designation is already registered.
+
+        Args:
+            dataset_name (str): Alphanumeric string key being searched inside database indexes.
+
+        Returns:
+            bool: True if a matching dataset tracking tag is located, otherwise False.
+
+        """
         self._datasets_cache = DatasetRepository(DbService().sqlite).get_all()
 
         for dataset in self._datasets_cache:
@@ -38,7 +61,15 @@ class WithDatasetModel:
         return False
             
     def is_valid(self, dataset_name: str) -> bool:
-        """Vérifie si la configuration est valide"""
+        """Enforce character composition rules on incoming user data inputs.
+
+        Args:
+            dataset_name (str): The targeted raw character array to validate.
+
+        Returns:
+            bool: True if the structural composition matches validation requirements.
+
+        """
         if not dataset_name.strip():
             return False
         return True

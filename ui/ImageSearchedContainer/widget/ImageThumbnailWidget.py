@@ -10,6 +10,16 @@ from common.Image_Classes.Image import Image
 
 
 class ImageThumbnailWidget(BaseImageThumbnailWidget):
+    """Custom gallery thumbnail that adds asynchronous lazy loading and score overlays.
+
+    Signals:
+        image_loaded (pyqtSignal): Emitted when the thumbnail image asset finishes loading.
+
+    Args:
+        image (Image | None): Data entity carrying metadata, scores, and media filepaths.
+        col_width (int): Target pixel column constraint for rendering. Defaults to 200.
+        lazy (bool): Toggles lazy background evaluation behaviors. Defaults to False.
+    """
 
     image_loaded = pyqtSignal()
 
@@ -41,20 +51,36 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self._customize_title_layout()
 
     @property
-    def aspect_ratio(self):
+    def aspect_ratio(self) -> float:
+        """Retrieves the geometric proportions of the wrapped image object.
+
+        Returns:
+            The raw float aspect ratio calculation value.
+        """
         return self._image.aspect_ratio
 
     @property
-    def is_loaded(self):
+    def is_loaded(self) -> bool:
+        """Checks if the internal graphic resource has finished processing.
+
+        Returns:
+            True if the visual representation is ready, otherwise False.
+        """
         return self._is_loaded
 
-    def load_image(self):
+    def load_image(self) -> None:
+        """Triggers the asynchronous load routine if the asset remains uninitialized."""
         if self._is_loaded or not self._lazy_mode:
             return
         self._start_async_load()
 
     @pyqtSlot(QPixmap)
-    def _on_pixmap_loaded(self, thumb: QPixmap):
+    def _on_pixmap_loaded(self, thumb: QPixmap) -> None:
+        """Handles background worker completion results and schedules mask drawings.
+
+        Args:
+            thumb (QPixmap): Finished structural scale pixel map asset.
+        """
         super()._on_pixmap_loaded(thumb)
         self._pixmap_ready = True
         self._is_loaded = True
@@ -65,12 +91,18 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
 
         self.image_loaded.emit()
 
-    def _apply_pending_results(self):
+    def _apply_pending_results(self) -> None:
+        """Applies stored prediction bounding boxes onto the rendered target layout."""
         if self._pending_results is not None:
             self.image_label.set_results(self._pending_results)
             self.image_label.repaint()
 
-    def set_result(self, result):
+    def set_result(self, result: list[dict] | None) -> None:
+        """Saves segmentation outputs locally and queues updates for upcoming frames.
+
+        Args:
+            result (list[dict] | None): Extracted collection layers targeting standard overlays.
+        """
         if not result:
             return
         
@@ -80,14 +112,16 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             # Même chose ici : laisser le layout se stabiliser
             QTimer.singleShot(0, self._apply_pending_results)
 
-    def unload_image(self):
+    def unload_image(self) -> None:
+        """Purges stored pixels memory when items clear active view frames."""
         if self._is_loaded and self._lazy_mode:
             self.image_label.set_source_pixmap(QPixmap())
             self._is_loaded = False
             self._pixmap_ready = False
 
     @pyqtSlot()
-    def _show_error(self):
+    def _show_error(self) -> None:
+        """Generates a fallback indicator icon if loading fails."""
         error_pixmap = QPixmap(200, 200)
         error_pixmap.fill(QColor(255, 200, 200))
         painter = QPainter(error_pixmap)
@@ -99,7 +133,8 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self._is_loaded = True
         self.image_loaded.emit()
 
-    def _customize_title_layout(self):
+    def _customize_title_layout(self) -> None:
+        """Reconstructs the layout footer to show title text alongside matching weights."""
         if not hasattr(self, 'title_label'):
             return
 
@@ -131,6 +166,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
             self.title_label.deleteLater()
             parent_layout.addLayout(title_layout)
 
-    def clear_results(self):
+    def clear_results(self) -> None:
+        """Erases internal segmentation tracking data and wipes existing overlays."""
         self.image_label.clear_results()
         self._pending_results = None

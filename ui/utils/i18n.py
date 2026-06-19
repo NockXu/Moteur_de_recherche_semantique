@@ -17,7 +17,12 @@ _translations: dict[str, dict[str, str]] = {}
 # ── Runtime ────────────────────────────────────────────────────────────────
 
 def init_translations(lang: str) -> None:
-    """À appeler au démarrage de l'app."""
+    """Initialize the translation system on application startup.
+
+    Args:
+        lang (str): Target locale language code identifier (e.g., "en", "fr").
+
+    """
     global _current_lang, _translations
     _current_lang = lang
     _translations_path : str = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),  load_config().get("translations", {}).get("path", ""))
@@ -29,13 +34,29 @@ def init_translations(lang: str) -> None:
 
 
 def set_language(lang: str) -> None:
-    """Change la langue courante (nécessite un retranslate() manuel des widgets)."""
+    """Change the current active runtime language code context.
+
+    Note:
+        Requires triggering a manual retranslate() call across active view widgets.
+
+    Args:
+        lang (str): The new target language locale identifier code.
+
+    """
     global _current_lang
     _current_lang = lang
 
 
 def tr(text: str) -> str:
-    """Retourne la traduction du texte dans la langue courante."""
+    """Translate a given source text literal token into the active runtime locale.
+
+    Args:
+        text (str): Raw translation key identifier string.
+
+    Returns:
+        str: Translated value text map, or the original literal string as a fallback.
+
+    """
     entry = _translations.get(text)
     if entry:
         translated = entry.get(_current_lang, "")
@@ -47,7 +68,15 @@ def tr(text: str) -> str:
 # ── Extraction ─────────────────────────────────────────────────────────────
 
 def _extract_tr_calls(source: str) -> list[str]:
-    """Retourne toutes les chaînes passées à tr() dans un fichier source."""
+    """Parse python code using Abstract Syntax Trees to locate absolute tr() function arguments.
+
+    Args:
+        source (str): Raw file content text stream to scan.
+
+    Returns:
+        list[str]: Collection array tracking unique string literal arguments isolated within tr() calls.
+
+    """
     try:
         tree = ast.parse(source)
     except SyntaxError:
@@ -72,11 +101,19 @@ def extract_translations(
     project_root: str,
     language_list: list[str],
 ) -> dict[str, dict[str, str]]:
-    """Parcourt tous les .py du projet, extrait les appels tr("..."),
-    met à jour la config et retourne le dict de traductions.
+    """Scan all project files, discover active tr() invocations, and synchronize the target mapping schema.
 
-    Les traductions déjà renseignées ne sont jamais écrasées.
-    Les clés disparues du code sont conservées (au cas où).
+    Maintains safe synchronization behaviors:
+    - Never overwrites pre-existing translation values.
+    - Preserves orphan tracking keys discovered in previous extractions.
+
+    Args:
+        project_root (str): Bounding absolute base directory target to parse recursively.
+        language_list (list[str]): Target translation locale tags array to update.
+
+    Returns:
+        dict[str, dict[str, str]]: The updated, fully integrated translation schema dictionary layout.
+
     """
     translations_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))),  load_config().get("translations", {}).get("path", ""))
     with open(translations_path, encoding="utf-8") as f:

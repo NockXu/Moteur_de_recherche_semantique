@@ -26,6 +26,7 @@ import os
 
 
 class HistoryPreview(QWidget):
+    """Sidebar preview panel allowing real-time inspection, modification, or removal of historical search nodes."""
     # ---------------- SIGNALS ----------------
 
     action_done = pyqtSignal()
@@ -49,6 +50,7 @@ class HistoryPreview(QWidget):
     # ---------------- UI ----------------
 
     def _setup_ui(self) -> None:
+        """Initializes the layout structure and builds all sub-widgets inside the side overlay container."""
         root_layout = QVBoxLayout()
         root_layout.setContentsMargins(0, 0, 0, 0)
         root_layout.setSpacing(0)
@@ -121,6 +123,7 @@ class HistoryPreview(QWidget):
         root_layout.addWidget(self.container)
 
     def _apply_stylesheets(self) -> None:
+        """Applies colors, icons, and inline QSS styles synchronized with active material environment tokens."""
         self.close_button.setIcon(colored_icon("./ui/Icon/close.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"]))
         self.update_button.setIcon(colored_icon("./ui/Icon/download.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"]))
         self.delete_button.setIcon(colored_icon("./ui/Icon/delete.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"]))
@@ -138,6 +141,11 @@ class HistoryPreview(QWidget):
     # ---------------- PUBLIC ----------------
 
     def set_node(self, node: Tree | None) -> None:
+        """Binds a specific history node to the preview panel, filling inputs with its dataset fields.
+
+        Args:
+            node (Tree | None): The newly focused target node.
+        """
         self.current_node = node
 
         self.threshold_slider.setValue(int(node.node.threshold * 100))
@@ -168,9 +176,11 @@ class HistoryPreview(QWidget):
     # ---------------- EVENTS ----------------
     
     def _on_threshold_changed(self) -> None:
+        """Handles slider updates to visually refresh the percentage text suffix indicator."""
         self.threshold_value_label.setText(f"{self.threshold_slider.value()}%")
 
     def _on_update_clicked(self) -> None:
+        """Flushes user modifications from the local controls down to the targeted node instance data properties."""
         if self.current_node is None:
             return
 
@@ -182,6 +192,7 @@ class HistoryPreview(QWidget):
         self.close_clicked.emit()
 
     def _on_delete_clicked(self) -> None:
+        """Prompts a confirmation popup dialog to safely unlink the targeted sub-tree structure branches."""
         if self.current_node is None:
             return
 
@@ -205,6 +216,7 @@ class HistoryPreview(QWidget):
                     history.set_current_search(history.history_tree)
 
     def _on_add_child_clicked(self) -> None:
+        """Appends a freshly initialized standard history entry leaf onto the current node children stack."""
         if self.current_node is None:
             return
 
@@ -214,11 +226,18 @@ class HistoryPreview(QWidget):
         self.close_clicked.emit()
     
     def _on_theme_changed(self) -> None:
+        """Slot executed when a theme modification signal requires rebuilding look-and-feel stylesheet constraints."""
         self._apply_stylesheets()
 
     # ---------- WEIGHT CALCULATOR -------------
 
     def _on_weight_calculator_data_changed(self, const : float, expr : WeightSystem) -> None:
+        """Synchronizes advanced weight computation expressions updates onto the data entity state layer.
+
+        Args:
+            const (float): The base constant scaling factor.
+            expr (WeightSystem): The active systemic math formula definition.
+        """
         self.current_node.node.w_const = const
         self.current_node.node.w_expr = expr
         history.save()
@@ -226,6 +245,7 @@ class HistoryPreview(QWidget):
     # ------- LANGUAGE CHANGED -------------
     
     def _on_language_changed(self) -> None:
+        """Forces full translation updates on dynamic structural texts labels following runtime system locale swaps."""
         self.threshold_label.setText(f"{tr('Seuil')}:")
         self.query_edit.setPlaceholderText(tr("Entrer la requête ici"))
         self.weight_calculator.view._on_language_changed()

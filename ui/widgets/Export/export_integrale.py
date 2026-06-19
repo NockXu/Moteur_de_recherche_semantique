@@ -17,8 +17,9 @@ from database.DbService import DbService
 
 
 class ExportIntegrale:
-    """Export intégral des données au format JSON avec datasets et images
-    Structure:
+    """Full database data export engine translating image and dataset metadata records into JSON format.
+    
+    Output Schema Structure:
     {
         "<name>": {
             "id": <name>,
@@ -33,17 +34,20 @@ class ExportIntegrale:
     """
 
     def __init__(self):
-        """Initialise le service d'export intégral"""
+        """Initialize the full comprehensive export database service layer."""
         self.db_service = DbService()
 
     def export_all_data(self, file_path: str) -> dict[str, Any]:
-        """Exporte toutes les données (datasets + images) vers un fichier JSON
-        
+        """Serialize and save all catalog metrics (datasets + image rows) directly to a local JSON file.
+
         Args:
-            file_path: Chemin du fichier de sortie
-            
+            file_path (str): The absolute or relative target path for the generated output file.
+
         Returns:
-            Dict: Les données exportées
+            dict[str, Any]: The fully compiled data dictionary structure that was written to disk.
+
+        Raises:
+            Exception: If an error occurs during extraction or file serialization steps.
 
         """
         try:
@@ -63,7 +67,12 @@ class ExportIntegrale:
             raise
 
     def _get_all_images(self) -> dict[str, Any]:
-        """Récupère toutes les images et les formate selon la structure demandée"""
+        """Query tracking indexes to extract and format all image elements into the target schema payload.
+
+        Returns:
+            dict[str, Any]: A serialized image dictionary mapped via unique file names keys.
+
+        """
         try:
             # Récupérer toutes les images via ImageRepository
             from common.Image_Classes.ImageRepository import ImageRepository
@@ -89,7 +98,16 @@ class ExportIntegrale:
             return {}
 
     def _write_json_file(self, file_path: str, data: dict[str, Any]) -> None:
-        """Écrit les données dans un fichier JSON"""
+        """Commit data layout dictionaries payload structurally onto a target disk file path location.
+
+        Args:
+            file_path (str): Target physical destination path location on disk.
+            data (dict[str, Any]): Catalog payload properties structured block to persist.
+
+        Raises:
+            Exception: If sub-directory instantiation fails or writing permissions are denied.
+
+        """
         try:
             # Créer le répertoire si nécessaire
             Path(file_path).parent.mkdir(parents=True, exist_ok=True)
@@ -105,10 +123,13 @@ class ExportIntegrale:
             raise
 
     def export_to_string(self) -> str:
-        """Exporte toutes les données vers une chaîne JSON
-        
+        """Compile catalog entries layer metrics and format into an explicit serialized JSON string block.
+
         Returns:
-            str: Les données au format JSON
+            str: The fully stringified human-readable dataset and image database records block.
+
+        Raises:
+            Exception: If individual structural records serialization workflows fail.
 
         """
         try:
@@ -134,13 +155,13 @@ class ExportIntegrale:
 # ─────────────────────────────────────────────
 
 def export_integral_file(file_path: str) -> dict[str, Any]:
-    """Fonction utilitaire pour exporter rapidement toutes les données
-    
+    """Utility shorthand wrapper function to instantly export all data metrics directly into a local file.
+
     Args:
-        file_path: Chemin du fichier de sortie
-        
+        file_path (str): Target filesystem path location destination.
+
     Returns:
-        Dict: Les données exportées
+        dict[str, Any]: The finalized compiled dictionary schema data block committed to disk.
 
     """
     exporter = ExportIntegrale()
@@ -148,10 +169,10 @@ def export_integral_file(file_path: str) -> dict[str, Any]:
 
 
 def export_integral_string() -> str:
-    """Fonction utilitaire pour exporter rapidement les données en string
-    
+    """Utility shorthand wrapper function to instantly convert entire catalog models into a JSON string block.
+
     Returns:
-        str: Les données au format JSON
+        str: Serialized human-readable system configuration parameters text string block.
 
     """
     exporter = ExportIntegrale()

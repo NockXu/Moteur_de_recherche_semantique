@@ -25,6 +25,17 @@ from ui.utils.i18n import tr
 # ─────────────────────────────────────────────
 
 def _shadow(widget: QWidget, radius: int = 12, alpha: int = 30):
+    """Apply a drop shadow effect to a given widget.
+
+    Args:
+        widget (QWidget):
+            The widget that receives the shadow effect.
+        radius (int):
+            The blur radius of the shadow. Defaults to 12.
+        alpha (int):
+            The alpha transparency level of the shadow color (0-255). Defaults to 30.
+
+    """
     eff = QGraphicsDropShadowEffect(widget)
     eff.setBlurRadius(radius)
     eff.setOffset(0, 2)
@@ -49,6 +60,15 @@ QPushButton:disabled { background-color: #adb5bd; color: #f8f9fa; }
 """
 
 class LazyImageCard:
+    """Wrapper class used to manage lazy-loading state for individual image components.
+
+    Args:
+        image (Image):
+            The business image entity data wrapper.
+        widget (ImageThumbnailWidget):
+            The respective layout rendering component.
+
+    """
     def __init__(self, image: Image, widget: ImageThumbnailWidget):
         self.image = image
         self.widget = widget
@@ -60,6 +80,18 @@ class LazyImageCard:
 # ─────────────────────────────────────────────
 
 class ImportToolView(QWidget):
+    """Main view component representing the asynchronous dataset ingestion widget.
+
+    Manages user interactions for path targeting, background batch iteration triggers,
+    and a custom justified layout viewport that tracks scroll increments.
+
+    Args:
+        parent (QWidget):
+            Optional parent container reference. Defaults to None.
+        ollama_base_url (str):
+            Optional base endpoint URL configuration parameter for connection health checks. Defaults to None.
+
+    """
 
     folder_selected = pyqtSignal(str)
     start_processing_requested = pyqtSignal()
@@ -69,12 +101,6 @@ class ImportToolView(QWidget):
 
     _CARD_W = 200
     _GRID_GAP = 6
-    # Marge fixe (en px) avant le bas réel du scroll pour déclencher le chargement
-    # de la page suivante. FIX: un seuil en ratio (ex: 0.80) devient de plus en
-    # plus difficile à atteindre au fur et à mesure que le contenu grandit
-    # (le "maximum" du scrollbar augmente à chaque page chargée), ce qui faisait
-    # que le scroll "normal" ne déclenchait jamais rien et qu'il fallait scroller
-    # avec beaucoup d'inertie pour atteindre le vrai maximum.
     _SCROLL_MARGIN_PX = 0 * 2
 
     def __init__(self, parent=None, ollama_base_url: str = None):
@@ -106,12 +132,20 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def _setup_ui(self):
+        """Construct structural UI composition by stacking header, body, and footer frames."""
         root = QVBoxLayout(self)
         self._build_header(root)
         self._build_body(root)
         self._build_footer(root)
 
     def _build_header(self, parent):
+        """Build the upper header configuration bar for selecting inputs and executing routines.
+
+        Args:
+            parent (QVBoxLayout):
+                The main container layout object where the header frame is registered.
+
+        """
         card = QFrame()
         card.setStyleSheet(_CARD_STYLE)
         _shadow(card)
@@ -145,6 +179,13 @@ class ImportToolView(QWidget):
         parent.addWidget(card)
 
     def _build_body(self, parent):
+        """Build the main content scrollable panel that dynamically holds lazy image components.
+
+        Args:
+            parent (QVBoxLayout):
+                The main layout tree where the body viewport frame is registered.
+
+        """
         self.scroll_area = QScrollArea()
         self.scroll_area.setWidgetResizable(True)
         self.scroll_area.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
@@ -159,6 +200,13 @@ class ImportToolView(QWidget):
         parent.addWidget(self.scroll_area)
 
     def _build_footer(self, parent):
+        """Build the dashboard footer displaying background track progress and diagnostic widgets.
+
+        Args:
+            parent (QVBoxLayout):
+                The global layout stack where the footer frame is registered.
+
+        """
         footer_widget = QFrame()
         footer_layout = QVBoxLayout(footer_widget)
         footer_layout.setContentsMargins(12, 8, 12, 8)
@@ -225,11 +273,21 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def _on_select_folder(self):
+        """Prompt system directory dialog and emit the result path if selection holds valid."""
         path = QFileDialog.getExistingDirectory(self)
         if path:
             self.folder_selected.emit(path)
 
     def set_folder(self, path: str, ok: bool):
+        """Update file tracker label according to diagnostic validation states.
+
+        Args:
+            path (str):
+                Target folder absolute system path representation.
+            ok (bool):
+                Boolean assertion confirming execution clearance or active errors.
+
+        """
         self.folder_label.setText(Path(path).name if ok else tr("Erreur"))
 
     # ─────────────────────────────────────────────
@@ -237,6 +295,7 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def _on_start_stop_clicked(self):
+        """Toggle ingestion process execution states depending on active configuration values."""
         # FIX: un seul bouton connecté, délégation selon l'état
         if not self.is_running:
             self.start_processing_requested.emit()
@@ -254,9 +313,23 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def set_image_count(self, count: int):
+        """Set numerical thresholds on internal spinbox tracker elements if applicable.
+
+        Args:
+            count (int):
+                The integer amount tracking loaded entities.
+
+        """
         self.image_count_spinbox.setValue(count)
 
     def _on_scroll(self, value: int):
+        """Evaluate bounding box triggers during view scrolls to implement pagination offsets.
+
+        Args:
+            value (int):
+                The raw vertical position offset inside the active layout structure.
+
+        """
         if self._lazy_enabled:
             self._check_visible_cards()
 
@@ -270,6 +343,7 @@ class ImportToolView(QWidget):
             QTimer.singleShot(100, self._emit_load_more)
 
     def _emit_load_more(self):
+        """Dispatch a paginated request signal and clear status flags."""
         self._loading = False
         self.load_more_requested.emit()
         
@@ -278,6 +352,7 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def _check_visible_cards(self):
+        """Determine which thumbnail frames fall inside visible ranges and append to the loading queue."""
         if not self._lazy_enabled:
             return
 
@@ -309,6 +384,7 @@ class ImportToolView(QWidget):
             self._lazy_timer.start()
 
     def _lazy_render_batch(self):
+        """Iterate over queued images to extract visual properties within controlled framerate increments."""
         if not self._render_queue:
             self._lazy_timer.stop()
             return
@@ -324,9 +400,15 @@ class ImportToolView(QWidget):
             self._lazy_timer.stop()
 
     def _load_thumbnail(self, card: LazyImageCard):
-        """Déclenche le chargement async du widget.
-        card._loaded sera mis à True via le signal image_loaded,
-        PAS ici — le chargement est asynchrone.
+        """Trigger the asynchronous loading of the widget thumbnail.
+
+        The `card.loaded` property will be set to True via the `image_loaded` signal,
+        NOT here — since the loading process is asynchronous.
+
+        Args:
+            card (LazyImageCard):
+                The tracking structure container instance targeted for rendering update execution.
+
         """
         if not card.widget:
             return
@@ -342,6 +424,13 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def display_images(self, image_data: list[Image]):
+        """Render a collection of Image models onto the gallery dashboard context.
+
+        Args:
+            image_data (list[Image]):
+                List containing structural business model data points.
+
+        """
         for image in image_data:
             card = LazyImageCard(image, None)
 
@@ -368,6 +457,13 @@ class ImportToolView(QWidget):
             QTimer.singleShot(100, self._check_visible_cards)
 
     def _on_image_loaded(self, card: LazyImageCard):
+        """Mark an underlying thumbnail as loaded and prompt internal layout updates.
+
+        Args:
+            card (LazyImageCard):
+                The specific card structure object that has finished loading.
+
+        """
         if card.loaded:
             return
 
@@ -378,6 +474,13 @@ class ImportToolView(QWidget):
         self.masonry.update()
 
     def update_images(self, images_results: dict[str, list[dict]]):
+        """Forward diagnostic evaluation values to subcomponents based on tracking keys.
+
+        Args:
+            images_results (dict[str, list[dict]]):
+                A map containing information metrics structured per dataset file path key.
+
+        """
         widgets = {
             str(c.image.path): c.widget
             for c in self._cards
@@ -390,9 +493,17 @@ class ImportToolView(QWidget):
                 w.set_result(results)
         
     def append_images(self, image_data: list[Image]):
+        """Inject additional elements into the active layout framework view context.
+
+        Args:
+            image_data (list[Image]):
+                List containing data properties to stack.
+
+        """
         self.display_images(image_data)
         
     def _update_progress_display(self):
+        """Recalculate and display extraction progression across data sources."""
         if not hasattr(self, 'model') or not self.model:
             return
             
@@ -410,6 +521,15 @@ class ImportToolView(QWidget):
         self._progress_label.setText(f"Indexation : {treated} / {total} images")
         
     def update_image_status(self, path: str, status: ProcessingStatus):
+        """Update the status badge indicator on a unique image node inside the view structure.
+
+        Args:
+            path (str):
+                Absolute file system destination identifier tracking the targeted instance.
+            status (ProcessingStatus):
+                The new lifecycle configuration enum item to append.
+
+        """
         key = str(Path(path).resolve())
 
         for card in self._cards:
@@ -423,6 +543,7 @@ class ImportToolView(QWidget):
                 break
             
     def _refresh_image_display(self):
+        """Trigger update requests across active subcomponent visual layouts."""
         for card in self._cards:
             if card.widget:
                 card.widget.update()
@@ -432,6 +553,13 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def set_processing_mode(self, running: bool):
+        """Toggle action icons and local flag definitions during operations.
+
+        Args:
+            running (bool):
+                State declaration confirming active thread jobs.
+
+        """
         self.is_running = running
         self.btn_start.setIcon(self.icon_stop if running else self.icon_start)
 
@@ -440,9 +568,22 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def set_model(self, model):
+        """Inject an application model structure instance to link with data transformations.
+
+        Args:
+            model (Any):
+                The runtime model object holding status information.
+
+        """
         self.model = model
 
     def get_model(self):
+        """Fetch the injected model instance bound to this view context.
+
+        Returns:
+            The active model layer or object instance.
+
+        """
         return self.model
 
     # ─────────────────────────────────────────────
@@ -450,10 +591,12 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def cleanup(self):
+        """Release underlying controllers and clear memory allocations safely."""
         self.connection_verificator.cleanup()
         self._clear()
         
     def _clear(self):
+        """Purge tracking structures and request layout removal operations."""
         self._cards.clear()
         self._render_queue.clear()
 
@@ -466,7 +609,7 @@ class ImportToolView(QWidget):
         self._lazy_timer.stop()
         
     def clear(self):
-        """Expose le nettoyage interne de la grille pour le Controller"""
+        """Expose layout clearing loops to external manager layers."""
         self._clear()
         # Optionnel : On force le layout de la galerie à se recalculer vide
         if hasattr(self.gallery_layout, 'update'):
@@ -477,7 +620,13 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
 
     def _on_theme_changed(self, theme: str):
-        """Gère le changement de thème"""
+        """Re-render background elements and material style patterns on system theme changes.
+
+        Args:
+            theme (str):
+                The target context configuration identification variable name.
+
+        """
         self.icon_start = colored_icon("./ui/Icon/play_arrow.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
         self.icon_stop = colored_icon("./ui/Icon/stop.svg", os.environ["QTMATERIAL_PRIMARYCOLOR"])
         self.btn_start.setIcon(self.icon_stop if self.is_running else self.icon_start)
@@ -503,7 +652,13 @@ class ImportToolView(QWidget):
     # ─────────────────────────────────────────────
     
     def _on_language_changed(self, lang_code: str = None):
-        """Met à jour tous les textes UI de l'import tool"""
+        """Refresh displayed texts across local interface frames using translation tables.
+
+        Args:
+            lang_code (str):
+                Optional localized culture target code syntax. Defaults to None.
+
+        """
         # -----------------------------
         # HEADER
         # -----------------------------
