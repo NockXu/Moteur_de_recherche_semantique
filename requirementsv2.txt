@@ -1,4 +1,5 @@
-triton-windows
+triton-windows; sys_platform == 'win32'
+triton; sys_platform == 'linux'
 pycocotools
 timm
 opencv-python==4.10.0.84
@@ -11,3 +12,4 @@ scikit-learn
 psutil
 requests
 utils
+setuptools<82
