@@ -134,6 +134,6 @@ python main.py
 
 ## Documentation
 
-[Cliquer pour voir la documentation utilisateur.](./utilisateur/index.md)
+[Cliquer pour voir la documentation utilisateur.](./Utilisateur/)
 
 [Cliquer pour voir la documentation technique](./technique/index.md)
