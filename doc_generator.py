@@ -1,7 +1,7 @@
 from pathlib import Path
 
 ROOT = Path(".")  # racine projet
-DOCS = Path("documentation/Technique/")  # dossier mkdocs
+DOCS = Path("documentation/technique/")  # dossier mkdocs
 
 
 def to_module(root: Path, file: Path) -> str:
