@@ -6,17 +6,12 @@ on:
   pull_request:
 
 jobs:
-  test_and_doc:
+  test:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write  # Requis pour push les .md générés
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          # Permet de push correctement les modifications sur la branche
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -27,53 +22,67 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
-          pip install pytest pytest-html pytest-cov mkdocs mkdocs-material # Ajoutez vos plugins mkdocs si nécessaire
+          pip install pytest pytest-html pytest-cov
 
-      # ÉTAPE 1 : On génère d'abord les fichiers de doc .md et le sommaire
-      - name: Generate Documentation Files
-        run: |
-          python generate_docs.py
-
-      # ÉTAPE 2 : On sauvegarde ces fichiers sur le dépôt si nécessaire
-      - name: Commit and Push generated docs
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          git config --local user.email "github-actions[bot]@users.noreply.github.com"
-          git config --local user.name "github-actions[bot]"
-          git add documentation/technique/
-          git commit -m "chore: auto-generate technical documentation" || echo "No changes to commit"
-          git push || echo "No changes to push"
-
-      # ÉTAPE 3 : On lance les tests
-      - name: Run tests with pytest
+      - name: Run tests with pytest (compatible unittest)
         run: |
           pytest tests/ -v --html=test_report.html --self-contained-html --cov=. --cov-report=html:coverage_html
 
-      # ÉTAPE 4 : MkDocs build (il trouvera enfin vos fichiers générés !)
-      - name: Generate Documentation (MkDocs)
+      - name: Generate Documentation
         run: |
           mkdocs build
 
-      # ÉTAPE 5 : Préparation du dossier final pour GitHub Pages
       - name: Prepare GitHub Pages
         run: |
           mkdir -p gh_pages
-          # Attention : si votre mkdocs build génère dans 'site/', copiez 'site/*'
-          # Si vous copiez directement les sources, laissez docs/
-          cp -r site/* gh_pages/ 2>/dev/null || cp -r docs/* gh_pages/ 
+          cp -r docs/* gh_pages/
           mkdir -p gh_pages/coverage
           cp -r coverage_html/* gh_pages/coverage/
           cp test_report.html gh_pages/tests.html
 
-      # ÉTAPE 6 : Upload de l'artefact pour le déploiement
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
           path: ./gh_pages
 
+  generate_doc:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write  # Requis pour pouvoir push la doc générée sur le dépôt
+      pages: write
+      id-token: write
+    
+    steps:
+      # 1. Récupère le code source du projet
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. Installe Python sur la machine virtuelle
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12' # Ajustez la version selon vos besoins
+
+      # 3. Lance votre script de génération de fichiers .md et du sommaire
+      - name: Generate Documentation Files
+        working-directory: .
+        run: |
+          python doc_generator.py
+
+      # 4. Enregistre et push les changements s'il y a de nouveaux fichiers .md
+      - name: Commit and Push generated docs
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add documentation/technique/
+          
+          # Le "|| exit 0" évite que le workflow plante s'il n'y a aucun nouveau fichier à commit
+          git commit -m "chore: auto-generate technical documentation" || exit 0
+          git push
+
   deploy:
-    needs: test_and_doc  # Corrigé : c'est "needs" avec un "s"
+    need: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     permissions:
