@@ -30,6 +30,7 @@
 - [Manager](database/faiss_manager/manager.md)
 #### Classes des Sqlites
 
+- [Init](database/sqlite/init.md)
 - [Manager](database/sqlite/manager.md)
 ### Ui
 
@@ -91,13 +92,13 @@
 - [Menumodel](ui/MenuBar/MenuModel.md)
 #### Classes des Utils
 
-- [Colored Icon](ui/utils/colored_icon.md)
 - [Flowlayout](ui/utils/FlowLayout.md)
-- [I18n](ui/utils/i18n.md)
 - [Justifiedgallerylayout](ui/utils/JustifiedGalleryLayout.md)
 - [Responsiveimagelabel](ui/utils/ResponsiveImageLabel.md)
-- [Result Painter](ui/utils/result_painter.md)
 - [Timer](ui/utils/Timer.md)
+- [Colored Icon](ui/utils/colored_icon.md)
+- [I18n](ui/utils/i18n.md)
+- [Result Painter](ui/utils/result_painter.md)
 #### Classes des Widgets exports
 
 - [Export](ui/widgets/Export/Export.md)
@@ -110,9 +111,6 @@
 
 - [Advancedimportdialog](ui/widgets/Import/AdvancedImportDialog.md)
 - [Datasetconfigdatatype](ui/widgets/Import/DatasetConfigDataType.md)
-- [Import Result](ui/widgets/Import/import_result.md)
-- [Import Runner](ui/widgets/Import/import_runner.md)
-- [Import Service](ui/widgets/Import/import_service.md)
 #### Classes des Widgets import withdatasets
 
 - [Datasettype](ui/widgets/Import/WithDataset/DatasetType.md)
@@ -125,6 +123,11 @@
 - [Withoutdatasetmodel](ui/widgets/Import/WithoutDataset/WithoutDatasetModel.md)
 - [Withoutdatasettype](ui/widgets/Import/WithoutDataset/WithoutDatasetType.md)
 - [Withoutdatasetview](ui/widgets/Import/WithoutDataset/WithoutDatasetView.md)
+#### Classes des Widgets imports
+
+- [Import Result](ui/widgets/Import/import_result.md)
+- [Import Runner](ui/widgets/Import/import_runner.md)
+- [Import Service](ui/widgets/Import/import_service.md)
 #### Classes des Widgets weightscalculators
 
 - [Weightscalculatorcontroller](ui/widgets/WeightsCalculator/WeightsCalculatorController.md)
@@ -134,6 +137,6 @@
 
 - [Imageprocessor](vision/ImageProcessor.md)
 - [Modelloaderworker](vision/ModelLoaderWorker.md)
+- [Sam3asyncmanager](vision/SAM3AsyncManager.md)
 - [Ollama Wrapper](vision/ollama_wrapper.md)
 - [Sam3 Worker Process](vision/sam3_worker_process.md)
-- [Sam3asyncmanager](vision/SAM3AsyncManager.md)
