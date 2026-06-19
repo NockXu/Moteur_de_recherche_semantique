@@ -82,7 +82,7 @@ jobs:
           git push
 
   deploy:
-    need: test
+    needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     permissions:
