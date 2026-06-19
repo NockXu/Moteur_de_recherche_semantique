@@ -37,48 +37,41 @@ class test_ImageProcessor(unittest.TestCase):
         self.prompt = """Analyse cette image et produis deux sorties distinctes optimisées pour la recherche sémantique.
 
 Objectif :
-- Une description riche et précise
-- Une liste de mots-clés simples et exploitables
-
----
+- Une description courte et précise
+- Une liste de mots-clés simples et exploitables et courte
 
 1. DESCRIPTION :
 
-Génère une description complète, structurée et optimisée pour un embedding.
+Décris uniquement les éléments les plus importants de l'image :
+1. Sujet principal.
+2. Action ou texte visible.
+3. Contexte.
+4. Attributs visuels essentiels.
 
-Instructions :
-- Décris les objets principaux (type, forme, taille relative, position, texte visible)
-- Explique les actions ou interactions visibles ou le texte
-- Précise les attributs visuels (couleurs, textures, matériaux, état)
-- Décris l’environnement (intérieur/extérieur, contexte, type de lieu)
-- Ajoute les détails secondaires utiles (arrière-plan, éclairage, ambiance, angle de vue)
-- Ajoute des concepts implicites pertinents (ex : travail, loisir, transport, vacances)
+Si la limite de mots est atteinte, ignore les éléments de priorité inférieure.
+
+Ignore les détails mineurs, l'arrière-plan non pertinent et toute supposition.
 
 Contraintes :
-- Phrases complètes uniquement
-- Texte fluide (pas de liste)
-- Factuel, sans supposition incertaine
-- Entre 100 et 200 mots
-
----
+- 1 à 2 phrases.
+- 15 à 25 mots maximum.
+- Factuel et concis.
 
 2. KEYWORDS :
 
 Génère une liste de mots-clés simples et variés.
 
 Règles STRICTES :
-- Chaque mot-clé est UNIQUE
-- Un seul mot par mot-clé (pas d’expressions)
-- Mots simples uniquement (ex : "rock", pas "groupe de rock")
-- Entre 10 et 20 mots-clés
-- Séparés par des virgules
-
----
+- 5 à 8 mots-clés.
+- Un seul mot par mot-clé.
+- Tous différents.
+- Les plus discriminants uniquement.
+- Séparés par des virgules.
 
 FORMAT DE SORTIE OBLIGATOIRE :
 
 DESCRIPTION:
-[paragraphe]
+[texte]
 
 KEYWORDS:
 mot1, mot2, mot3, mot4"""
@@ -86,7 +79,8 @@ mot1, mot2, mot3, mot4"""
     def test_ImageToData(self):
         # Test avec description et keywords
         self.ollama.add_response(self.prompt,
-                response="""DESCRIPTION:
+                response="""
+                DESCRIPTION:
                 test_response
 
                 KEYWORDS:
