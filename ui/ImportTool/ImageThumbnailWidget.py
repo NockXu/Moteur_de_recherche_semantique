@@ -62,7 +62,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         self._status: ProcessingStatus = status
 
     @property
-    def aspect_ratio(self):
+    def aspect_ratio(self) -> float:
         """Fetch the original picture proportional aspect metric.
 
         Returns:
@@ -72,7 +72,7 @@ class ImageThumbnailWidget(BaseImageThumbnailWidget):
         return self._image.aspect_ratio
 
     @property
-    def is_loaded(self):
+    def is_loaded(self) -> bool:
         """Check if pixel arrays are available in system memory.
 
         Returns:

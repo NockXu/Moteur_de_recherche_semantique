@@ -195,25 +195,28 @@ class WeightSystem:
 
     The expression is evaluated with the following variables:
 
-    Args:
-        prev (float):
-            Weight of the previous (parent) node.
-        sim (float):
-            Cosine similarity between the current vector and the previous one.
-        p (int):
-            Position index of the current vector (root = 0).
-        const (float):
-            Constant value provided externally.
-
-    Notes:
-        The expression is evaluated dynamically and must use only the variables above.
-
+    Attributes:
+        expr (str): The string expression to be evaluated dynamically.
     """
 
     def __init__(self, expr: str):
         self.expr = expr
 
     def __call__(self, prev: float, sim: float, p: int, const: float) -> float:
+        """Evaluate the weight expression with the given runtime variables.
+
+        Args:
+            prev (float): Weight of the previous (parent) node.
+            sim (float): Cosine similarity between the current vector and the previous one.
+            p (int): Position index of the current vector (root = 0).
+            const (float): Constant value provided externally.
+
+        Returns:
+            float: The evaluated weight result.
+
+        Notes:
+            The expression is evaluated dynamically and must use only the variables above.
+        """
         return eval(
             self.expr,
             {"__builtins__": {}},

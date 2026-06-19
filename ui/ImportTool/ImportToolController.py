@@ -391,7 +391,7 @@ class ImportToolController(QObject):
         if folder:
             self._handle_folder_selection(folder)
 
-    def get_view(self):
+    def get_view(self) -> ImportToolView:
         """Fetch the tracking UI dashboard layer instance.
 
         Returns:
@@ -400,7 +400,7 @@ class ImportToolController(QObject):
         """
         return self.view
 
-    def get_model(self):
+    def get_model(self) -> ImportToolModel:
         """Fetch the runtime model context tracker instance.
 
         Returns:

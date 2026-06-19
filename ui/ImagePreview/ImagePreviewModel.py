@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Optional, List, Dict
+from typing import Any, Optional, List, Dict
 
 # Ajouter la racine du projet au sys.path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -74,7 +74,7 @@ class ImagePreviewModel:
     # UPDATE IMAGE
     # ─────────────────────────────
 
-    def update(self, **kwargs):
+    def update(self, **kwargs : Any) -> bool:
         """Modifies attributes matching keys directly on the focused active model layout target.
 
         Args:

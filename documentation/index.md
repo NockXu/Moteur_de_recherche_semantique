@@ -6,9 +6,9 @@
   - [Sommaire](#sommaire)
   - [Description du projet](#description-du-projet)
   - [Installation](#installation)
-    - [Prérequis](#prérequis)
+    - [Prerequis](#prerequis)
     - [Exemple d'environement avec conda](#exemple-denvironement-avec-conda)
-    - [Récupérer le dépot github](#récupérer-le-dépot-github)
+    - [Recuperer le depot github](#recuperer-le-depot-github)
     - [Etape d'installation](#etape-dinstallation)
   - [Lancer le programme](#lancer-le-programme)
   - [Documentation](#documentation)
@@ -27,7 +27,7 @@ Enfin, une fonctionnalité de segmentation d'images basée sur le modèle [SAM3]
 
 Avant toute chose, je vous recommande d'utiliser un environnement Python dédié. En effet, les versions des bibliothèques utilisées dans ce projet ne correspondent pas nécessairement aux dernières versions disponibles. Utiliser un environnement virtuel permet donc d'éviter d'avoir à modifier régulièrement les versions de vos dépendances installées. Cela garantit une meilleure compatibilité lors de l'installation et de l'exécution du projet.
 
-### Prérequis
+### Prerequis
 
 - Python 3.12 ou version supérieure (les développements et les tests ont été réalisés avec Python 3.12.13).
 - Une carte graphique compatible CUDA (pour l'utilisation de GPU)
@@ -47,7 +47,7 @@ conda activate MoteurRechercheSementique
 
 [Lien vers l'installation de miniconda](https://www.anaconda.com/docs/getting-started/miniconda/install/overview)
 
-### Récupérer le dépot github
+### Recuperer le depot github
 
 ```powershell
 git clone https://github.com/NockXu/Moteur_de_recherche_semantique.git

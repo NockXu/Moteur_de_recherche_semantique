@@ -17,11 +17,9 @@ class SearchResults(TypedDict):
     This structure contains the retrieved images and the number
     of results requested (k).
 
-    Args:
-        images (List[Image]):
-            List of retrieved images.
-        k (int):
-            Number of results requested.
+    Attributes:
+        images (list[Image]): List of retrieved images.
+        k (int): Number of results requested.
 
     """
 

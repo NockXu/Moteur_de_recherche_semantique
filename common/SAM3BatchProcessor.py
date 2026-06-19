@@ -1,6 +1,6 @@
 import sys
 import os
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import matplotlib.pyplot as plt
 import torch
 from PIL import Image as PILImage
@@ -125,7 +125,7 @@ class SAM3BatchProcessor:
     # DATAPOINT
     # =========================================================
 
-    def create_datapoint(self):
+    def create_datapoint(self) -> 'Datapoint':
         """Instantiate an empty placeholder Datapoint structure.
 
         Returns:
@@ -278,8 +278,8 @@ class SAM3BatchProcessor:
 
     def process(
         self,
-        datapoints: list[Datapoint],
-    ):
+        datapoints: list['Datapoint'],
+    ) -> dict[str, Any]:
         """Execute raw model forward pass inference steps across a collection of Datapoints.
 
         Args:
@@ -328,7 +328,7 @@ class SAM3BatchProcessor:
     # MERGE
     # =========================================================
 
-    def normalize_masks(self, m):
+    def normalize_masks(self, m : torch.Tensor) -> torch.Tensor | None:
         """Sanitize raw output masks to guarantee a 3-dimensional tensor layout.
 
         Args:
@@ -352,7 +352,7 @@ class SAM3BatchProcessor:
 
         return m
 
-    def merge_sam3_results(self, processed_results):
+    def merge_sam3_results(self, processed_results: List[dict]) -> Dict[str, Optional[torch.Tensor]] :
         """Concatenate detached batch inference evaluation outputs into shared array maps.
 
         Args:
@@ -446,7 +446,7 @@ class SAM3BatchProcessor:
     def merge_to_single_object(
         self,
         processed_results: dict[int, dict[str, Any]]
-    ):
+    ) -> dict[str, torch.Tensor | None]:
         """Condense scattered multiple target results into an isolated single item representation.
 
         Args:
@@ -554,7 +554,7 @@ class SAM3BatchProcessor:
         self,
         image_path: str,
         prompts: list[dict],
-    ):
+    ) -> list[dict[str, Any]]:
         """Run SAM3 once with all prompts inside a single Datapoint, then split + filter per prompt after inference.
 
         Args:

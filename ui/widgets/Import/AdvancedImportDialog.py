@@ -238,7 +238,7 @@ class AdvancedImportDialog(QDialog):
     # -------------------------
     # VALIDATION
     # -------------------------
-    def validate(self):
+    def validate(self) -> bool:
         """Verify the integrity parameters of selection parameters and subcomponent configurations.
 
         Returns:

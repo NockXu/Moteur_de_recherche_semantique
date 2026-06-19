@@ -93,6 +93,8 @@ class ImportToolView(QWidget):
 
     """
 
+    from ui.ImportTool.ImportToolModel import ImportToolModel
+
     folder_selected = pyqtSignal(str)
     start_processing_requested = pyqtSignal()
     stop_processing_requested = pyqtSignal()
@@ -567,7 +569,7 @@ class ImportToolView(QWidget):
     # Model injection
     # ─────────────────────────────────────────────
 
-    def set_model(self, model):
+    def set_model(self, model : ImportToolModel) -> None:
         """Inject an application model structure instance to link with data transformations.
 
         Args:
@@ -577,7 +579,7 @@ class ImportToolView(QWidget):
         """
         self.model = model
 
-    def get_model(self):
+    def get_model(self) -> ImportToolModel:
         """Fetch the injected model instance bound to this view context.
 
         Returns:

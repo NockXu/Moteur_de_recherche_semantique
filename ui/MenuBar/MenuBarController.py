@@ -36,8 +36,8 @@ class MenuBarController(QObject):
     - Controller: MenuBarController (business logic)
     
     Args:
-            parent (QWidget, optional):
-                The parent widget for the menu bar layout hierarchy. Defaults to None.
+        parent (QWidget, optional):
+            The parent widget for the menu bar layout hierarchy. Defaults to None.
 
     """
     

@@ -327,7 +327,7 @@ class WithoutDatasetView(QWidget):
 
     # ---------------- DATA ----------------
 
-    def get_mode(self):
+    def get_mode(self) -> str:
         """Fetch the active functional categorization indicator set inside the interface views.
 
         Returns:

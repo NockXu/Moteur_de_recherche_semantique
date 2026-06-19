@@ -252,7 +252,7 @@ class Tree:
         """
         return f"""node: {self.node}"""
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         """Generate a unique hash for the tree instance based on its memory identity.
 
         Returns:

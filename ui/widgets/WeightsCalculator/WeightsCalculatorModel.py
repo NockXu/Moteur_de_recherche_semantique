@@ -1,5 +1,7 @@
+from numpy import ndarray
+
 from common.WeightCalculator import *
-from typing import Optional
+from typing import Any, Optional
 from matplotlib.backends.backend_qt5agg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.figure import Figure
 
@@ -67,20 +69,20 @@ class WeightsCalculatorModel:
         """
         self.dim = dim
 
-    def get_vects(self):
+    def get_vects(self) -> list[ndarray]:
         """Generate clustered coordinate point distributions via structural baseline helpers.
 
         Returns:
-            Any: A collection of structurally clustered tracking vectors matching active configuration settings.
+            A collection of structurally clustered tracking vectors matching active configuration settings.
 
         """
         return WeightFunction.generate_clustered_vects(self.n_vects, self.dim)
     
-    def get_vects_rand(self):
+    def get_vects_rand(self) -> list[ndarray]:
         """Generate uniform random spatial distribution vector rows.
 
         Returns:
-            Any: A collections layer sequence holding unclustered random vector metrics.
+            A collections layer sequence holding unclustered random vector metrics.
 
         """
         return WeightFunction.generate_random_vects(self.n_vects, self.dim)  

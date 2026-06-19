@@ -290,12 +290,12 @@ class BatchProcessingManager:
             self.current_worker = None
         worker.deleteLater()
 
-    def stop_current_processing(self, wait: bool = False):
+    def stop_current_processing(self, wait: bool = False) -> None:
         """Clean up the internal reference and memory footprint of a finished worker.
 
         Args:
-            worker (ProcessingWorker):
-                The worker instance to discard.
+            wait (bool):
+                bool that decide if we need to stop the current process
 
         """
         if self.current_worker and self.current_worker.isRunning():

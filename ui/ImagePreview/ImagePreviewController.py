@@ -1,5 +1,5 @@
 from PyQt6.QtCore import QObject, pyqtSignal
-from typing import Optional, List
+from typing import Any, Optional, List
 
 from ui.ImagePreview.ImagePreviewView import ImagePreviewView
 from ui.ImagePreview.ImagePreviewModel import ImagePreviewModel
@@ -87,7 +87,7 @@ class ImagePreviewController(QObject):
     # UPDATE IMAGE (MODEL ONLY)
     # ─────────────────────────────
 
-    def update_current(self, **kwargs) -> bool:
+    def update_current(self, **kwargs : Any) -> bool:
         """Overrides properties on the live target image and triggers layout redrawing updates.
 
         Args:

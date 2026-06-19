@@ -14,7 +14,7 @@ from ui.utils.i18n import tr
 class BoxRow(QWidget):
     """Widget representing a single selection box row entry within the scroll viewport list.
 
-    Displays a layout combination containing: [color indicator] [coordinates text] [toggle button] [delete button].
+    Displays a layout combination containing: **color indicator**, **coordinates text**, **toggle button**, and **delete button**.
 
     Args:
         box_index (int): Unique incremental ID associated with the corresponding image box overlay.
