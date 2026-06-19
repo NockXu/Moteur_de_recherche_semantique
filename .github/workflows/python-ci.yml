@@ -7,6 +7,7 @@ on:
 
 jobs:
   test:
+    needs: generate_doc
     runs-on: ubuntu-latest
 
     steps:
@@ -82,7 +83,9 @@ jobs:
           git push
 
   deploy:
-    needs: test
+    needs: 
+      - test
+      - generate_doc
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     
     permissions:
