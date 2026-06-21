@@ -694,5 +694,9 @@
     "Ouvrir les préférences de l'application": {
         "fr": "Ouvrir les préférences de l'application",
         "en": "Open the application preferences"
+    },
+    "Évolution du Poids selon la génération": {
+        "fr": "Évolution du Poids selon la génération",
+        "en": "Evolution of the weight according to the generation"
     }
 }

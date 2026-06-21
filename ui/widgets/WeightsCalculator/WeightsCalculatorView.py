@@ -121,7 +121,7 @@ class WeightCalculatorView(QWidget):
         ax.plot(avg_weights, label=tr("Cluster"))
         ax.plot(avg_rand, label=tr("Random"))
 
-        ax.set_title(tr("Evolution du Poid selon la génération"))
+        ax.set_title(tr("Évolution du Poids selon la génération"))
         ax.set_xlabel(tr("Génération"))
         ax.set_ylabel(tr("Poid"))
         ax.legend()
